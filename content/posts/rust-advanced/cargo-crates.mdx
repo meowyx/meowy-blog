@@ -1,0 +1,617 @@
+---
+title: More About Cargo and Crates.io in Rust
+date: 2025-12-27
+category: rust-advanced
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+This chapter is a bit different from the previous ones, it's less about writing Rust code and more about the **ecosystem and tooling** around Rust. You'll learn how to customize your builds, document your code professionally, organize large projects, and even share your work with the world by publishing to crates.io.
+
+Let me walk you through each topic in depth.
+
+---
+
+## 1. Release Profiles: Customizing How Your Code Gets Built
+
+When you run `cargo build` or `cargo run`, Cargo compiles your code using a **profile**. A profile is just a collection of settings that control how the compiler behaves.
+
+Cargo has two built-in profiles:
+
+| Profile | Command | Purpose |
+|---------|---------|---------|
+| `dev` | `cargo build` | Fast compilation, no optimizations, good for development |
+| `release` | `cargo build --release` | Slower compilation, heavy optimizations, good for production |
+
+### Why Does This Matter?
+
+During development, you want your code to compile **fast** so you can iterate quickly. You don't care if the resulting program runs a bit slower.
+
+When you ship your code to users, you want the program to run as **fast as possible**, even if compilation takes longer.
+
+### Default Settings
+
+The `dev` profile has optimizations turned off (level 0), while `release` cranks them up to level 3:
+
+```toml
+# These are the defaults (you don't need to write this)
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+```
+
+The `opt-level` setting goes from 0 to 3:
+- **0**: No optimization. Compile fast, run slow.
+- **1**: Basic optimizations.
+- **2**: More optimizations.
+- **3**: All optimizations. Compile slow, run fast.
+
+### Customizing Profiles
+
+You can override these defaults in your `Cargo.toml`. Say you're working on a game and even during development, you need decent performance to test gameplay:
+
+```toml
+[profile.dev]
+opt-level = 1
+```
+
+Now `cargo build` will apply basic optimizations while still keeping compile times reasonable.
+
+Or maybe you're building a library and want to balance between compile time and runtime speed for releases:
+
+```toml
+[profile.release]
+opt-level = 2
+```
+
+### Other Profile Settings
+
+Beyond `opt-level`, there are other settings you can tweak:
+
+```toml
+[profile.release]
+opt-level = 3
+debug = false        # Whether to include debug symbols
+overflow-checks = false  # Whether to check for integer overflow
+lto = true           # Link-time optimization (even more optimization, even slower compile)
+```
+
+For now, just know these exist. The most commonly adjusted setting is `opt-level`.
+
+---
+
+## 2. Documentation Comments: Making Your Code Self-Documenting
+
+Rust has a powerful built-in documentation system. You write special comments in your code, and Cargo can generate beautiful HTML documentation from them.
+
+### Regular Comments vs Documentation Comments
+
+You already know regular comments:
+
+```rust
+// This is a regular comment
+// It's for you and other developers reading the source code
+```
+
+**Documentation comments** are different, they're meant to explain **how to use** your code to people who might not read the source:
+
+```rust
+/// This is a documentation comment.
+/// It describes what the function/struct/module does.
+/// Cargo can turn these into HTML pages.
+```
+
+Notice the **triple slash** `///` instead of double `//`.
+
+### Writing Good Documentation
+
+Let's say you're building a temperature conversion library:
+
+```rust
+/// Converts a temperature from Celsius to Fahrenheit.
+///
+/// This function takes a temperature value in Celsius and returns
+/// the equivalent temperature in Fahrenheit using the standard
+/// conversion formula.
+///
+/// # Arguments
+///
+/// * `celsius` - The temperature in Celsius to convert
+///
+/// # Returns
+///
+/// The temperature converted to Fahrenheit as a floating-point number.
+///
+/// # Examples
+///
+/// ```
+/// let freezing = temperature::celsius_to_fahrenheit(0.0);
+/// assert_eq!(freezing, 32.0);
+///
+/// let boiling = temperature::celsius_to_fahrenheit(100.0);
+/// assert_eq!(boiling, 212.0);
+/// ```
+pub fn celsius_to_fahrenheit(celsius: f64) -> f64 {
+    (celsius * 9.0 / 5.0) + 32.0
+}
+```
+
+### Common Documentation Sections
+
+You'll notice I used headers like `# Arguments` and `# Examples`. These are conventions in the Rust community:
+
+| Section | Purpose |
+|---------|---------|
+| `# Examples` | Show how to use this code |
+| `# Arguments` | Describe each parameter |
+| `# Returns` | Describe what gets returned |
+| `# Panics` | Describe conditions that cause panic |
+| `# Errors` | Describe error conditions (for Result-returning functions) |
+| `# Safety` | For unsafe functions, explain requirements |
+
+You don't need all sections for every function, use what makes sense.
+
+### Documentation Tests
+
+Here's something magical: **code in your `# Examples` section actually gets tested!**
+
+When you run `cargo test`, Rust compiles and runs the code blocks in your documentation. If the examples don't work, your tests fail.
+
+This ensures your documentation never gets out of sync with your code. If you change the function and forget to update the examples, you'll get a test failure.
+
+```rust
+/// Divides two numbers.
+///
+/// # Examples
+///
+/// ```
+/// let result = mymath::divide(10.0, 2.0);
+/// assert_eq!(result, 5.0);
+/// ```
+///
+/// # Panics
+///
+/// Panics if the divisor is zero.
+///
+/// ```should_panic
+/// mymath::divide(10.0, 0.0); // This will panic!
+/// ```
+pub fn divide(a: f64, b: f64) -> f64 {
+    if b == 0.0 {
+        panic!("Cannot divide by zero!");
+    }
+    a / b
+}
+```
+
+Notice `should_panic` after the code fence, this tells the test runner that this example is *supposed* to panic.
+
+### Generating Documentation
+
+To generate HTML documentation for your project:
+
+```bash
+cargo doc
+```
+
+This creates documentation in `target/doc/`. To build and immediately open it in your browser:
+
+```bash
+cargo doc --open
+```
+
+### Documenting Modules and Crates
+
+For documenting an entire module or your crate as a whole, use `//!` (note the exclamation mark):
+
+```rust
+//! # Temperature Conversion Library
+//!
+//! This crate provides utilities for converting between different
+//! temperature scales including Celsius, Fahrenheit, and Kelvin.
+//!
+//! ## Quick Start
+//!
+//! ```
+//! use temperature::{celsius_to_fahrenheit, fahrenheit_to_celsius};
+//!
+//! let f = celsius_to_fahrenheit(25.0);
+//! println!("25°C is {}°F", f);
+//! ```
+
+/// Converts Celsius to Fahrenheit.
+pub fn celsius_to_fahrenheit(celsius: f64) -> f64 {
+    (celsius * 9.0 / 5.0) + 32.0
+}
+
+/// Converts Fahrenheit to Celsius.
+pub fn fahrenheit_to_celsius(fahrenheit: f64) -> f64 {
+    (fahrenheit - 32.0) * 5.0 / 9.0
+}
+```
+
+The `//!` comments describe the **item that contains them** (the module or crate), while `///` describes the **item that follows**.
+
+---
+
+## 3. Exporting a Convenient Public API with `pub use`
+
+When you organize code into modules, the structure that makes sense for development might not be convenient for users of your library.
+
+### The Problem
+
+Imagine you have a geometry library organized like this:
+
+```
+src/
+├── lib.rs
+├── shapes/
+│   ├── mod.rs
+│   ├── circle.rs
+│   └── rectangle.rs
+└── calculations/
+    ├── mod.rs
+    ├── area.rs
+    └── perimeter.rs
+```
+
+Your users would have to write:
+
+```rust
+use geometry::shapes::circle::Circle;
+use geometry::shapes::rectangle::Rectangle;
+use geometry::calculations::area::calculate_area;
+```
+
+That's verbose and exposes your internal organization.
+
+### The Solution: Re-exporting with `pub use`
+
+In your `lib.rs`, you can **re-export** items to create a flatter, more convenient API:
+
+```rust
+//! # Geometry Library
+//!
+//! Simple geometric shapes and calculations.
+
+// Internal module structure
+mod shapes;
+mod calculations;
+
+// Re-export for convenient access
+pub use shapes::circle::Circle;
+pub use shapes::rectangle::Rectangle;
+pub use calculations::area::calculate_area;
+pub use calculations::perimeter::calculate_perimeter;
+```
+
+Now users can simply write:
+
+```rust
+use geometry::Circle;
+use geometry::Rectangle;
+use geometry::calculate_area;
+
+// Or even simpler:
+use geometry::{Circle, Rectangle, calculate_area};
+```
+
+The internal structure is hidden. You can reorganize your code later without breaking anyone's code.
+
+### Grouping Re-exports
+
+You can also create logical groupings:
+
+```rust
+// In lib.rs
+pub mod shapes {
+    pub use crate::internal_shapes::circle::Circle;
+    pub use crate::internal_shapes::rectangle::Rectangle;
+    pub use crate::internal_shapes::triangle::Triangle;
+}
+
+pub mod math {
+    pub use crate::calculations::area::calculate_area;
+    pub use crate::calculations::perimeter::calculate_perimeter;
+}
+```
+
+Users see a clean API:
+
+```rust
+use geometry::shapes::{Circle, Rectangle};
+use geometry::math::calculate_area;
+```
+
+---
+
+## 4. Setting Up a Crates.io Account
+
+If you want to publish crates (Rust packages) for others to use, you need a crates.io account.
+
+### Steps to Get Started
+
+1. **Create an account**: Go to crates.io and log in with your GitHub account.
+
+2. **Get your API token**: Once logged in, go to Account Settings → API Tokens and generate a new token.
+
+3. **Log in from the command line**:
+   ```bash
+   cargo login your-api-token-here
+   ```
+
+This saves your token locally so you can publish crates.
+
+---
+
+## 5. Metadata for Publishing
+
+Before publishing, your `Cargo.toml` needs certain information:
+
+```toml
+[package]
+name = "temperature-utils"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <you@example.com>"]
+description = "A simple library for temperature conversions"
+license = "MIT"
+repository = "https://github.com/yourusername/temperature-utils"
+keywords = ["temperature", "conversion", "celsius", "fahrenheit"]
+categories = ["science"]
+readme = "README.md"
+```
+
+### Required Fields for Publishing
+
+| Field | Purpose |
+|-------|---------|
+| `name` | The crate name (must be unique on crates.io) |
+| `version` | Semantic version (major.minor.patch) |
+| `license` | License identifier (MIT, Apache-2.0, etc.) |
+| `description` | Brief description of what the crate does |
+
+### Semantic Versioning
+
+Rust follows semantic versioning (semver):
+
+- **MAJOR** (1.0.0 → 2.0.0): Breaking changes
+- **MINOR** (1.0.0 → 1.1.0): New features, backwards compatible
+- **PATCH** (1.0.0 → 1.0.1): Bug fixes, backwards compatible
+
+Before 1.0.0, your API is considered unstable. Many crates stay at 0.x.y for a long time.
+
+---
+
+## 6. Publishing to Crates.io
+
+Once your metadata is ready:
+
+```bash
+cargo publish
+```
+
+This uploads your crate to crates.io. It's now available for anyone to use with:
+
+```toml
+[dependencies]
+temperature-utils = "0.1.0"
+```
+
+### Important Notes About Publishing
+
+1. **Publishing is permanent**: You cannot delete a published version. Think carefully before publishing.
+
+2. **You can publish new versions**: Just update the version number and run `cargo publish` again.
+
+3. **You can "yank" versions**: If a version has a critical bug, you can yank it:
+   ```bash
+   cargo yank --vers 0.1.0
+   ```
+   This prevents new projects from depending on it but doesn't break existing projects.
+
+4. **To undo a yank**:
+   ```bash
+   cargo yank --vers 0.1.0 --undo
+   ```
+
+---
+
+## 7. Cargo Workspaces: Managing Multiple Related Packages
+
+As projects grow, you might want to split them into multiple packages that work together. A **workspace** is a set of packages that share the same `Cargo.lock` and output directory.
+
+### Why Use Workspaces?
+
+Imagine you're building a web application with:
+- A core library with business logic
+- A command-line tool
+- A web server
+- Shared utilities
+
+Without workspaces, you'd have separate projects with their own dependencies. Workspaces let you:
+- Share dependencies (compile once, use everywhere)
+- Keep related packages in sync
+- Build everything together
+
+### Creating a Workspace
+
+Create a directory structure like this:
+
+```
+my-project/
+├── Cargo.toml          # Workspace root
+├── core/               # Core library
+│   ├── Cargo.toml
+│   └── src/
+│       └── lib.rs
+├── cli/                # Command-line tool
+│   ├── Cargo.toml
+│   └── src/
+│       └── main.rs
+└── server/             # Web server
+    ├── Cargo.toml
+    └── src/
+        └── main.rs
+```
+
+The **root** `Cargo.toml` defines the workspace:
+
+```toml
+[workspace]
+members = [
+    "core",
+    "cli",
+    "server",
+]
+```
+
+Notice: No `[package]` section! The root is just a workspace definition.
+
+### Package Cargo.toml Files
+
+Each member has its own `Cargo.toml`:
+
+**core/Cargo.toml:**
+```toml
+[package]
+name = "myproject-core"
+version = "0.1.0"
+edition = "2021"
+```
+
+**cli/Cargo.toml:**
+```toml
+[package]
+name = "myproject-cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+myproject-core = { path = "../core" }
+```
+
+**server/Cargo.toml:**
+```toml
+[package]
+name = "myproject-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+myproject-core = { path = "../core" }
+```
+
+Notice how `cli` and `server` depend on `core` using a **path dependency**.
+
+### Working with Workspaces
+
+From the workspace root, you can:
+
+```bash
+# Build everything
+cargo build
+
+# Build a specific package
+cargo build -p myproject-cli
+
+# Run a specific binary
+cargo run -p myproject-cli
+
+# Test everything
+cargo test
+
+# Test a specific package
+cargo test -p myproject-core
+```
+
+### Shared Dependencies
+
+If multiple packages use the same external dependency, add it to each package's `Cargo.toml`. The workspace ensures they all use the **same version** (tracked in the shared `Cargo.lock`).
+
+You can also define workspace-wide dependencies:
+
+**Root Cargo.toml:**
+```toml
+[workspace]
+members = ["core", "cli", "server"]
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.0", features = ["full"] }
+```
+
+**In member Cargo.toml:**
+```toml
+[dependencies]
+serde = { workspace = true }
+tokio = { workspace = true }
+```
+
+This keeps versions consistent across all packages.
+
+---
+
+## 8. Installing Binaries with `cargo install`
+
+Crates.io hosts not just libraries but also command-line tools. You can install them directly:
+
+```bash
+cargo install ripgrep
+```
+
+This downloads, compiles, and installs `ripgrep` (a fast grep alternative) to `~/.cargo/bin/`.
+
+Make sure `~/.cargo/bin` is in your PATH so you can run installed tools.
+
+### Common Tools to Install
+
+Some popular Rust tools you might find useful:
+
+```bash
+cargo install cargo-watch    # Auto-rebuild on file changes
+cargo install cargo-edit     # Add/remove dependencies from command line
+cargo install cargo-outdated # Check for outdated dependencies
+```
+
+---
+
+## 9. Extending Cargo with Custom Commands
+
+Here's something neat: if you have a binary named `cargo-something` in your PATH, you can run it as:
+
+```bash
+cargo something
+```
+
+Cargo automatically looks for `cargo-*` binaries and treats them as subcommands.
+
+Many tools use this pattern:
+- `cargo-watch` → `cargo watch`
+- `cargo-edit` → `cargo add`, `cargo rm`
+- `cargo-outdated` → `cargo outdated`
+
+You can even write your own Cargo extensions!
+
+---
+
+## Summary
+
+| Topic | Key Points |
+|-------|------------|
+| **Release Profiles** | `dev` for fast compiles, `release` for fast execution. Customize with `opt-level` |
+| **Documentation** | Use `///` for items, `//!` for modules. Sections: Examples, Arguments, Panics, etc. |
+| **Doc Tests** | Code in `# Examples` runs during `cargo test` |
+| **pub use** | Re-export items to create a convenient public API |
+| **Publishing** | Requires name, version, license, description. Use `cargo publish` |
+| **Workspaces** | Group related packages, share dependencies and Cargo.lock |
+| **cargo install** | Install binary crates globally |
+| **Custom Commands** | `cargo-x` binaries become `cargo x` |
+
+---
+
+This chapter is foundational for participating in the Rust ecosystem. Once you're comfortable with these concepts, you'll be able to share your work with the world and manage larger, more complex projects.
+

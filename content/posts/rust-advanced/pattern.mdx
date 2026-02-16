@@ -1,0 +1,1575 @@
+---
+title: Patterns and Matching in Rust
+date: 2026-01-6
+category: rust-advanced
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+## What Problem Are We Solving?
+
+Before learning any syntax, let's understand *why* patterns exist.
+
+**Real-world situation:** You work at a coffee shop. Customers order drinks, and each drink type needs different preparation:
+
+- If someone orders **espresso** → you use the espresso machine
+- If someone orders **tea** → you boil water and steep
+- If someone orders **iced coffee** → you brew coffee and add ice
+
+You look at the order, identify what type it is, then do the appropriate thing.
+
+**This is exactly what patterns do in Rust.** You have data, you need to:
+1. Figure out what "shape" it is
+2. Do something appropriate based on that shape
+
+---
+
+## The Simplest Pattern: A Variable Name
+
+Let's start with something you write all the time:
+
+```rust
+let age = 25;
+```
+
+Believe it or not, `age` here is a pattern. It's the simplest possible pattern.
+
+**What does it mean?**
+
+The pattern `age` says: "I will accept absolutely any value. Whatever comes, I'll take it and call it `age`."
+
+**Analogy:** Imagine a form with a blank field:
+
+```
+Your age: __________
+```
+
+Whatever number someone writes, the form accepts it. The pattern `age` works the same way: it accepts everything.
+
+---
+
+## Why Would We Need Anything More Complex?
+
+The simple "accept anything" pattern is great, but sometimes you need to be picky.
+
+**Back to our coffee shop:**
+
+```rust
+enum DrinkOrder {
+    Espresso,
+    Tea,
+    IcedCoffee,
+}
+```
+
+If a customer's order comes in, you can't just say "I'll accept anything"; you need to know *which* drink it is so you can prepare it correctly.
+
+This is where `match` comes in:
+
+```rust
+fn prepare_drink(order: DrinkOrder) {
+    match order {
+        DrinkOrder::Espresso => {
+            println!("Using espresso machine...");
+        }
+        DrinkOrder::Tea => {
+            println!("Boiling water and steeping...");
+        }
+        DrinkOrder::IcedCoffee => {
+            println!("Brewing coffee and adding ice...");
+        }
+    }
+}
+```
+
+**Let's read this in plain English:**
+
+- "Look at `order`"
+- "Is it `Espresso`? If yes, use the espresso machine"
+- "Is it `Tea`? If yes, boil water and steep"
+- "Is it `IcedCoffee`? If yes, brew and add ice"
+
+Each line with `DrinkOrder::Something` is a **pattern**. Rust checks them one by one until one matches.
+
+---
+
+## What Does "Match" Mean?
+
+When we say a pattern "matches," we simply mean: **the data fits the shape we described.**
+
+```
+Order that came in          Pattern we're checking       Does it match?
+──────────────────          ──────────────────────       ──────────────
+DrinkOrder::Tea             DrinkOrder::Espresso         ✗ No
+DrinkOrder::Tea             DrinkOrder::Tea              ✓ Yes!
+```
+
+When a pattern matches, Rust runs the code for that arm and stops checking further.
+
+---
+
+## Let's Make It More Interesting: Data Inside Variants
+
+What if some drinks have extra information?
+
+```rust
+enum DrinkOrder {
+    Espresso,
+    Tea { flavor: String },           // Tea has a flavor
+    IcedCoffee { size: String },      // Iced coffee has a size
+}
+```
+
+Now when we match, we can **extract** that information:
+
+```rust
+fn prepare_drink(order: DrinkOrder) {
+    match order {
+        DrinkOrder::Espresso => {
+            println!("Making a standard espresso");
+        }
+        DrinkOrder::Tea { flavor } => {
+            println!("Making {} tea", flavor);
+        }
+        DrinkOrder::IcedCoffee { size } => {
+            println!("Making a {} iced coffee", size);
+        }
+    }
+}
+
+fn main() {
+    let my_order = DrinkOrder::Tea { 
+        flavor: String::from("chamomile") 
+    };
+    
+    prepare_drink(my_order);
+}
+```
+
+**Output:**
+```
+Making chamomile tea
+```
+
+**What happened step by step:**
+
+1. `my_order` is `DrinkOrder::Tea { flavor: "chamomile" }`
+2. Rust checks: Is it `Espresso`? No.
+3. Rust checks: Is it `Tea { flavor }`? Yes!
+4. Rust extracts the flavor (`"chamomile"`) and puts it in the variable `flavor`
+5. The code runs and prints "Making chamomile tea"
+
+**The pattern `DrinkOrder::Tea { flavor }` does two things:**
+- It checks: "Is this a `Tea`?"
+- It extracts: "Give me what's in `flavor` and let me use it"
+
+---
+
+
+## Quick Recap
+
+We learned that a pattern is just **a description of a shape you expect**. Patterns let you:
+- Check what kind of data you have
+- Extract pieces from inside that data
+
+---
+
+## Part 1: All the Places Patterns Can Appear
+
+Patterns aren't just for `match`. They show up in many places! Let's go through each one.
+
+### Place #1: `match` Arms
+
+We already saw this. Each arm of a `match` has a pattern:
+
+```rust
+enum Weather {
+    Sunny,
+    Rainy,
+    Cloudy,
+}
+
+fn what_to_wear(weather: Weather) {
+    match weather {
+        Weather::Sunny => println!("Wear sunglasses"),
+        Weather::Rainy => println!("Bring an umbrella"),
+        Weather::Cloudy => println!("Maybe bring a light jacket"),
+    }
+}
+```
+
+Rust goes through each pattern top to bottom. When one matches, it runs that code.
+
+---
+
+### Place #2: `if let`: When You Only Care About One Case
+
+Sometimes you only care about ONE specific shape, and want to ignore everything else.
+
+**The problem with `match`:**
+
+```rust
+fn main() {
+    let maybe_name: Option<String> = Some(String::from("Meowy"));
+    
+    // I only care if there's a name inside
+    // But match forces me to handle EVERY case
+    match maybe_name {
+        Some(name) => println!("Hello, {}!", name),
+        None => {}  // I don't care about this! But I have to write it.
+    }
+}
+```
+
+That `None => {}` is annoying. We don't want to do anything for `None`, but `match` forces us to handle it.
+
+**The solution: `if let`**
+
+```rust
+fn main() {
+    let maybe_name: Option<String> = Some(String::from("Meowy"));
+    
+    // Only run this code IF the pattern matches
+    if let Some(name) = maybe_name {
+        println!("Hello, {}!", name);
+    }
+}
+```
+
+**Read it like this:** "If `maybe_name` fits the shape `Some(name)`, then run this code."
+
+If it doesn't fit (if it's `None`), the code block is simply skipped. No need to handle it explicitly.
+
+**You can add `else` if you want:**
+
+```rust
+fn main() {
+    let maybe_age: Option<i32> = None;
+    
+    if let Some(age) = maybe_age {
+        println!("You are {} years old", age);
+    } else {
+        println!("I don't know your age");
+    }
+}
+```
+
+**When to use `if let` vs `match`:**
+- Use `if let` when you only care about ONE pattern
+- Use `match` when you need to handle multiple different patterns
+
+---
+
+### Place #3: `while let`: Keep Looping While Pattern Matches
+
+This one is cool. It says: "Keep running this loop AS LONG AS the pattern matches."
+
+**Example: Processing items from a stack**
+
+```rust
+fn main() {
+    let mut tasks = vec!["wash dishes", "fold laundry", "vacuum"];
+    
+    // pop() returns Option<T>
+    // - Some(item) if there's something
+    // - None if the vec is empty
+    
+    while let Some(task) = tasks.pop() {
+        println!("Doing task: {}", task);
+    }
+    
+    println!("All tasks done!");
+}
+```
+
+**Output:**
+```
+Doing task: vacuum
+Doing task: fold laundry
+Doing task: wash dishes
+All tasks done!
+```
+
+**What happened:**
+
+1. First iteration: `tasks.pop()` returns `Some("vacuum")`. Pattern matches! `task` becomes `"vacuum"`. Code runs.
+2. Second iteration: `tasks.pop()` returns `Some("fold laundry")`. Pattern matches! Code runs.
+3. Third iteration: `tasks.pop()` returns `Some("wash dishes")`. Pattern matches! Code runs.
+4. Fourth iteration: `tasks.pop()` returns `None`. Pattern `Some(task)` does NOT match `None`. Loop exits.
+
+**Analogy:** It's like saying "Keep grabbing cookies from the jar while there are cookies. Stop when the jar is empty."
+
+---
+
+### Place #4: `for` Loops: Yes, These Use Patterns Too!
+
+The variable after `for` is actually a pattern!
+
+**Simple case:**
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3];
+    
+    for n in numbers {
+        println!("{}", n);
+    }
+}
+```
+
+Here, `n` is a pattern (the simple "accept anything" pattern).
+
+**More interesting: Destructuring in a for loop**
+
+```rust
+fn main() {
+    let points = vec![(0, 0), (10, 20), (30, 40)];
+    
+    for (x, y) in points {
+        println!("Point is at x={}, y={}", x, y);
+    }
+}
+```
+
+**Output:**
+```
+Point is at x=0, y=0
+Point is at x=10, y=20
+Point is at x=30, y=40
+```
+
+The pattern `(x, y)` says: "Each item is a tuple. Pull it apart into `x` and `y`."
+
+**Another useful one: Getting index and value**
+
+```rust
+fn main() {
+    let fruits = vec!["apple", "banana", "cherry"];
+    
+    for (index, fruit) in fruits.iter().enumerate() {
+        println!("Fruit #{}: {}", index, fruit);
+    }
+}
+```
+
+**Output:**
+```
+Fruit #0: apple
+Fruit #1: banana
+Fruit #2: cherry
+```
+
+`enumerate()` gives you tuples of `(index, value)`. The pattern `(index, fruit)` pulls them apart.
+
+---
+
+### Place #5: `let` Statements
+
+Every `let` statement uses a pattern on the left side of `=`.
+
+**Simple pattern:**
+
+```rust
+let age = 25;  // `age` is a pattern that accepts anything
+```
+
+**Tuple pattern:**
+
+```rust
+let (x, y, z) = (10, 20, 30);
+
+println!("x={}, y={}, z={}", x, y, z);
+// Output: x=10, y=20, z=30
+```
+
+**Ignoring some values:**
+
+```rust
+let (first, _, third) = (100, 200, 300);
+
+println!("first={}, third={}", first, third);
+// Output: first=100, third=300
+```
+
+The `_` means "there's something here but I don't care about it."
+
+---
+
+### Place #6: Function Parameters
+
+Function parameters are patterns too!
+
+**Normal (simple pattern):**
+
+```rust
+fn greet(name: &str) {
+    println!("Hello, {}!", name);
+}
+```
+
+`name` is a pattern: the simple "accept anything" kind.
+
+**Destructuring in parameters:**
+
+```rust
+fn print_point((x, y): (i32, i32)) {
+    println!("x is {}, y is {}", x, y);
+}
+
+fn main() {
+    let point = (50, 100);
+    print_point(point);
+}
+```
+
+**Output:**
+```
+x is 50, y is 100
+```
+
+Instead of receiving the whole tuple and then pulling it apart inside the function, we pull it apart right in the parameter!
+
+---
+
+## Summary of Where Patterns Appear
+
+| Place | Example | What it does |
+|-------|---------|--------------|
+| `match` arm | `Some(x) => ...` | Check which arm matches, run that code |
+| `if let` | `if let Some(x) = val` | Run code only if pattern matches |
+| `while let` | `while let Some(x) = val` | Loop while pattern keeps matching |
+| `for` loop | `for (i, v) in ...` | Destructure each item |
+| `let` statement | `let (a, b) = tuple` | Destructure a value |
+| Function param | `fn foo((x, y): ...)` | Destructure the argument |
+
+---
+
+## Part 2: Refutability: Can a Pattern Fail?
+
+This is an important concept. Don't worry, it's simpler than the name sounds!
+
+### The Big Question: What If the Pattern Doesn't Match?
+
+Some patterns match everything. Some patterns are picky and might not match.
+
+**Pattern that always matches:**
+
+```rust
+let x = 5;  // `x` matches ANY value. Cannot fail.
+```
+
+**Pattern that might not match:**
+
+```rust
+let maybe: Option<i32> = None;
+
+// Some(n) does NOT match None!
+// So this pattern can fail.
+```
+
+### Two Types of Patterns
+
+**Irrefutable**: Cannot fail. Matches anything.
+
+```rust
+let x = 5;           // x matches anything
+let (a, b) = (1, 2); // (a, b) matches any 2-tuple
+```
+
+**Refutable**: Can fail. Only matches some values.
+
+```rust
+// Some(n) only matches Some, not None
+// So it's refutable: it can be "refused"
+```
+
+### Why Does This Matter?
+
+Rust has rules about which type of pattern you can use where.
+
+**Rule: `let` statements need irrefutable patterns**
+
+Why? Because `let` MUST succeed. There's no "else" branch.
+
+```rust
+let maybe: Option<i32> = None;
+
+// This WON'T compile:
+// let Some(n) = maybe;
+
+// Rust says: "What if maybe is None? 
+//             What should n be? 
+//             I can't handle that!"
+```
+
+**Rule: `if let` and `while let` can use refutable patterns**
+
+Why? Because there's a way out if it doesn't match.
+
+```rust
+let maybe: Option<i32> = None;
+
+// This WORKS:
+if let Some(n) = maybe {
+    println!("Got {}", n);
+}
+// If it doesn't match, we just skip the block. No problem!
+```
+
+### Simple Way to Remember
+
+| Where | Can pattern fail? | Why? |
+|-------|-------------------|------|
+| `let` | No (irrefutable only) | No alternative path if it fails |
+| Function parameter | No (irrefutable only) | No alternative path if it fails |
+| `if let` | Yes (refutable OK) | If it fails, skip the block |
+| `while let` | Yes (refutable OK) | If it fails, exit the loop |
+| `match` | Yes (refutable OK) | If it fails, try next arm |
+
+---
+
+## Part 3: Pattern Syntax: All the Different Shapes
+
+Now let's learn all the different patterns you can write!
+
+### 3.1 Literal Patterns: Matching Exact Values
+
+You can match against exact, specific values:
+
+```rust
+fn describe_number(n: i32) {
+    match n {
+        0 => println!("Zero: nothing at all"),
+        1 => println!("One: single item"),
+        7 => println!("Seven: lucky number!"),
+        13 => println!("Thirteen: some say unlucky"),
+        _ => println!("Some other number: {}", n),
+    }
+}
+
+fn main() {
+    describe_number(7);
+    describe_number(42);
+}
+```
+
+**Output:**
+```
+Seven: lucky number!
+Some other number: 42
+```
+
+The patterns `0`, `1`, `7`, `13` are **literal patterns**. They only match that exact value.
+
+The `_` pattern means "anything else": it's a catch-all.
+
+---
+
+### 3.2 Variable Patterns: Capturing Values
+
+A variable name as a pattern matches anything and gives it a name:
+
+```rust
+fn main() {
+    let x = 10;
+    
+    match x {
+        val => println!("The value is {}", val),
+    }
+}
+```
+
+The pattern `val` matches ANY value and captures it.
+
+**Important warning: Shadowing happens!**
+
+This trips up many people:
+
+```rust
+fn main() {
+    let expected = 5;
+    let actual = 10;
+    
+    match actual {
+        expected => println!("Value is {}", expected),
+    }
+    
+    println!("Outer expected is still {}", expected);
+}
+```
+
+**Output:**
+```
+Value is 10
+Outer expected is still 5
+```
+
+**Wait, what?**
+
+The `expected` inside the match is a **new variable**! It's not comparing against the outer `expected`. It's creating a new `expected` that captures whatever `actual` is.
+
+**Analogy:** You have a box labeled "expected" in your room (containing 5). You go into a closet (the match) and create a NEW box labeled "expected" (containing 10). When you leave the closet, your original box is still there with 5 in it.
+
+**How do you actually compare against a variable?** We'll learn about "match guards" soon: that's the solution!
+
+---
+
+### 3.3 Multiple Patterns with `|` (Or)
+
+What if you want the same code for multiple patterns? Use `|`:
+
+```rust
+fn describe_day(day: &str) {
+    match day {
+        "Saturday" | "Sunday" => println!("It's the weekend!"),
+        "Monday" => println!("Back to work..."),
+        "Friday" => println!("Almost there!"),
+        _ => println!("Regular weekday"),
+    }
+}
+
+fn main() {
+    describe_day("Saturday");
+    describe_day("Sunday");
+    describe_day("Tuesday");
+}
+```
+
+**Output:**
+```
+It's the weekend!
+It's the weekend!
+Regular weekday
+```
+
+The pattern `"Saturday" | "Sunday"` means "either Saturday OR Sunday."
+
+**Another example:**
+
+```rust
+fn is_vowel(c: char) {
+    match c {
+        'a' | 'e' | 'i' | 'o' | 'u' => println!("'{}' is a vowel", c),
+        _ => println!("'{}' is not a vowel", c),
+    }
+}
+
+fn main() {
+    is_vowel('a');
+    is_vowel('b');
+    is_vowel('e');
+}
+```
+
+**Output:**
+```
+'a' is a vowel
+'b' is not a vowel
+'e' is a vowel
+```
+
+---
+
+### 3.4 Matching Ranges with `..=`
+
+Instead of listing every value, you can specify a range:
+
+```rust
+fn describe_grade(score: i32) {
+    match score {
+        90..=100 => println!("A: Excellent!"),
+        80..=89 => println!("B: Good job!"),
+        70..=79 => println!("C: Satisfactory"),
+        60..=69 => println!("D: Needs improvement"),
+        0..=59 => println!("F: Failed"),
+        _ => println!("Invalid score"),
+    }
+}
+
+fn main() {
+    describe_grade(95);
+    describe_grade(72);
+    describe_grade(58);
+}
+```
+
+**Output:**
+```
+A: Excellent!
+C: Satisfactory
+F: Failed
+```
+
+The pattern `90..=100` means "any value from 90 to 100, inclusive."
+
+**Also works with characters:**
+
+```rust
+fn char_type(c: char) {
+    match c {
+        'a'..='z' => println!("'{}' is a lowercase letter", c),
+        'A'..='Z' => println!("'{}' is an uppercase letter", c),
+        '0'..='9' => println!("'{}' is a digit", c),
+        _ => println!("'{}' is something else", c),
+    }
+}
+
+fn main() {
+    char_type('g');
+    char_type('M');
+    char_type('5');
+    char_type('!');
+}
+```
+
+**Output:**
+```
+'g' is a lowercase letter
+'M' is an uppercase letter
+'5' is a digit
+'!' is something else
+```
+
+**Note:** You can only use `..=` (inclusive range) in patterns. The exclusive range `..` doesn't work here.
+
+---
+
+### 3.5 Destructuring Structs
+
+You can pull apart structs to get their fields.
+
+**Simple example:**
+
+```rust
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+fn main() {
+    let p = Point { x: 10, y: 20 };
+    
+    let Point { x, y } = p;
+    
+    println!("x is {}", x);
+    println!("y is {}", y);
+}
+```
+
+**Output:**
+```
+x is 10
+y is 20
+```
+
+The pattern `Point { x, y }` says: "This is a Point. Give me `x` and `y`."
+
+---
+
+**What if you want different variable names?**
+
+```rust
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+fn main() {
+    let p = Point { x: 10, y: 20 };
+    
+    // field_name: new_name
+    let Point { x: horizontal, y: vertical } = p;
+    
+    println!("horizontal is {}", horizontal);
+    println!("vertical is {}", vertical);
+}
+```
+
+**Output:**
+```
+horizontal is 10
+vertical is 20
+```
+
+The syntax `x: horizontal` means "take the `x` field, call it `horizontal`."
+
+---
+
+**Mixing literals and variables in struct patterns:**
+
+```rust
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+fn main() {
+    let p = Point { x: 0, y: 7 };
+    
+    match p {
+        Point { x: 0, y } => println!("On y-axis at y={}", y),
+        Point { x, y: 0 } => println!("On x-axis at x={}", x),
+        Point { x, y } => println!("At ({}, {})", x, y),
+    }
+}
+```
+
+**Output:**
+```
+On y-axis at y=7
+```
+
+The pattern `Point { x: 0, y }` says: "x must be exactly 0, capture y as a variable."
+
+---
+
+### 3.6 Destructuring Enums
+
+Pull apart enum variants to get data inside.
+
+**Simple enum:**
+
+```rust
+enum Status {
+    Active,
+    Inactive,
+}
+
+fn main() {
+    let s = Status::Active;
+    
+    match s {
+        Status::Active => println!("It's active"),
+        Status::Inactive => println!("It's inactive"),
+    }
+}
+```
+
+No data inside, so we just match the variant name.
+
+---
+
+**Enum with data inside:**
+
+```rust
+enum Status {
+    Active(i32),  // has a number inside
+    Inactive,
+}
+
+fn main() {
+    let s = Status::Active(42);
+    
+    match s {
+        Status::Active(code) => println!("Active with code {}", code),
+        Status::Inactive => println!("Inactive"),
+    }
+}
+```
+
+**Output:**
+```
+Active with code 42
+```
+
+The pattern `Status::Active(code)` extracts the number inside.
+
+---
+
+**Enum with struct-like data:**
+
+```rust
+enum Status {
+    Active { since: i32 },
+    Inactive,
+}
+
+fn main() {
+    let s = Status::Active { since: 2020 };
+    
+    match s {
+        Status::Active { since } => println!("Active since {}", since),
+        Status::Inactive => println!("Inactive"),
+    }
+}
+```
+
+**Output:**
+```
+Active since 2020
+```
+
+Use curly braces `{ }` for struct-like variants, parentheses `( )` for tuple-like variants.
+
+---
+
+### 3.7 Destructuring Nested Structures
+
+Patterns can go inside other patterns.
+
+**Step by step example:**
+
+```rust
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+fn main() {
+    // A tuple containing a Point and a number
+    let data = (Point { x: 3, y: 4 }, 100);
+    
+    // Destructure both levels
+    let (Point { x, y }, value) = data;
+    
+    println!("x={}, y={}, value={}", x, y, value);
+}
+```
+
+**Output:**
+```
+x=3, y=4, value=100
+```
+
+**Reading the pattern `(Point { x, y }, value)`:**
+
+1. Outer layer: It's a tuple with two things
+2. First thing: A Point: pull out x and y
+3. Second thing: Call it `value`
+
+---
+
+**Another small example:**
+
+```rust
+enum Wrapper {
+    Wrapped((i32, i32)),  // contains a tuple
+}
+
+fn main() {
+    let w = Wrapper::Wrapped((5, 10));
+    
+    match w {
+        Wrapper::Wrapped((a, b)) => println!("a={}, b={}", a, b),
+    }
+}
+```
+
+**Output:**
+```
+a=5, b=10
+```
+
+The pattern `Wrapper::Wrapped((a, b))` goes two levels deep.
+
+---
+
+### 3.8 Ignoring Values
+
+Sometimes you don't need everything.
+
+**Underscore `_` ignores one value:**
+
+```rust
+fn main() {
+    let tuple = (1, 2, 3);
+    
+    let (first, _, third) = tuple;
+    
+    println!("first={}, third={}", first, third);
+}
+```
+
+**Output:**
+```
+first=1, third=3
+```
+
+---
+
+**Multiple underscores:**
+
+```rust
+fn main() {
+    let tuple = (1, 2, 3, 4);
+    
+    let (first, _, _, fourth) = tuple;
+    
+    println!("first={}, fourth={}", first, fourth);
+}
+```
+
+---
+
+**Double dot `..` ignores many values:**
+
+```rust
+fn main() {
+    let tuple = (1, 2, 3, 4, 5);
+    
+    let (first, ..) = tuple;      // first only
+    println!("first={}", first);
+    
+    let (.., last) = tuple;       // last only
+    println!("last={}", last);
+    
+    let (head, .., tail) = tuple; // first and last
+    println!("head={}, tail={}", head, tail);
+}
+```
+
+**Output:**
+```
+first=1
+last=5
+head=1, tail=5
+```
+
+---
+
+**`..` with structs:**
+
+```rust
+struct Person {
+    name: String,
+    age: i32,
+    email: String,
+}
+
+fn main() {
+    let p = Person {
+        name: String::from("Meowy"),
+        age: 25,
+        email: String::from("meowy@test.com"),
+    };
+    
+    // Only care about name
+    let Person { name, .. } = p;
+    
+    println!("name={}", name);
+}
+```
+
+**Output:**
+```
+name=Meowy
+```
+
+---
+
+**Important: `_` vs `_name`**
+
+```rust
+fn main() {
+    let s = Some(String::from("hello"));
+    
+    // _ does NOT bind: s is still valid
+    if let Some(_) = s {
+        println!("Has value");
+    }
+    println!("{:?}", s);  // Works!
+}
+```
+
+```rust
+fn main() {
+    let s = Some(String::from("hello"));
+    
+    // _x DOES bind: s is moved
+    if let Some(_x) = s {
+        println!("Has value");
+    }
+    // println!("{:?}", s);  // ERROR: s was moved
+}
+```
+
+**Simple rule:**
+- `_` = truly ignore, nothing moves
+- `_name` = bind but suppress warning, value moves
+
+---
+
+### 3.9 Match Guards: Extra Conditions
+
+Add `if condition` after a pattern for extra checks.
+
+**Basic example:**
+
+```rust
+fn main() {
+    let num = 4;
+    
+    match num {
+        x if x < 0 => println!("Negative"),
+        x if x == 0 => println!("Zero"),
+        x if x < 10 => println!("Small positive: {}", x),
+        x => println!("Large: {}", x),
+    }
+}
+```
+
+**Output:**
+```
+Small positive: 4
+```
+
+---
+
+**Comparing against another variable:**
+
+```rust
+fn main() {
+    let target = 5;
+    let value = 5;
+    
+    match value {
+        x if x == target => println!("Hit the target!"),
+        x => println!("Missed, got {}", x),
+    }
+}
+```
+
+**Output:**
+```
+Hit the target!
+```
+
+This is how you compare against an outer variable (remember, just writing `target` as a pattern creates a new variable).
+
+---
+
+**With Option:**
+
+```rust
+fn main() {
+    let maybe_num = Some(7);
+    
+    match maybe_num {
+        Some(x) if x > 5 => println!("{} is big", x),
+        Some(x) => println!("{} is small", x),
+        None => println!("Nothing"),
+    }
+}
+```
+
+**Output:**
+```
+7 is big
+```
+
+---
+
+### 3.10 `@` Bindings: Test AND Capture
+
+Sometimes you want to check a condition AND keep the value.
+
+**The problem:**
+
+```rust
+fn main() {
+    let age = 25;
+    
+    match age {
+        18..=30 => println!("Young adult"),  // But what's the actual age?
+        _ => println!("Other"),
+    }
+}
+```
+
+We know it's 18-30, but we lost the actual number!
+
+**The solution: `@` bindings**
+
+```rust
+fn main() {
+    let age = 25;
+    
+    match age {
+        a @ 18..=30 => println!("Young adult, age {}", a),
+        a => println!("Other, age {}", a),
+    }
+}
+```
+
+**Output:**
+```
+Young adult, age 25
+```
+
+The syntax `a @ 18..=30` means:
+- Check: Is it in range 18 to 30?
+- If yes: Bind it to `a`
+
+---
+
+**With enums:**
+
+```rust
+enum Level {
+    Low(i32),
+    High(i32),
+}
+
+fn main() {
+    let lv = Level::Low(3);
+    
+    match lv {
+        Level::Low(n @ 1..=5) => println!("Low and small: {}", n),
+        Level::Low(n) => println!("Low but big: {}", n),
+        Level::High(n) => println!("High: {}", n),
+    }
+}
+```
+
+**Output:**
+```
+Low and small: 3
+```
+
+---
+
+## Summary
+
+| Pattern | Example | Meaning |
+|---------|---------|---------|
+| Literal | `5` | Exactly 5 |
+| Variable | `x` | Anything, call it x |
+| Wildcard | `_` | Anything, ignore it |
+| Or | `1 \| 2` | 1 or 2 |
+| Range | `1..=10` | 1 through 10 |
+| Struct | `Point { x, y }` | Pull out fields |
+| Enum | `Some(x)` | Pull out contents |
+| Rest | `..` | Ignore remaining |
+| Guard | `x if x > 0` | Extra condition |
+| Binding | `n @ 1..=5` | Test and capture |
+
+---
+
+Great! Here are exercises for Chapter 19. They start simple and get progressively harder.
+
+---
+
+# Chapter 19 Exercises: Patterns and Matching
+
+## Exercise 1: Basic Match
+
+Write a function `describe_number` that takes an `i32` and returns a `&str`:
+- If 0, return "zero"
+- If 1, return "one"
+- If 2, return "two"
+- For anything else, return "many"
+
+```rust
+fn describe_number(n: i32) -> &'static str {
+    // your code here
+}
+
+fn main() {
+    println!("{}", describe_number(0));  // zero
+    println!("{}", describe_number(1));  // one
+    println!("{}", describe_number(2));  // two
+    println!("{}", describe_number(99)); // many
+}
+```
+
+---
+
+## Exercise 2: Multiple Patterns with `|`
+
+Write a function `is_weekend` that takes a `&str` day name and returns `true` if it's Saturday or Sunday, `false` otherwise.
+
+```rust
+fn is_weekend(day: &str) -> bool {
+    // your code here
+}
+
+fn main() {
+    println!("{}", is_weekend("Saturday"));  // true
+    println!("{}", is_weekend("Sunday"));    // true
+    println!("{}", is_weekend("Monday"));    // false
+    println!("{}", is_weekend("Friday"));    // false
+}
+```
+
+---
+
+## Exercise 3: Ranges
+
+Write a function `grade_to_letter` that takes a score (i32) and returns:
+- "A" for 90-100
+- "B" for 80-89
+- "C" for 70-79
+- "D" for 60-69
+- "F" for 0-59
+- "Invalid" for anything else
+
+```rust
+fn grade_to_letter(score: i32) -> &'static str {
+    // your code here
+}
+
+fn main() {
+    println!("{}", grade_to_letter(95));  // A
+    println!("{}", grade_to_letter(83));  // B
+    println!("{}", grade_to_letter(71));  // C
+    println!("{}", grade_to_letter(65));  // D
+    println!("{}", grade_to_letter(42));  // F
+    println!("{}", grade_to_letter(-5));  // Invalid
+}
+```
+
+---
+
+## Exercise 4: Destructuring Tuples
+
+Write a function `swap` that takes a tuple `(i32, i32)` and returns a new tuple with the values swapped.
+
+```rust
+fn swap(pair: (i32, i32)) -> (i32, i32) {
+    // your code here (use pattern destructuring)
+}
+
+fn main() {
+    let original = (10, 20);
+    let swapped = swap(original);
+    println!("{:?}", swapped);  // (20, 10)
+}
+```
+
+---
+
+## Exercise 5: Destructuring Structs
+
+Given this struct:
+
+```rust
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+```
+
+Write a function `area` that takes a `Rectangle` and returns its area. Use destructuring in the function body.
+
+```rust
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn area(rect: Rectangle) -> u32 {
+    // your code here (destructure the struct)
+}
+
+fn main() {
+    let r = Rectangle { width: 10, height: 5 };
+    println!("{}", area(r));  // 50
+}
+```
+
+---
+
+## Exercise 6: Matching Enums
+
+Given this enum:
+
+```rust
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter,
+}
+```
+
+Write a function `value_in_cents` that returns the value of each coin.
+
+```rust
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter,
+}
+
+fn value_in_cents(coin: Coin) -> u32 {
+    // your code here
+}
+
+fn main() {
+    println!("{}", value_in_cents(Coin::Penny));   // 1
+    println!("{}", value_in_cents(Coin::Nickel));  // 5
+    println!("{}", value_in_cents(Coin::Dime));    // 10
+    println!("{}", value_in_cents(Coin::Quarter)); // 25
+}
+```
+
+---
+
+## Exercise 7: Enums with Data
+
+Given this enum:
+
+```rust
+enum Message {
+    Text(String),
+    Number(i32),
+    Quit,
+}
+```
+
+Write a function `describe_message` that returns a description:
+- For `Text`, return the text itself
+- For `Number`, return "Number: X" (where X is the number)
+- For `Quit`, return "Goodbye"
+
+```rust
+enum Message {
+    Text(String),
+    Number(i32),
+    Quit,
+}
+
+fn describe_message(msg: Message) -> String {
+    // your code here
+}
+
+fn main() {
+    println!("{}", describe_message(Message::Text(String::from("hello"))));  // hello
+    println!("{}", describe_message(Message::Number(42)));  // Number: 42
+    println!("{}", describe_message(Message::Quit));        // Goodbye
+}
+```
+
+---
+
+## Exercise 8: `if let`
+
+Write a function `print_if_some` that takes an `Option<i32>`. If it contains a value, print it. If it's `None`, do nothing.
+
+Use `if let`, not `match`.
+
+```rust
+fn print_if_some(opt: Option<i32>) {
+    // your code here (use if let)
+}
+
+fn main() {
+    print_if_some(Some(42));  // prints: 42
+    print_if_some(None);      // prints nothing
+    print_if_some(Some(7));   // prints: 7
+}
+```
+
+---
+
+## Exercise 9: `while let`
+
+Write code that uses `while let` to pop and print all elements from a vector.
+
+```rust
+fn main() {
+    let mut colors = vec!["red", "green", "blue"];
+    
+    // your code here (use while let)
+    // should print: blue, green, red (reverse order because pop takes from end)
+}
+```
+
+---
+
+## Exercise 10: Ignoring Values with `_` and `..`
+
+Given this struct:
+
+```rust
+struct Config {
+    debug: bool,
+    verbose: bool,
+    log_file: String,
+    max_connections: u32,
+    timeout: u32,
+}
+```
+
+Write a function `is_debug_mode` that takes a `Config` and returns the `debug` field. Use `..` to ignore all other fields.
+
+```rust
+struct Config {
+    debug: bool,
+    verbose: bool,
+    log_file: String,
+    max_connections: u32,
+    timeout: u32,
+}
+
+fn is_debug_mode(config: Config) -> bool {
+    // your code here (use .. to ignore other fields)
+}
+
+fn main() {
+    let c = Config {
+        debug: true,
+        verbose: false,
+        log_file: String::from("app.log"),
+        max_connections: 100,
+        timeout: 30,
+    };
+    
+    println!("{}", is_debug_mode(c));  // true
+}
+```
+
+---
+
+## Exercise 11: Match Guards
+
+Write a function `describe_option_number` that takes `Option<i32>` and returns:
+- "Nothing" if None
+- "Zero" if Some(0)
+- "Positive: X" if Some with positive number
+- "Negative: X" if Some with negative number
+
+Use match guards for the positive/negative check.
+
+```rust
+fn describe_option_number(opt: Option<i32>) -> String {
+    // your code here (use match guards)
+}
+
+fn main() {
+    println!("{}", describe_option_number(None));        // Nothing
+    println!("{}", describe_option_number(Some(0)));     // Zero
+    println!("{}", describe_option_number(Some(10)));    // Positive: 10
+    println!("{}", describe_option_number(Some(-5)));    // Negative: -5
+}
+```
+
+---
+
+## Exercise 12: `@` Bindings
+
+Write a function `categorize_age` that takes an `i32` age and returns a String:
+- For ages 0-12: "Child (age X)"
+- For ages 13-19: "Teenager (age X)"
+- For ages 20-64: "Adult (age X)"
+- For ages 65+: "Senior (age X)"
+
+Use `@` bindings to capture the age while matching the range.
+
+```rust
+fn categorize_age(age: i32) -> String {
+    // your code here (use @ bindings)
+}
+
+fn main() {
+    println!("{}", categorize_age(8));   // Child (age 8)
+    println!("{}", categorize_age(16));  // Teenager (age 16)
+    println!("{}", categorize_age(35));  // Adult (age 35)
+    println!("{}", categorize_age(70));  // Senior (age 70)
+}
+```
+
+---
+

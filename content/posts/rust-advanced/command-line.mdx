@@ -1,0 +1,2097 @@
+---
+title: Building a Command Line Tool in Rust
+date: 2025-12-24
+category: rust-advanced
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+## First: What Are We Even Building?
+
+Before any code, let's understand what a "command-line program" is.
+
+When you open your terminal and type something like:
+
+```
+ls -la /home
+```
+
+You're running a program called `ls` and giving it extra information:
+- `-la` is a flag/option (show all files in long format)
+- `/home` is an argument (which directory to list)
+
+The program `ls` needs to somehow **receive** these extra pieces of information, understand them, and act accordingly.
+
+**We're going to build a program that:**
+1. Receives information from the user when they run it
+2. Reads a file
+3. Searches for text in that file
+4. Prints the matching lines
+
+That's it. But to do this properly in Rust, we need to understand many small pieces.
+
+---
+
+## Part 1: How Does a Program Receive Information from the Terminal?
+
+When you type this in your terminal:
+
+```
+cargo run hello world
+```
+
+Your operating system does something magical behind the scenes. It takes those words (`hello` and `world`) and stores them in a special place that your program can access.
+
+Think of it like this: imagine you're a chef (the program), and customers (users) write their orders on slips of paper and put them in a box near the kitchen door. You need to:
+1. Know where the box is
+2. Know how to open it
+3. Know how to read the slips
+
+In Rust, that "box" is accessed through something called `std::env::args`.
+
+### What is `std::env::args`?
+
+Let's break this down piece by piece:
+
+**`std`**: This stands for "standard library." It's a collection of useful tools that come built into Rust. You don't need to install anything extra to use it.
+
+**`env`**: This is a "module" inside the standard library. A module is just a way of organizing related code together. The `env` module contains things related to the program's "environment", the context in which your program runs. This includes:
+- Command-line arguments (what the user typed)
+- Environment variables (system settings)
+- The current directory
+- And more
+
+**`args`**: This is a function inside the `env` module. When you call it, it gives you access to the command-line arguments.
+
+### Let's See It in Action
+
+Create a new project:
+
+```
+cargo new argtest
+cd argtest
+```
+
+Now edit `src/main.rs`:
+
+```rust
+use std::env;
+
+fn main() {
+    let args = env::args();
+    println!("{:?}", args);
+}
+```
+
+Let me explain each line:
+
+**Line 1: `use std::env;`**
+
+This is like telling Rust: "I want to use the `env` module from the standard library. Please make it available in my code."
+
+Without this line, you'd have to write `std::env::args()` every time. With it, you can just write `env::args()`.
+
+**Line 4: `let args = env::args();`**
+
+We're calling the `args()` function and storing what it returns in a variable called `args`.
+
+But what does `args()` return? Not a simple list, it returns something called an **Iterator**.
+
+**Line 5: `println!("{:?}", args);`**
+
+We're printing `args` using the debug format (`{:?}`). This lets us see what's inside.
+
+### Run It
+
+```
+cargo run hello world
+```
+
+You'll see something like:
+
+```
+Args { inner: ["target/debug/argtest", "hello", "world"] }
+```
+
+Interesting! It shows that `args` contains three things, not two:
+1. `"target/debug/argtest"`: the path to our program itself
+2. `"hello"`: our first argument
+3. `"world"`: our second argument
+
+**Key insight**: The first item is always the program's path. Your actual arguments start at position 1.
+
+---
+
+## Part 2: What is an Iterator and Why Do We Need `.collect()`?
+
+Here's something that confuses many beginners. Look at this code:
+
+```rust
+let args = env::args();
+```
+
+The variable `args` is NOT a list/array/vector. It's an **iterator**.
+
+### What's an Iterator?
+
+Think of an iterator like a **ticket dispenser** at a deli counter:
+
+- A vector/list is like having all the tickets laid out on a table, you can see them all, count them, pick any one directly
+- An iterator is like the dispenser, it gives you one ticket at a time when you ask for it
+
+When you call `env::args()`, Rust doesn't immediately gather all the arguments into memory. Instead, it gives you a "dispenser" that can produce arguments one by one.
+
+### Why Iterators?
+
+Iterators are efficient. Imagine if your program received a million arguments. With an iterator, you process them one at a time without loading all of them into memory at once.
+
+But for our simple program, we actually WANT all the arguments in a list so we can easily access them by position (like "give me the second argument"). That's where `.collect()` comes in.
+
+### The `.collect()` Method
+
+```rust
+let args: Vec<String> = env::args().collect();
+```
+
+**`.collect()`** transforms an iterator into a collection. It "collects" all the values the iterator produces and puts them into a container.
+
+But what kind of container? Rust needs to know! That's why we write:
+
+```rust
+let args: Vec<String>
+```
+
+This tells Rust: "I want `args` to be a `Vec` (vector) containing `String` values."
+
+### What's a `Vec<String>`?
+
+**`Vec`**: A "vector" is Rust's growable list type. Unlike arrays which have a fixed size, vectors can grow and shrink.
+
+**`String`**: The owned string type in Rust. Each argument is a `String`.
+
+**`Vec<String>`**: A growable list where each element is a `String`. So if you have three arguments, you have a vector with three strings inside.
+
+### Updated Code
+
+```rust
+use std::env;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    println!("{:?}", args);
+}
+```
+
+Run it:
+
+```
+cargo run hello world
+```
+
+Output:
+
+```
+["target/debug/argtest", "hello", "world"]
+```
+
+Now `args` is a proper vector that we can work with!
+
+---
+
+## Part 3: Accessing Individual Arguments
+
+Now that we have a vector, we can access specific items using **indexing**.
+
+```rust
+use std::env;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    
+    println!("The program path is: {}", args[0]);
+    println!("The first argument is: {}", args[1]);
+    println!("The second argument is: {}", args[2]);
+}
+```
+
+**`args[0]`**: The first element (index 0), the program path
+**`args[1]`**: The second element (index 1), first real argument
+**`args[2]`**: The third element (index 2), second real argument
+
+Run it:
+
+```
+cargo run hello world
+```
+
+Output:
+
+```
+The program path is: target/debug/argtest
+The first argument is: hello
+The second argument is: world
+```
+
+### The Danger of Direct Indexing
+
+What happens if you run:
+
+```
+cargo run
+```
+
+Without providing any arguments? **CRASH!**
+
+```
+thread 'main' panicked at 'index out of bounds: the len is 1 but the index is 1'
+```
+
+The vector only has one element (the program path at index 0), but we tried to access index 1. This is a **panic**, Rust's way of crashing when something goes wrong.
+
+We'll fix this later with proper error handling. For now, just remember: direct indexing is dangerous if you're not sure the element exists.
+
+---
+
+## Part 4: Storing Arguments in Variables
+
+Let's say our program needs two pieces of information:
+1. A pattern to search for
+2. A file path to search in
+
+We want to store these in meaningful variable names:
+
+```rust
+use std::env;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    
+    let pattern = &args[1];
+    let file_path = &args[2];
+    
+    println!("Pattern to search: {}", pattern);
+    println!("File to search in: {}", file_path);
+}
+```
+
+### Wait, Why `&args[1]` and not `args[1]`?
+
+This is crucial to understand. Let me explain step by step.
+
+**Ownership Rule Reminder**: In Rust, every value has exactly one owner. When ownership moves, the original variable can no longer use that value.
+
+**The Problem with `args[1]`**:
+
+If we wrote:
+
+```rust
+let pattern = args[1];  // WITHOUT the &
+```
+
+We'd be trying to **move** the `String` at position 1 out of the vector and into `pattern`.
+
+But here's the thing: the vector OWNS all its elements. You can't just reach in and take one out! It's like trying to remove a book from a library's shelf and take it home permanently, the library doesn't allow that.
+
+**The Solution: Borrowing with `&`**:
+
+```rust
+let pattern = &args[1];  // WITH the &
+```
+
+The `&` creates a **reference** (a borrow). We're not taking the string; we're just getting a way to look at it. The vector still owns it.
+
+It's like the library letting you read a book at the reading table, you can use it, but it still belongs to the library.
+
+**What type is `pattern` now?**
+
+- `args[1]` would be type `String` (if it were allowed)
+- `&args[1]` is type `&String` (a reference to a String)
+
+For printing and most simple uses, `&String` works just fine.
+
+---
+
+## Part 5: Reading a File
+
+Now let's learn how to read a file's contents into our program.
+
+### The `std::fs` Module
+
+Just like `std::env` handles environment-related things, `std::fs` handles **filesystem** operations:
+- Reading files
+- Writing files
+- Creating directories
+- Checking if files exist
+- And more
+
+### The `fs::read_to_string` Function
+
+This function does exactly what it sounds like: reads a file and gives you its contents as a `String`.
+
+```rust
+use std::fs;
+
+fn main() {
+    let contents = fs::read_to_string("poem.txt");
+    println!("{:?}", contents);
+}
+```
+
+But wait, this won't work exactly as shown. Let me explain why.
+
+### What Could Go Wrong?
+
+When reading a file, many things could fail:
+- The file might not exist
+- You might not have permission to read it
+- The file might be corrupted
+- The path might be invalid
+
+Rust doesn't let you ignore these possibilities. The `fs::read_to_string` function doesn't return a `String` directly, it returns a `Result`.
+
+### What is `Result`?
+
+`Result` is an enum (you learned about these!) with two variants:
+
+```rust
+enum Result<T, E> {
+    Ok(T),    // Success! Here's the value of type T
+    Err(E),   // Failure! Here's the error of type E
+}
+```
+
+For `fs::read_to_string`, the return type is:
+
+```rust
+Result<String, std::io::Error>
+```
+
+This means:
+- **If successful**: `Ok(the_file_contents)` where contents is a `String`
+- **If failed**: `Err(what_went_wrong)` where the error is of type `std::io::Error`
+
+### Handling the Result with `.expect()`
+
+For now, let's use a simple approach:
+
+```rust
+use std::fs;
+
+fn main() {
+    let contents = fs::read_to_string("poem.txt")
+        .expect("Could not read the file");
+    
+    println!("{}", contents);
+}
+```
+
+**`.expect("message")`** does this:
+- If the Result is `Ok(value)`, it unwraps and gives you the `value`
+- If the Result is `Err(error)`, it **panics** (crashes) and shows your message
+
+This isn't great for real programs (crashing is ugly), but it's fine for learning. We'll improve it later.
+
+### Let's Test It
+
+Create a file called `poem.txt` in your project directory with some text:
+
+```
+Roses are red,
+Violets are blue,
+Rust is awesome,
+And so are you.
+```
+
+Now run:
+
+```
+cargo run
+```
+
+You should see the poem printed!
+
+### Combining with Arguments
+
+Let's read a file whose path comes from the command line:
+
+```rust
+use std::env;
+use std::fs;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    
+    let file_path = &args[1];
+    
+    let contents = fs::read_to_string(file_path)
+        .expect("Could not read the file");
+    
+    println!("File contents:\n{}", contents);
+}
+```
+
+Run it:
+
+```
+cargo run poem.txt
+```
+
+Now you're dynamically reading whatever file the user specifies!
+
+---
+
+## Part 6: Putting It Together: A Basic Search Tool
+
+Let's combine what we've learned:
+
+```rust
+use std::env;
+use std::fs;
+
+fn main() {
+    // Step 1: Get the command-line arguments
+    let args: Vec<String> = env::args().collect();
+    
+    // Step 2: Extract the pattern and file path
+    let pattern = &args[1];
+    let file_path = &args[2];
+    
+    // Step 3: Read the file
+    let contents = fs::read_to_string(file_path)
+        .expect("Could not read the file");
+    
+    // Step 4: Search and print matching lines
+    for line in contents.lines() {
+        if line.contains(pattern) {
+            println!("{}", line);
+        }
+    }
+}
+```
+
+### New Concepts Here:
+
+**`contents.lines()`**
+
+This method splits a string into an iterator over its lines. Each `line` is a `&str` (a string slice, a reference to part of the original string).
+
+If `contents` is:
+```
+Hello world
+Goodbye world
+Hello again
+```
+
+Then `contents.lines()` produces:
+1. `"Hello world"`
+2. `"Goodbye world"`
+3. `"Hello again"`
+
+**`for line in contents.lines()`**
+
+This loops through each line one at a time. In each iteration, `line` holds the current line.
+
+**`line.contains(pattern)`**
+
+The `.contains()` method checks if one string contains another. It returns `true` or `false`.
+
+```rust
+"Hello world".contains("world")  // true
+"Hello world".contains("xyz")    // false
+```
+
+**Wait, there's a type issue!**
+
+`pattern` is `&String` (reference to String), but `.contains()` expects a `&str` (string slice). Luckily, Rust automatically converts `&String` to `&str` when needed through a feature called "deref coercion." So this just works!
+
+### Testing Our Tool
+
+Create a file `logs.txt`:
+
+```
+[INFO] Server started
+[ERROR] Connection failed
+[INFO] User logged in
+[ERROR] Database timeout
+[INFO] Request completed
+```
+
+Run:
+
+```
+cargo run ERROR logs.txt
+```
+
+Output:
+
+```
+[ERROR] Connection failed
+[ERROR] Database timeout
+```
+
+It works! We built a basic grep-like tool!
+
+---
+
+## Part 7: Why Our Code Has Problems
+
+Our code works, but it has issues that make it hard to maintain and improve:
+
+### Problem 1: All Logic is in `main()`
+
+The `main()` function is doing everything:
+- Parsing arguments
+- Reading files
+- Searching
+- Printing
+
+This is like having one giant room where you sleep, cook, work, and exercise. It works, but it's messy and hard to manage.
+
+### Problem 2: We Can't Test It
+
+How would you write a test for the search functionality?
+
+You can't! The search is tangled up with file reading and printing. To test searching, you'd need to:
+- Create actual files
+- Run the program
+- Capture its output
+- Check the output
+
+That's complicated and slow. We want simple, fast unit tests.
+
+### Problem 3: Error Handling is Poor
+
+We use `.expect()` which crashes the program. A real tool should:
+- Print a helpful error message
+- Exit cleanly with an error code
+- Not show scary "panic" messages
+
+### Problem 4: Hard to Reuse
+
+What if we later want to use the search logic in a web application? Or in a different command-line tool? We can't easily extract it.
+
+---
+
+## Part 8: The Solution: Separation of Concerns
+
+Rust encourages a specific project structure:
+
+```
+my_project/
+├── src/
+│   ├── main.rs   ← Entry point (thin wrapper)
+│   └── lib.rs    ← All the actual logic (testable)
+```
+
+**`main.rs`**: Does the minimum:
+1. Get arguments
+2. Call a function in `lib.rs` to process them
+3. Handle any errors that come back
+
+**`lib.rs`**: Contains:
+1. Data structures (like a Config struct)
+2. All the logic functions
+3. Tests
+
+### Why This Split?
+
+**You cannot write unit tests for `main()`**. The `main` function is special, it's where the program starts and ends. You can't call it from a test and check its behavior.
+
+But you CAN test functions in `lib.rs`. By moving logic there, we make it testable.
+
+---
+
+## Part 9: Creating a Config Struct
+
+Instead of having loose variables floating around, let's bundle related data together.
+
+### What is a Config?
+
+"Config" is short for "configuration", the settings/inputs that control how our program behaves. For our search tool:
+- The pattern to search for
+- The file path to search in
+
+### Defining the Struct
+
+In `src/lib.rs`:
+
+```rust
+pub struct Config {
+    pub pattern: String,
+    pub file_path: String,
+}
+```
+
+Let's break this down:
+
+**`pub struct Config`**
+
+- `pub`: Makes this struct "public," meaning code outside this file can use it. Without `pub`, only code in `lib.rs` could use `Config`.
+- `struct`: We're defining a struct (you learned this in Chapter 5!)
+- `Config`: The name of our struct
+
+**`pub pattern: String`**
+
+- `pub`: Makes this field public. Other code can access `config.pattern`.
+- `pattern: String`: A field named `pattern` that holds a `String`
+
+**Why `String` and not `&str`?**
+
+The `Config` struct needs to **own** its data. It will be passed around, stored, maybe live for a long time. If we used `&str` (a reference), we'd need to ensure whatever it references stays alive, that's complicated.
+
+Using `String` means `Config` owns its data independently. No lifetime complications.
+
+### Creating a Config Instance
+
+In `main.rs`, we could do:
+
+```rust
+let config = Config {
+    pattern: args[1].clone(),
+    file_path: args[2].clone(),
+};
+```
+
+**Wait, what's `.clone()`?**
+
+Remember: `args` owns its strings. We can't move them out (the vector wouldn't allow it). We could borrow them, but then we'd have references, not owned strings.
+
+`.clone()` creates a **copy** of the string. Now `config` has its own independent copies of the pattern and file path.
+
+Is cloning inefficient? A tiny bit, but for small strings like command-line arguments, it doesn't matter at all. The clarity and simplicity is worth it.
+
+---
+
+## Part 10: Building Config with a Constructor Function
+
+Instead of creating `Config` directly with `{ }` syntax, let's create a function that does it. This lets us add validation.
+
+### Why a Function?
+
+What if the user doesn't provide enough arguments? We want to:
+1. Check that we have the required arguments
+2. If not, return an error
+3. If yes, create and return the Config
+
+### The `build` Function
+
+```rust
+impl Config {
+    pub fn build(args: &[String]) -> Result<Config, &'static str> {
+        if args.len() < 3 {
+            return Err("not enough arguments");
+        }
+        
+        let pattern = args[1].clone();
+        let file_path = args[2].clone();
+        
+        Ok(Config { pattern, file_path })
+    }
+}
+```
+
+This is dense! Let me explain every part:
+
+**`impl Config { ... }`**
+
+This is an "implementation block" for `Config`. Functions defined here are associated with the `Config` type. We covered this in Chapter 5 with structs.
+
+**`pub fn build`**
+
+- `pub`: Public, can be called from outside `lib.rs`
+- `fn build`: A function named `build`
+
+**Why `build` instead of `new`?**
+
+In Rust convention:
+- `new` is used for constructors that **cannot fail**
+- `build` (or other names) is used when construction **might fail**
+
+Since our function can fail (not enough arguments), we use `build`.
+
+**`args: &[String]`**
+
+The parameter is a **slice** of strings.
+
+What's a slice? It's a view into a contiguous sequence of elements. Think of it like:
+- A `Vec<String>` is the whole bookshelf (you own it)
+- A `&[String]` is looking at some books on a shelf (you're just viewing)
+
+A slice can reference:
+- A whole vector
+- Part of a vector
+- An array
+- Part of an array
+
+By using `&[String]`, our function is flexible, it works with any sequence of strings, not just `Vec<String>`.
+
+**Why `&` (a reference)?**
+
+The function doesn't need to own the arguments. It just needs to look at them, extract what it needs, and make copies. Borrowing (with `&`) is sufficient and more efficient.
+
+**`-> Result<Config, &'static str>`**
+
+The return type. Let's dissect:
+
+- `Result<..., ...>`: We're returning a Result (might succeed or fail)
+- `Config`: On success, we return a `Config`
+- `&'static str`: On failure, we return an error message
+
+**What's `&'static str`?**
+
+- `&str`: A string slice (reference to string data)
+- `'static`: A lifetime that means "lives for the entire program"
+
+String literals like `"not enough arguments"` are embedded in the program's binary and exist forever. They have the `'static` lifetime.
+
+So `&'static str` means "a reference to a string that lives forever", perfect for error messages that are hardcoded.
+
+### Inside the Function
+
+```rust
+if args.len() < 3 {
+    return Err("not enough arguments");
+}
+```
+
+**`args.len()`**: Returns the number of elements in the slice.
+
+Remember: `args[0]` is the program path, so we need at least 3 elements to have two real arguments (at indices 1 and 2).
+
+**`return Err("not enough arguments")`**: If we don't have enough arguments, immediately return an error. The `Err(...)` creates the error variant of `Result`.
+
+```rust
+let pattern = args[1].clone();
+let file_path = args[2].clone();
+```
+
+Clone the strings to create owned copies.
+
+```rust
+Ok(Config { pattern, file_path })
+```
+
+**`Config { pattern, file_path }`**: Create a new Config. Note: when the variable name matches the field name, you can use this shorthand instead of `Config { pattern: pattern, file_path: file_path }`.
+
+**`Ok(...)`**: Wrap the Config in `Ok` to create the success variant of `Result`.
+
+---
+
+## Part 11: Using Config in main.rs
+
+Now let's update `main.rs` to use our `Config`:
+
+```rust
+use std::env;
+use std::process;
+
+use searchtools::Config;  // Import Config from our library
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    
+    let config = Config::build(&args).unwrap_or_else(|err| {
+        println!("Problem parsing arguments: {err}");
+        process::exit(1);
+    });
+    
+    println!("Searching for: {}", config.pattern);
+    println!("In file: {}", config.file_path);
+}
+```
+
+### New Imports
+
+**`use std::process;`**
+
+The `process` module has functions related to the current process (your running program). We'll use `process::exit()` to exit with an error code.
+
+**`use searchtools::Config;`**
+
+This imports `Config` from our library crate. The library crate automatically has the same name as your project (look at the `name` in `Cargo.toml`).
+
+### Calling `Config::build`
+
+```rust
+let config = Config::build(&args)
+```
+
+We call the `build` function, passing a reference to `args`. This returns a `Result<Config, &'static str>`.
+
+### Handling the Result
+
+```rust
+.unwrap_or_else(|err| {
+    println!("Problem parsing arguments: {err}");
+    process::exit(1);
+})
+```
+
+This is a method on `Result` called `unwrap_or_else`. Let me explain:
+
+**`.unwrap_or_else(closure)`** does:
+- If the Result is `Ok(value)` → return the `value`
+- If the Result is `Err(error)` → call the closure with the error
+
+**What's a Closure?**
+
+A closure is like an inline, anonymous function. The syntax `|err| { ... }` means:
+- `|err|`: This closure takes one parameter called `err`
+- `{ ... }`: The body of the closure
+
+So if `Config::build` returns `Err("not enough arguments")`, then:
+1. The closure is called with `err` = `"not enough arguments"`
+2. We print `"Problem parsing arguments: not enough arguments"`
+3. We call `process::exit(1)` to terminate the program
+
+**`process::exit(1)`**
+
+This immediately terminates the program with exit code 1.
+
+Exit codes:
+- 0 = success (everything went well)
+- Non-zero (usually 1) = error (something went wrong)
+
+These codes are used by scripts and other programs to check if your program succeeded.
+
+**Why not just `.expect()`?**
+
+`.expect()` also handles `Err`, but it causes a **panic** with a scary stack trace. `unwrap_or_else` lets us print a nice message and exit cleanly.
+
+---
+
+## Part 12: The `run` Function
+
+Now let's create a function that does the actual work (reading and searching).
+
+### Why a Separate `run` Function?
+
+We want `main()` to only handle:
+1. Getting arguments
+2. Creating config
+3. Calling the main logic
+4. Handling errors from that logic
+
+The actual work belongs in `lib.rs` where it's testable.
+
+### The Function Signature
+
+```rust
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    // ...
+}
+```
+
+**`pub fn run`**: A public function named `run`.
+
+**`config: Config`**: Takes a `Config` as input. Note: no `&` here, so `run` takes **ownership** of the config. That's fine; we don't need the config after calling `run`.
+
+**`-> Result<(), Box<dyn Error>>`**: The return type. Let's break this down:
+
+### Understanding `Result<(), Box<dyn Error>>`
+
+**`Result<..., ...>`**: It's a Result, so it can succeed or fail.
+
+**`()`**: The success value is "unit" (nothing). If the function succeeds, there's nothing to return, it already did its job (printing matching lines).
+
+**`Box<dyn Error>`**: The error type. This is complex, so let me explain:
+
+### What is `dyn Error`?
+
+**`Error`**: A trait in the standard library that all error types implement.
+
+**`dyn`**: Short for "dynamic." It means "any type that implements this trait."
+
+So `dyn Error` means "any error type."
+
+### Why `Box<...>`?
+
+Here's the issue: different error types have different sizes in memory.
+
+- `std::io::Error` might be 24 bytes
+- Some custom error might be 8 bytes
+- Another might be 100 bytes
+
+When you return from a function, Rust needs to know the exact size of what you're returning. But `dyn Error` could be any size, Rust can't plan for that.
+
+**`Box`** solves this. A `Box` is like a labeled container that:
+1. Always has the same size (just a pointer)
+2. Points to data stored elsewhere (the "heap")
+
+So `Box<dyn Error>` is:
+- A fixed-size pointer (Rust can handle this)
+- That points to an error of any type
+
+This lets our function return different kinds of errors without Rust getting confused about sizes.
+
+### The Implementation
+
+```rust
+use std::error::Error;
+use std::fs;
+
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(&config.file_path)?;
+    
+    for line in contents.lines() {
+        if line.contains(&config.pattern) {
+            println!("{line}");
+        }
+    }
+    
+    Ok(())
+}
+```
+
+**`use std::error::Error;`**: Import the `Error` trait so we can use it in our type.
+
+### The `?` Operator
+
+```rust
+let contents = fs::read_to_string(&config.file_path)?;
+```
+
+See that `?` at the end? This is the **question mark operator**, and it's wonderful.
+
+Remember, `fs::read_to_string` returns a `Result`. The `?` operator does:
+- If `Ok(value)` → unwrap and give the value
+- If `Err(error)` → **immediately return** that error from the current function
+
+It's like saying: "Try this. If it fails, just pass the failure up to whoever called me."
+
+Without `?`, we'd have to write:
+
+```rust
+let contents = match fs::read_to_string(&config.file_path) {
+    Ok(c) => c,
+    Err(e) => return Err(e.into()),
+};
+```
+
+The `?` does all that in one character!
+
+**Note**: `?` only works in functions that return `Result` (or `Option`). That's why `run` has `-> Result<...>`.
+
+### The Final `Ok(())`
+
+```rust
+Ok(())
+```
+
+If we reach this point without any errors, return success. The `()` is "unit", we're returning `Ok` with no value, meaning "it worked!"
+
+---
+
+## Part 13: Calling `run` from `main`
+
+Let's update `main.rs`:
+
+```rust
+use std::env;
+use std::process;
+
+use searchtools::Config;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    
+    let config = Config::build(&args).unwrap_or_else(|err| {
+        println!("Problem parsing arguments: {err}");
+        process::exit(1);
+    });
+    
+    if let Err(e) = searchtools::run(config) {
+        println!("Application error: {e}");
+        process::exit(1);
+    }
+}
+```
+
+### Understanding `if let Err(e) = ...`
+
+We call `searchtools::run(config)`, which returns a `Result<(), Box<dyn Error>>`.
+
+**`if let Err(e) = ...`**: This is pattern matching:
+- If the result is `Err(something)`, bind `something` to `e` and run the block
+- If the result is `Ok(())`, do nothing
+
+We only care about the error case because:
+- If it succeeded, there's nothing to do, the function already printed the matches
+- If it failed, we need to print the error and exit
+
+---
+
+## Checkpoint: Where Are We?
+
+Let me summarize our project structure:
+
+### src/lib.rs
+
+```rust
+use std::error::Error;
+use std::fs;
+
+pub struct Config {
+    pub pattern: String,
+    pub file_path: String,
+}
+
+impl Config {
+    pub fn build(args: &[String]) -> Result<Config, &'static str> {
+        if args.len() < 3 {
+            return Err("not enough arguments");
+        }
+        
+        let pattern = args[1].clone();
+        let file_path = args[2].clone();
+        
+        Ok(Config { pattern, file_path })
+    }
+}
+
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(&config.file_path)?;
+    
+    for line in contents.lines() {
+        if line.contains(&config.pattern) {
+            println!("{line}");
+        }
+    }
+    
+    Ok(())
+}
+```
+
+### src/main.rs
+
+```rust
+use std::env;
+use std::process;
+
+use searchtools::Config;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    
+    let config = Config::build(&args).unwrap_or_else(|err| {
+        println!("Problem parsing arguments: {err}");
+        process::exit(1);
+    });
+    
+    if let Err(e) = searchtools::run(config) {
+        println!("Application error: {e}");
+        process::exit(1);
+    }
+}
+```
+
+The code is cleaner, better organized, and has proper error handling. But we still can't write tests because the search logic is embedded in `run`.
+
+---
+
+## Part 14: Why We Need a Separate Search Function
+
+Look at our current `run` function:
+
+```rust
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(&config.file_path)?;
+    
+    for line in contents.lines() {
+        if line.contains(&config.pattern) {
+            println!("{line}");
+        }
+    }
+    
+    Ok(())
+}
+```
+
+The search logic (the `for` loop) is buried inside `run`. This is a problem because:
+
+### Problem: How Do We Test This?
+
+To test if our search works correctly, we'd have to:
+
+1. Create a real file on disk
+2. Call `run` with a Config pointing to that file
+3. Somehow capture what gets printed to the screen
+4. Check if the printed output is correct
+
+That's complicated, slow, and fragile. What if the test runs on a computer where we can't create files? What if capturing printed output fails?
+
+### The Solution: Extract the Search Logic
+
+If we pull the search into its own function:
+
+```rust
+fn search(pattern: &str, contents: &str) -> Vec<&str> {
+    // return matching lines
+}
+```
+
+Then testing becomes easy:
+
+```rust
+#[test]
+fn test_search() {
+    let pattern = "hello";
+    let contents = "hello world\ngoodbye world";
+    let result = search(pattern, contents);
+    assert_eq!(result, vec!["hello world"]);
+}
+```
+
+No files, no capturing output. Just call the function and check what it returns.
+
+---
+
+## Part 15: Test-Driven Development (TDD)
+
+Before we write the `search` function, let's learn a powerful technique called **Test-Driven Development**.
+
+### What is TDD?
+
+The idea is simple but counterintuitive:
+
+1. **Write the test FIRST** (before the actual code)
+2. **Run the test** (it will fail, the function doesn't exist yet!)
+3. **Write the minimum code** to make the test pass
+4. **Refactor** if needed (clean up the code)
+5. **Repeat** for the next piece of functionality
+
+### Why Write Tests First?
+
+It seems backwards, but there are benefits:
+
+**You think about the interface first.** Before coding, you decide: What should this function take as input? What should it return? This leads to cleaner designs.
+
+**You know when you're done.** The test defines "success." Once it passes, you're done. No over-engineering.
+
+**You catch bugs immediately.** If you break something, the test fails right away.
+
+**You have confidence to refactor.** Want to rewrite the function more elegantly? The test will tell you if you broke anything.
+
+### Let's Do TDD for Our Search Function
+
+We'll write the test first, watch it fail, then implement the function.
+
+---
+
+## Part 16: Writing the Test First
+
+Add this to the bottom of `src/lib.rs`:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn one_result() {
+        let pattern = "duct";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.";
+        
+        assert_eq!(
+            vec!["safe, fast, productive."],
+            search(pattern, contents)
+        );
+    }
+}
+```
+
+Let me explain every piece:
+
+### The Test Module Structure
+
+**`#[cfg(test)]`**
+
+This is an attribute that means: "Only compile this code when running tests."
+
+When you run `cargo build`, this module is ignored completely. Only `cargo test` includes it. This keeps your compiled program smaller.
+
+**`mod tests { ... }`**
+
+We're creating a module called `tests`. This is a common convention, put tests in a `tests` module at the bottom of the file.
+
+**`use super::*;`**
+
+Remember, `tests` is a child module of `lib.rs`. The code in the parent (like the `search` function we'll create) isn't automatically visible to children.
+
+`super` means "the parent module" (i.e., the main `lib.rs` code).
+
+`use super::*` means "bring everything from the parent into scope." Now we can call `search` without writing `super::search`.
+
+### The Test Function
+
+**`#[test]`**
+
+This attribute marks the function as a test. When you run `cargo test`, Rust looks for functions with this attribute and runs them.
+
+**`fn one_result() { ... }`**
+
+The test function. The name describes what we're testing: that we get one result when searching.
+
+### Inside the Test
+
+**`let pattern = "duct";`**
+
+The pattern we're searching for. We chose "duct" because it appears in "productive" but not in other lines.
+
+**The multi-line string:**
+
+```rust
+let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.";
+```
+
+This is a string that spans multiple lines. Let me explain the `"\` at the start:
+
+If we wrote:
+
+```rust
+let contents = "
+Rust:
+safe, fast, productive.
+Pick three.";
+```
+
+The string would START with a blank line (the newline right after the opening quote).
+
+The backslash `\` right after the quote says: "ignore the newline immediately after me." So the string starts with "Rust:" not with a blank line.
+
+**The assertion:**
+
+```rust
+assert_eq!(
+    vec!["safe, fast, productive."],
+    search(pattern, contents)
+);
+```
+
+`assert_eq!(expected, actual)` checks that two values are equal. If they're not, the test fails.
+
+We expect `search("duct", contents)` to return a vector containing one element: `"safe, fast, productive."` (the only line containing "duct").
+
+### Run the Test (It Will Fail!)
+
+```
+cargo test
+```
+
+You'll get a compilation error:
+
+```
+error[E0425]: cannot find function `search` in this scope
+```
+
+The test is calling `search`, but that function doesn't exist yet. This is expected in TDD, we wrote the test first!
+
+---
+
+## Part 17: Implementing the Search Function
+
+Now let's write the minimum code to make the test pass.
+
+### The Function Signature
+
+First, let's think about what `search` needs:
+
+**Input:**
+- `pattern`: the text to search for (a string)
+- `contents`: the text to search in (a string)
+
+**Output:**
+- A collection of lines that contain the pattern
+
+### First Attempt (This Won't Compile)
+
+```rust
+pub fn search(pattern: &str, contents: &str) -> Vec<&str> {
+    // TODO
+}
+```
+
+**`pattern: &str`**: We take a reference to a string. We don't need ownership; we just need to look at it.
+
+**`contents: &str`**: Same for contents. Just a reference.
+
+**`-> Vec<&str>`**: We return a vector of string slices.
+
+### Wait, Why `&str` References?
+
+Think about what we're returning. Each matching line is a **piece of** `contents`. We're not creating new strings; we're pointing to parts of the original.
+
+```
+contents: "Hello world\nGoodbye world\nHello again"
+                                       ^^^^^^^^^^^
+                                       This slice is returned
+```
+
+A `&str` is perfect for this, it's a reference to part of a string.
+
+### The Lifetime Problem
+
+But there's an issue. Try to compile this:
+
+```rust
+pub fn search(pattern: &str, contents: &str) -> Vec<&str> {
+    vec![]
+}
+```
+
+You might get an error about lifetimes:
+
+```
+error[E0106]: missing lifetime specifier
+```
+
+Why? Because we're returning references (`&str`), and Rust needs to know: **how long do these references live?**
+
+### Understanding the Lifetime Issue
+
+When we return `Vec<&str>`, those string slices are pointing to... what?
+
+- They could be pointing to `pattern`
+- They could be pointing to `contents`
+
+Rust doesn't know which! And it matters because:
+
+- If they point to `pattern`, they're valid as long as `pattern` is valid
+- If they point to `contents`, they're valid as long as `contents` is valid
+
+We need to tell Rust: "The returned slices come from `contents`, so they live as long as `contents` lives."
+
+### Adding Lifetime Annotations
+
+```rust
+pub fn search<'a>(pattern: &str, contents: &'a str) -> Vec<&'a str> {
+    vec![]
+}
+```
+
+Let me break this down:
+
+**`<'a>`**: We're declaring a lifetime parameter called `'a`. This is like a generic, but for lifetimes instead of types.
+
+**`contents: &'a str`**: The `contents` reference has lifetime `'a`.
+
+**`-> Vec<&'a str>`**: The returned slices also have lifetime `'a`.
+
+This tells Rust: "The strings in the returned vector are borrowed from `contents`. They're valid as long as `contents` is valid."
+
+**Why no lifetime on `pattern`?**
+
+We never return anything that references `pattern`. We only use it to compare. So Rust doesn't need to track its lifetime in relation to the return value.
+
+### The Full Implementation
+
+```rust
+pub fn search<'a>(pattern: &str, contents: &'a str) -> Vec<&'a str> {
+    let mut results = Vec::new();
+    
+    for line in contents.lines() {
+        if line.contains(pattern) {
+            results.push(line);
+        }
+    }
+    
+    results
+}
+```
+
+Let me explain each line:
+
+**`let mut results = Vec::new();`**
+
+We create an empty, mutable vector. We'll add matching lines to it.
+
+`mut` is needed because we're going to modify the vector (by pushing items).
+
+**`for line in contents.lines() { ... }`**
+
+`contents.lines()` is a method that returns an iterator over the lines of the string. Each `line` is a `&str` slice of `contents`.
+
+If `contents` is:
+```
+"apple\nbanana\ncherry"
+```
+
+Then `contents.lines()` gives us:
+1. `"apple"`
+2. `"banana"`
+3. `"cherry"`
+
+**`if line.contains(pattern) { ... }`**
+
+The `.contains()` method on strings checks if one string contains another. Returns `true` or `false`.
+
+```rust
+"productive".contains("duct")  // true
+"productive".contains("xyz")   // false
+```
+
+**`results.push(line);`**
+
+If the line contains our pattern, add it to the results vector.
+
+**`results`**
+
+Return the vector. (No semicolon, this is the return expression.)
+
+### Run the Test
+
+```
+cargo test
+```
+
+Output:
+
+```
+running 1 test
+test tests::one_result ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored
+```
+
+It passes! Our TDD cycle is complete for this test.
+
+---
+
+## Part 18: Adding More Tests
+
+One test isn't enough. Let's add more to cover different scenarios.
+
+### Test: Multiple Matching Lines
+
+```rust
+#[test]
+fn multiple_results() {
+    let pattern = "rust";
+    let contents = "\
+rust is great
+I love rust
+python is okay
+rust rust rust";
+    
+    assert_eq!(
+        vec!["rust is great", "I love rust", "rust rust rust"],
+        search(pattern, contents)
+    );
+}
+```
+
+### Test: No Matches
+
+```rust
+#[test]
+fn no_results() {
+    let pattern = "zebra";
+    let contents = "\
+apple
+banana
+cherry";
+    
+    assert_eq!(
+        Vec::<&str>::new(),  // empty vector
+        search(pattern, contents)
+    );
+}
+```
+
+**Note:** `Vec::<&str>::new()` is how you specify the type when creating an empty vector. Without it, Rust might not know what type the empty vector should hold.
+
+### Run All Tests
+
+```
+cargo test
+```
+
+All tests should pass!
+
+---
+
+## Part 19: Integrating Search into Run
+
+Now let's use our tested `search` function in `run`:
+
+```rust
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(&config.file_path)?;
+    
+    for line in search(&config.pattern, &contents) {
+        println!("{line}");
+    }
+    
+    Ok(())
+}
+```
+
+Much cleaner! The `run` function now:
+
+1. Reads the file
+2. Calls our well-tested `search` function
+3. Prints each matching line
+
+The logic is separated, each piece does one thing, and we have tests for the core functionality.
+
+---
+
+## Part 20: Environment Variables
+
+What if we want the user to be able to do case-insensitive searching? Like finding "RUST" when searching for "rust"?
+
+We could add a command-line flag like `--ignore-case`. But let's learn about **environment variables** instead, they're a useful concept.
+
+### What Are Environment Variables?
+
+Environment variables are key-value settings that exist in your terminal/shell session. Programs can read them.
+
+You've probably seen some:
+
+- `PATH`: tells your system where to find programs
+- `HOME`: your home directory
+- `USER`: your username
+
+You can create your own! In your terminal:
+
+```bash
+# Set a variable (Unix/Mac/Linux)
+export MY_SETTING=hello
+
+# Set a variable (Windows PowerShell)
+$env:MY_SETTING = "hello"
+```
+
+Or set it just for one command:
+
+```bash
+# Unix/Mac/Linux
+MY_SETTING=hello cargo run
+
+# Windows PowerShell
+$env:MY_SETTING="hello"; cargo run
+```
+
+### Reading Environment Variables in Rust
+
+The `std::env` module (same one we used for `args`) has a function called `var`:
+
+```rust
+use std::env;
+
+fn main() {
+    let result = env::var("MY_SETTING");
+    println!("{:?}", result);
+}
+```
+
+### What Does `env::var` Return?
+
+It returns a `Result<String, VarError>`:
+
+- **`Ok(value)`**: The variable exists, here's its value as a `String`
+- **`Err(VarError)`**: The variable doesn't exist (or has invalid characters)
+
+### Example: Check If a Variable Is Set
+
+```rust
+use std::env;
+
+fn main() {
+    match env::var("MY_SETTING") {
+        Ok(value) => println!("MY_SETTING is: {}", value),
+        Err(_) => println!("MY_SETTING is not set"),
+    }
+}
+```
+
+### A Simpler Check: `.is_ok()`
+
+Often we just want to know: is the variable set at all? We don't care about its value.
+
+```rust
+let is_set = env::var("MY_SETTING").is_ok();
+```
+
+**`.is_ok()`** returns:
+- `true` if the `Result` is `Ok` (variable exists)
+- `false` if the `Result` is `Err` (variable doesn't exist)
+
+---
+
+## Part 21: Adding Case-Insensitive Search
+
+Let's add an `IGNORE_CASE` environment variable. If it's set, we search case-insensitively.
+
+### Step 1: Update the Config Struct
+
+We need to store whether we're ignoring case:
+
+```rust
+pub struct Config {
+    pub pattern: String,
+    pub file_path: String,
+    pub ignore_case: bool,
+}
+```
+
+New field: `ignore_case`, a boolean (`true` or `false`).
+
+### Step 2: Update the `build` Function
+
+```rust
+use std::env;
+
+impl Config {
+    pub fn build(args: &[String]) -> Result<Config, &'static str> {
+        if args.len() < 3 {
+            return Err("not enough arguments");
+        }
+        
+        let pattern = args[1].clone();
+        let file_path = args[2].clone();
+        let ignore_case = env::var("IGNORE_CASE").is_ok();
+        
+        Ok(Config { 
+            pattern, 
+            file_path, 
+            ignore_case,
+        })
+    }
+}
+```
+
+**`let ignore_case = env::var("IGNORE_CASE").is_ok();`**
+
+This reads the `IGNORE_CASE` environment variable:
+- If it exists (any value), `is_ok()` returns `true`
+- If it doesn't exist, `is_ok()` returns `false`
+
+So just setting `IGNORE_CASE=1` or `IGNORE_CASE=yes` or even `IGNORE_CASE=` enables case-insensitive mode.
+
+### Step 3: Write a Test for Case-Insensitive Search
+
+Following TDD, let's write the test first:
+
+```rust
+#[test]
+fn case_insensitive() {
+    let pattern = "rUsT";
+    let contents = "\
+Rust:
+Trust me,
+This is RUSTY";
+    
+    assert_eq!(
+        vec!["Rust:", "Trust me,", "This is RUSTY"],
+        search_case_insensitive(pattern, contents)
+    );
+}
+```
+
+We're searching for "rUsT" (weird mixed case) and expecting to find:
+- "Rust:": contains "Rust"
+- "Trust me,": contains "rust" in "Trust"
+- "This is RUSTY": contains "RUST"
+
+### Step 4: Implement `search_case_insensitive`
+
+```rust
+pub fn search_case_insensitive<'a>(pattern: &str, contents: &'a str) -> Vec<&'a str> {
+    let pattern_lower = pattern.to_lowercase();
+    let mut results = Vec::new();
+    
+    for line in contents.lines() {
+        if line.to_lowercase().contains(&pattern_lower) {
+            results.push(line);
+        }
+    }
+    
+    results
+}
+```
+
+Let me explain the differences from `search`:
+
+**`let pattern_lower = pattern.to_lowercase();`**
+
+The `.to_lowercase()` method converts a string to all lowercase letters.
+
+```rust
+"RuSt".to_lowercase()  // returns "rust"
+```
+
+**Important:** This returns a NEW `String`, not a `&str`. Why? Because some characters might change size when lowercased (in some languages, not English). So Rust has to allocate new memory.
+
+**`line.to_lowercase().contains(&pattern_lower)`**
+
+For each line:
+1. Convert the line to lowercase
+2. Check if it contains our lowercase pattern
+
+This way, "RUST" and "rust" and "Rust" all match when we search for "rust".
+
+**`results.push(line);`**
+
+We push the ORIGINAL line, not the lowercase version. The user wants to see the actual text from the file, preserving its original formatting.
+
+### Step 5: Update `run` to Use the Right Function
+
+```rust
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(&config.file_path)?;
+    
+    let results = if config.ignore_case {
+        search_case_insensitive(&config.pattern, &contents)
+    } else {
+        search(&config.pattern, &contents)
+    };
+    
+    for line in results {
+        println!("{line}");
+    }
+    
+    Ok(())
+}
+```
+
+**The `if` expression:**
+
+```rust
+let results = if config.ignore_case {
+    search_case_insensitive(&config.pattern, &contents)
+} else {
+    search(&config.pattern, &contents)
+};
+```
+
+Remember, in Rust, `if` is an expression, it returns a value!
+
+- If `ignore_case` is `true`, we call `search_case_insensitive` and its return value becomes `results`
+- If `ignore_case` is `false`, we call `search` and its return value becomes `results`
+
+### Test It Out
+
+Create a test file `poem.txt`:
+
+```
+Rust is awesome
+RUST IS GREAT
+I love rust
+Python is fine too
+```
+
+Run with case-sensitive search:
+
+```bash
+cargo run rust poem.txt
+```
+
+Output:
+
+```
+I love rust
+```
+
+Only the line with lowercase "rust" matches.
+
+Now run with case-insensitive search:
+
+```bash
+IGNORE_CASE=1 cargo run rust poem.txt
+```
+
+Output:
+
+```
+Rust is awesome
+RUST IS GREAT
+I love rust
+```
+
+All lines containing "rust" (in any case) match!
+
+---
+
+## Part 22: stderr vs stdout
+
+There's one more important concept: where our output goes.
+
+### Two Output Streams
+
+Every program has (at least) two output streams:
+
+**stdout (standard output)**
+- For normal program output
+- What `println!` writes to
+- The "main" output of your program
+
+**stderr (standard error)**
+- For error messages and diagnostics
+- Should be used for anything that isn't the main output
+
+### Why Does This Distinction Matter?
+
+Users often **redirect** output to files:
+
+```bash
+cargo run pattern file.txt > results.txt
+```
+
+The `>` symbol redirects stdout to a file. Everything the program prints goes into `results.txt` instead of the screen.
+
+But what if there's an error? If errors also go to stdout, they end up in the file:
+
+```
+# results.txt contains:
+Problem parsing arguments: not enough arguments
+```
+
+That's confusing! The user might not even see the error, they'll just wonder why `results.txt` is weird.
+
+### The Solution: Errors Go to stderr
+
+stderr is NOT redirected by `>`. It still goes to the screen.
+
+So if we write errors to stderr:
+1. Normal output goes to the file (or screen)
+2. Errors always appear on the screen
+
+### Using `eprintln!`
+
+It's simple, instead of `println!`, use `eprintln!`:
+
+```rust
+println!("This goes to stdout");
+eprintln!("This goes to stderr");
+```
+
+The "e" stands for "error" (meaning stderr).
+
+### Update main.rs
+
+Let's change our error messages to use `eprintln!`:
+
+```rust
+use std::env;
+use std::process;
+
+use searchtools::Config;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    
+    let config = Config::build(&args).unwrap_or_else(|err| {
+        eprintln!("Problem parsing arguments: {err}");
+        process::exit(1);
+    });
+    
+    if let Err(e) = searchtools::run(config) {
+        eprintln!("Application error: {e}");
+        process::exit(1);
+    }
+}
+```
+
+Only two changes:
+- `println!` → `eprintln!` for the argument error
+- `println!` → `eprintln!` for the application error
+
+### Test the Behavior
+
+Try running with output redirection but missing arguments:
+
+```bash
+cargo run > output.txt
+```
+
+You'll see on your screen:
+
+```
+Problem parsing arguments: not enough arguments
+```
+
+And `output.txt` will be empty (or won't be created).
+
+The error appeared on screen (stderr) while the file redirection (`>`) only affected stdout. This is the correct, professional behavior.
+
+---
+
+## Part 23: Complete Final Code
+
+Let me show you everything together:
+
+### src/lib.rs
+
+```rust
+use std::env;
+use std::error::Error;
+use std::fs;
+
+pub struct Config {
+    pub pattern: String,
+    pub file_path: String,
+    pub ignore_case: bool,
+}
+
+impl Config {
+    pub fn build(args: &[String]) -> Result<Config, &'static str> {
+        if args.len() < 3 {
+            return Err("not enough arguments");
+        }
+        
+        let pattern = args[1].clone();
+        let file_path = args[2].clone();
+        let ignore_case = env::var("IGNORE_CASE").is_ok();
+        
+        Ok(Config {
+            pattern,
+            file_path,
+            ignore_case,
+        })
+    }
+}
+
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(&config.file_path)?;
+    
+    let results = if config.ignore_case {
+        search_case_insensitive(&config.pattern, &contents)
+    } else {
+        search(&config.pattern, &contents)
+    };
+    
+    for line in results {
+        println!("{line}");
+    }
+    
+    Ok(())
+}
+
+pub fn search<'a>(pattern: &str, contents: &'a str) -> Vec<&'a str> {
+    let mut results = Vec::new();
+    
+    for line in contents.lines() {
+        if line.contains(pattern) {
+            results.push(line);
+        }
+    }
+    
+    results
+}
+
+pub fn search_case_insensitive<'a>(pattern: &str, contents: &'a str) -> Vec<&'a str> {
+    let pattern_lower = pattern.to_lowercase();
+    let mut results = Vec::new();
+    
+    for line in contents.lines() {
+        if line.to_lowercase().contains(&pattern_lower) {
+            results.push(line);
+        }
+    }
+    
+    results
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn case_sensitive() {
+        let pattern = "duct";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Duct tape.";
+        
+        assert_eq!(
+            vec!["safe, fast, productive."],
+            search(pattern, contents)
+        );
+    }
+    
+    #[test]
+    fn case_insensitive() {
+        let pattern = "rUsT";
+        let contents = "\
+Rust:
+Trust me,
+This is RUSTY";
+        
+        assert_eq!(
+            vec!["Rust:", "Trust me,", "This is RUSTY"],
+            search_case_insensitive(pattern, contents)
+        );
+    }
+}
+```
+
+### src/main.rs
+
+```rust
+use std::env;
+use std::process;
+
+use searchtools::Config;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    
+    let config = Config::build(&args).unwrap_or_else(|err| {
+        eprintln!("Problem parsing arguments: {err}");
+        process::exit(1);
+    });
+    
+    if let Err(e) = searchtools::run(config) {
+        eprintln!("Application error: {e}");
+        process::exit(1);
+    }
+}
+```
+
+---
+
+## Part 24: Summary of What You Learned
+
+| Topic | What It Means |
+|-------|---------------|
+| `env::args()` | Get command-line arguments as an iterator |
+| `.collect()` | Transform an iterator into a collection (like `Vec`) |
+| `fs::read_to_string()` | Read an entire file into a `String` |
+| `lib.rs` / `main.rs` split | Separate testable logic from the entry point |
+| `Config` struct | Bundle related configuration into one type |
+| `Result` with `?` | Propagate errors up the call chain easily |
+| `Box<dyn Error>` | Return any error type (trait object) |
+| `process::exit(1)` | Exit the program with an error code |
+| Lifetime `'a` | Tell Rust how long references are valid |
+| TDD | Write tests before implementation |
+| `env::var()` | Read environment variables |
+| `.is_ok()` | Check if a `Result` is `Ok` without unwrapping |
+| `.to_lowercase()` | Convert a string to lowercase |
+| `eprintln!` | Print to stderr instead of stdout |
+
+---
+
+## Key Principles from This Chapter
+
+1. **Separation of concerns**: Each function does one thing. `main` handles setup, `run` orchestrates, `search` does the core work.
+
+2. **Testable design**: By extracting `search` into its own function, we can write focused unit tests.
+
+3. **Proper error handling**: Use `Result` and `?` instead of panicking. Give users friendly error messages.
+
+4. **Configuration as data**: Bundle settings into a struct. Makes it easy to add new options later.
+
+5. **stderr for errors**: Keep error messages separate from normal output.
+
+---
+

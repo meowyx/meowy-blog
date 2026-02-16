@@ -1,0 +1,2571 @@
+---
+title: Advanced Features in Rust
+date: 2026-01-09
+category: rust-advanced
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+
+Welcome to the deep end! Chapter 20 is where Rust reveals some of its more powerful (and sometimes more dangerous) tools. These features exist because sometimes the "safe" path isn't enough, or because you need more expressiveness than the basic language provides.
+
+Let me walk you through each major topic conceptually first, then we'll layer in the syntax gradually.
+
+
+## The Big Picture: Why Advanced Features Exist
+
+Before diving in, let's understand *why* these features exist at all.
+
+Rust's core philosophy is **safety with zero-cost abstractions**. But there's an inherent tension here:
+
+1. **Safety requires restrictions**: The compiler can only guarantee safety if it can understand and verify what your code does
+2. **Some valid programs can't be verified**: There are perfectly safe things you might want to do that the compiler simply cannot prove are safe
+3. **Systems programming needs escape hatches**: If you're writing an operating system, a memory allocator, or interfacing with hardware, you *need* to do things the compiler can't verify
+
+So Rust provides **advanced features** that let you:
+- Temporarily opt out of some safety checks (unsafe)
+- Express more complex relationships between types (advanced traits)
+- Create more flexible type systems (advanced types)
+- Treat functions as data more powerfully (advanced functions)
+- Generate code at compile time (macros)
+
+---
+
+## Topic 1: Unsafe Rust
+
+### The Problem It Solves
+
+Imagine you're building a house. The building code says "all electrical work must be done by a licensed electrician, inspected, and permitted." This keeps people safe: no house fires, no electrocutions.
+
+But what if you *are* a licensed electrician? The code still applies to you. You still need permits. The system doesn't say "oh, you know what you're doing, do whatever." It treats everyone the same because it can't distinguish experts from amateurs.
+
+**Rust's compiler is like that building code.** It enforces safety rules on everyone, because it can't tell the difference between "I know exactly what I'm doing" and "I have no idea what I'm doing."
+
+The problem is: **some legitimate things are impossible to prove safe, even when they are.**
+
+---
+
+### A Concrete Example: Splitting a Slice
+
+Let's say you have a list of numbers, and you want to split it into two halves so you can work on both halves simultaneously (maybe in different threads).
+
+```rust
+let mut numbers = [1, 2, 3, 4, 5, 6];
+
+// I want two mutable references: one to [1,2,3] and one to [4,5,6]
+```
+
+You might try:
+
+```rust
+let first_half = &mut numbers[0..3];
+let second_half = &mut numbers[3..6];
+```
+
+**Rust won't allow this.** Why? Because from the compiler's perspective, you're trying to create two mutable references to the same array. It doesn't matter that they point to *different parts*; the compiler just sees "two `&mut` to `numbers`" and says no.
+
+But wait, is this actually dangerous? **No!** The two slices don't overlap. There's no way modifying `first_half` could affect `second_half`. This is perfectly safe... but the compiler can't prove it.
+
+This is exactly the situation `unsafe` is designed for.
+
+---
+
+### What Unsafe Actually Means
+
+When you write `unsafe { ... }`, you're telling the compiler:
+
+> "I'm about to do something you can't verify. I, the programmer, have checked that this is safe. Trust me."
+
+It's **not** saying "turn off all the rules." Most rules still apply inside `unsafe`. You're just unlocking a small set of specific abilities.
+
+Think of it like a key to a restricted cabinet. The key doesn't let you do *anything*; it just opens that one cabinet.
+
+---
+
+### The Five Things Unsafe Unlocks
+
+Unsafe gives you exactly five new abilities. That's it. Let me explain each one with a "when would I need this?" scenario.
+
+---
+
+#### 1. Dereference Raw Pointers
+
+**What's a raw pointer?**
+
+You know references: `&T` (shared reference) and `&mut T` (mutable reference). Raw pointers are their "unsafe cousins": `*const T` (read-only) and `*mut T` (read-write).
+
+**How are they different from references?**
+
+| References | Raw Pointers |
+|------------|--------------|
+| Always point to valid memory | Might point to garbage or nothing |
+| Can't be null | Can be null |
+| Compiler tracks lifetimes | No lifetime tracking |
+| Borrowing rules enforced | No borrowing rules |
+
+**When would you need raw pointers?**
+
+**Scenario A: Talking to C code**
+
+If you're calling a C library, C doesn't have references. It has pointers. To interact with C, you need raw pointers.
+
+```rust
+// A C function might have this signature:
+extern "C" {
+    fn some_c_function(data: *const u8, length: usize);
+}
+```
+
+**Scenario B: Building data structures the compiler can't understand**
+
+Some data structures have complex ownership patterns. A doubly-linked list, for example: each node points to the next *and* the previous. The compiler can't express "these two nodes own each other" with references. You'd use raw pointers.
+
+**Scenario C: The slice-splitting problem**
+
+Remember our earlier example? The standard library's `split_at_mut` function solves it using raw pointers internally:
+
+```rust
+let mut numbers = [1, 2, 3, 4, 5, 6];
+let (first, second) = numbers.split_at_mut(3);
+// Now first and second are both &mut slices, and it's safe!
+```
+
+Inside that function, there's `unsafe` code that creates two raw pointers, does pointer arithmetic to find the midpoint, and then converts them back to safe references.
+
+---
+
+**The key insight about raw pointers:**
+
+*Creating* a raw pointer is safe. *Using* it (dereferencing) requires `unsafe`.
+
+```rust
+let x = 42;
+let ptr: *const i32 = &x;  // Safe! Just making a pointer.
+
+let value = *ptr;  // ERROR! Can't dereference outside unsafe.
+
+unsafe {
+    let value = *ptr;  // OK, but now YOU guarantee ptr is valid.
+}
+```
+
+---
+
+#### 2. Call Unsafe Functions
+
+Some functions have **preconditions** that the compiler can't check. These functions are marked `unsafe fn`.
+
+**When would you need this?**
+
+**Scenario: Skipping bounds checks for performance**
+
+```rust
+let numbers = vec![1, 2, 3, 4, 5];
+
+// Safe version - checks that index is valid
+let x = numbers[2];  // If index is out of bounds, panics
+
+// Unsafe version - skips the check
+let y = unsafe { *numbers.get_unchecked(2) };
+```
+
+`get_unchecked` is unsafe because if you pass an invalid index, you get undefined behavior: reading garbage memory, crashing, who knows. The function says "I'll skip the safety check, but YOU must guarantee the index is valid."
+
+**When would you actually use this?** Almost never! The bounds check is incredibly fast. But in extremely hot loops where you've already verified indices, shaving off that check might matter.
+
+**Scenario: Calling C functions**
+
+All `extern "C"` functions are implicitly unsafe:
+
+```rust
+extern "C" {
+    fn strlen(s: *const i8) -> usize;
+}
+
+// Must be called in unsafe because Rust can't verify C code
+let len = unsafe { strlen(some_c_string) };
+```
+
+---
+
+#### 3. Access Mutable Static Variables
+
+A `static` variable is like a global constant that lives for the entire program. A `static mut` is a *mutable* global.
+
+**Why is this unsafe?**
+
+```rust
+static mut COUNTER: i32 = 0;
+
+fn increment() {
+    COUNTER += 1;  // ERROR! Can't access static mut without unsafe
+}
+```
+
+The danger: if two threads call `increment()` at the same time, they might both read `COUNTER`, both add 1, and both write back, resulting in only one increment instead of two. This is a **data race**.
+
+```rust
+fn increment() {
+    unsafe {
+        COUNTER += 1;  // You're promising to handle synchronization yourself
+    }
+}
+```
+
+**When would you need this?**
+
+Honestly? Rarely. Most of the time, you'd use proper synchronization primitives like `Mutex` or atomic types. But mutable statics exist for:
+- Interfacing with C libraries that use global state
+- Very low-level code like operating system kernels
+- Cases where the overhead of synchronization is unacceptable
+
+---
+
+#### 4. Implement Unsafe Traits
+
+Some traits have requirements the compiler can't verify. Implementing them is unsafe because you're promising to uphold those requirements.
+
+**The main examples: `Send` and `Sync`**
+
+Remember from concurrency?
+- `Send`: "This type is safe to transfer to another thread"
+- `Sync`: "This type is safe to share between threads via references"
+
+The compiler automatically implements these for most types. But if you're building a type with raw pointers, the compiler doesn't know if it's thread-safe. You might need to manually implement these traits, and that's unsafe.
+
+```rust
+struct MyType {
+    ptr: *mut i32,
+}
+
+// You're promising this is actually safe to send between threads
+unsafe impl Send for MyType {}
+```
+
+**When would you need this?**
+
+When building low-level concurrent data structures or FFI wrappers.
+
+---
+
+#### 5. Access Fields of Unions
+
+Unions are like enums, but they don't track which variant is active. All variants share the same memory.
+
+```rust
+union IntOrFloat {
+    i: i32,
+    f: f32,
+}
+
+let u = IntOrFloat { i: 42 };
+
+// Reading requires unsafe because Rust doesn't know if we stored an i or f
+let value = unsafe { u.i };
+```
+
+**When would you need this?**
+
+Mainly for C interop. C uses unions frequently; Rust doesn't.
+
+---
+
+### The Mental Model: Containing Danger
+
+Here's the key philosophy of unsafe Rust:
+
+**Make unsafe blocks as small as possible, then wrap them in safe interfaces.**
+
+The standard library does this everywhere. `Vec` uses unsafe internally (it manages raw memory), but you never see it. The public API is completely safe.
+
+```rust
+// Inside Vec's implementation (simplified)
+impl<T> Vec<T> {
+    pub fn push(&mut self, value: T) {
+        if self.len == self.capacity {
+            self.grow();  // Might use unsafe internally
+        }
+        unsafe {
+            // Write value to raw memory
+            std::ptr::write(self.ptr.add(self.len), value);
+        }
+        self.len += 1;
+    }
+}
+```
+
+You call `vec.push(5)` with no unsafe in sight. The danger is contained and encapsulated.
+
+---
+
+### When Will YOU Write Unsafe?
+
+Probably not often! Common situations:
+
+1. **Calling C libraries**: FFI requires raw pointers
+2. **Extreme performance optimization**: After profiling proves it's necessary
+3. **Building foundational data structures**: Things like `Vec`, `HashMap`, `Rc`
+4. **Embedded/OS development**: Talking to hardware, managing memory
+
+For most application code? You'll use safe abstractions that others built with unsafe.
+
+---
+
+## Topic 2: Associated Types vs Generic Type Parameters
+
+### The Setup: Two Ways to Have "A Type to Be Determined Later"
+
+When you write a trait, sometimes you need to say "this trait involves some type, but I don't know what type yet; the implementor will decide."
+
+Rust gives you two ways to express this:
+
+```rust
+// Way 1: Generic type parameter
+trait ConvertTo<T> {
+    fn convert(&self) -> T;
+}
+
+// Way 2: Associated type
+trait Iterator {
+    type Item;
+    fn next(&mut self) -> Option<Self::Item>;
+}
+```
+
+Both say "there's a type involved that we don't know yet." So why have two ways? **Because they mean different things.**
+
+---
+
+### The Key Difference: How Many Implementations?
+
+**Generic type parameter:** A type can implement the trait **multiple times**, once for each different type parameter.
+
+**Associated type:** A type can implement the trait **exactly once**.
+
+Let me make this concrete.
+
+---
+
+### Example: Generic Type Parameter
+
+Let's say we want a trait for "things that can be converted to other things":
+
+```rust
+trait ConvertTo<T> {
+    fn convert(&self) -> T;
+}
+```
+
+Now I have a `Point` struct:
+
+```rust
+struct Point {
+    x: i32,
+    y: i32,
+}
+```
+
+With a generic parameter, I can implement this trait **multiple times**:
+
+```rust
+impl ConvertTo<String> for Point {
+    fn convert(&self) -> String {
+        format!("({}, {})", self.x, self.y)
+    }
+}
+
+impl ConvertTo<(i32, i32)> for Point {
+    fn convert(&self) -> (i32, i32) {
+        (self.x, self.y)
+    }
+}
+
+impl ConvertTo<[i32; 2]> for Point {
+    fn convert(&self) -> [i32; 2] {
+        [self.x, self.y]
+    }
+}
+```
+
+Now `Point` implements:
+- `ConvertTo<String>`
+- `ConvertTo<(i32, i32)>`
+- `ConvertTo<[i32; 2]>`
+
+These are **three different traits** in Rust's eyes. The `<T>` is part of the trait's identity.
+
+**When does this make sense?**
+
+When there's genuinely multiple valid answers. A `Point` *can* be converted to a `String`. It *can also* be converted to a tuple. Neither is "the" conversion; they're different conversions for different purposes.
+
+---
+
+### Example: Associated Type
+
+Now let's look at `Iterator`:
+
+```rust
+trait Iterator {
+    type Item;
+    fn next(&mut self) -> Option<Self::Item>;
+}
+```
+
+If I have a struct that iterates over integers:
+
+```rust
+struct Counter {
+    current: i32,
+    max: i32,
+}
+
+impl Iterator for Counter {
+    type Item = i32;  // Declaring: "this iterator produces i32s"
+    
+    fn next(&mut self) -> Option<i32> {
+        if self.current < self.max {
+            self.current += 1;
+            Some(self.current)
+        } else {
+            None
+        }
+    }
+}
+```
+
+With an associated type, I can only implement `Iterator` for `Counter` **once**. I can't also say "Counter also implements Iterator with Item = String". That would be two implementations, which isn't allowed.
+
+**When does this make sense?**
+
+When there's **one right answer**. When you iterate over a `Counter`, what do you get? Integers. That's not a choice; it's inherent to what `Counter` is.
+
+Think about `Vec<String>`. When you iterate over it, you get `String`s. It wouldn't make sense to say "this Vec<String> can also be iterated as an iterator of integers." The item type is determined by what the container holds.
+
+---
+
+### The Mental Model: "Can Do" vs "Is"
+
+Here's a way to think about it:
+
+**Generic parameter = "Can do"**
+- Point **can** convert to String
+- Point **can** convert to tuple
+- Point **can** convert to array
+- Multiple capabilities, pick which one you want
+
+**Associated type = "Is"**
+- Counter **is** an iterator of i32
+- Vec<String> **is** an iterator of String
+- There's one answer, inherent to the type
+
+---
+
+### Why Does This Distinction Matter?
+
+It affects how you **use** the trait.
+
+**With generics, you must specify which version:**
+
+```rust
+fn print_converted<T: std::fmt::Display>(point: &Point) 
+where
+    Point: ConvertTo<T>
+{
+    let converted: T = point.convert();
+    println!("{}", converted);
+}
+
+// When calling:
+print_converted::<String>(&my_point);  // Must say which T
+```
+
+The compiler needs to know *which* `ConvertTo` implementation you want.
+
+**With associated types, there's only one choice:**
+
+```rust
+fn print_next<I: Iterator>(iter: &mut I) 
+where
+    I::Item: std::fmt::Display
+{
+    if let Some(item) = iter.next() {
+        println!("{}", item);
+    }
+}
+
+// When calling:
+print_next(&mut my_counter);  // No need to specify Item type
+```
+
+The compiler knows that `Counter`'s `Item` is `i32`. There's no ambiguity.
+
+---
+
+### A Real-World Analogy
+
+**Generic parameter:** A USB port.
+
+Your laptop has a USB port. You can plug in:
+- A mouse
+- A keyboard  
+- A flash drive
+- A phone charger
+
+The port is **generic**: it can connect to many different things. When you want to use it, you have to **choose** what to plug in.
+
+**Associated type:** Your blood type.
+
+You have **one** blood type. It's not a choice you make each time; it's inherent to who you are. When a doctor needs to give you blood, they don't ask "which blood type would you like today?" There's one answer.
+
+---
+
+### Seeing It in the Standard Library
+
+**Generic parameter examples:**
+
+```rust
+// From can convert from multiple source types
+trait From<T> {
+    fn from(value: T) -> Self;
+}
+
+// String implements From<&str>, From<char>, From<Vec<u8>>, etc.
+```
+
+`String` can be created `From` many different types. Each is a separate capability.
+
+**Associated type examples:**
+
+```rust
+// Iterator has one Item type
+trait Iterator {
+    type Item;
+    fn next(&mut self) -> Option<Self::Item>;
+}
+
+// Deref has one Target type
+trait Deref {
+    type Target;
+    fn deref(&self) -> &Self::Target;
+}
+```
+
+When you dereference a `Box<String>`, you get a `String`. Not a choice; that's what's in the box.
+
+---
+
+### When You're Designing a Trait: Which Should You Use?
+
+Ask yourself:
+
+**"For a given type implementing this trait, could there be multiple valid answers for this type parameter?"**
+
+- **Yes, multiple valid answers** → Use generic parameter `trait Foo<T>`
+- **No, exactly one answer per type** → Use associated type `type Bar`
+
+Examples:
+
+| Trait Concept | Multiple Answers? | Use |
+|---------------|-------------------|-----|
+| "Convert to T" | Yes (can convert to many types) | Generic |
+| "What does this iterator yield?" | No (one item type per iterator) | Associated |
+| "What can this add to?" | Usually one (add i32 to i32) | Associated with default |
+| "Serialize to format T" | Yes (JSON, XML, etc.) | Generic |
+| "What error type does this return?" | No (one error type per operation) | Associated |
+
+---
+
+### A Hybrid: Default Generic Parameters
+
+Sometimes there's usually one answer, but occasionally you want flexibility. That's where **default type parameters** come in:
+
+```rust
+trait Add<Rhs = Self> {
+    type Output;
+    fn add(self, rhs: Rhs) -> Self::Output;
+}
+```
+
+The `Rhs = Self` means "if you don't specify, assume you're adding the same type to itself."
+
+Most of the time, you add `i32 + i32`, or `Point + Point`. The default handles this:
+
+```rust
+impl Add for Point {
+    type Output = Point;
+    
+    fn add(self, other: Point) -> Point {
+        Point { 
+            x: self.x + other.x, 
+            y: self.y + other.y 
+        }
+    }
+}
+```
+
+But you *can* override it for special cases:
+
+```rust
+impl Add<Offset> for Point {
+    type Output = Point;
+    
+    fn add(self, offset: Offset) -> Point {
+        Point {
+            x: self.x + offset.dx,
+            y: self.y + offset.dy,
+        }
+    }
+}
+```
+
+Now `Point` implements both `Add<Point>` (using the default) and `Add<Offset>`.
+
+---
+
+## Topic 3: The Newtype Pattern
+
+### What Is It?
+
+The newtype pattern is simple mechanically: **wrap a type inside a single-field tuple struct.**
+
+```rust
+struct Wrapper(SomeExistingType);
+```
+
+That's it. You now have a "new type" that contains the old type.
+
+But *why* would you do this? There are three distinct reasons, and understanding each one separately is important.
+
+---
+
+### Reason 1: Getting Around the Orphan Rule
+
+#### The Problem
+
+Rust has a rule called the **orphan rule**: you can only implement a trait for a type if **at least one of them** (the trait or the type) is defined in your crate.
+
+This prevents chaos. Imagine if anyone could add trait implementations to any type: two different libraries might implement the same trait for `Vec` in conflicting ways. Your program wouldn't know which to use.
+
+But sometimes this rule blocks you from doing something legitimate.
+
+#### A Concrete Scenario
+
+Let's say you want to print a `Vec<String>` in a special format. You want to use `Display` so you can write `println!("{}", my_vec)`.
+
+You try:
+
+```rust
+use std::fmt;
+
+impl fmt::Display for Vec<String> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[{}]", self.join(", "))
+    }
+}
+```
+
+**Error!** You don't own `Display` (it's in `std`) and you don't own `Vec` (also in `std`). The orphan rule blocks you.
+
+#### The Solution: Newtype
+
+Create a wrapper type that you *do* own:
+
+```rust
+struct PrintableList(Vec<String>);
+
+impl fmt::Display for PrintableList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[{}]", self.0.join(", "))
+    }
+}
+```
+
+Now you own `PrintableList`, so you can implement any trait on it.
+
+```rust
+let names = PrintableList(vec![
+    String::from("Alice"),
+    String::from("Bob"),
+    String::from("Charlie"),
+]);
+
+println!("{}", names);  // Prints: [Alice, Bob, Charlie]
+```
+
+The `self.0` accesses the first (and only) field of the tuple struct: the inner `Vec<String>`.
+
+---
+
+### Reason 2: Type Safety (Preventing Mistakes)
+
+#### The Problem
+
+Primitive types don't carry meaning. An `i32` is just a number. But in your program, numbers mean different things:
+
+- This `i32` is a **user ID**
+- That `i32` is a **product ID**
+- This `f64` is a distance in **meters**
+- That `f64` is a distance in **feet**
+
+If they're all the same type, you can mix them up:
+
+```rust
+fn get_user(user_id: i32) -> User { ... }
+fn get_product(product_id: i32) -> Product { ... }
+
+let user_id = 42;
+let product_id = 100;
+
+// Oops! Passed product_id where user_id was expected.
+// Compiles fine. Bug happens at runtime.
+let user = get_user(product_id);
+```
+
+The compiler can't help you because both are just `i32`.
+
+#### A Real-World Disaster
+
+In 1999, NASA's Mars Climate Orbiter crashed because one team sent thrust data in **pound-force seconds** while another team expected **newton-seconds**. Both were just numbers. Nothing in the code distinguished them. $125 million, gone.
+
+#### The Solution: Newtype
+
+```rust
+struct UserId(i32);
+struct ProductId(i32);
+
+fn get_user(user_id: UserId) -> User { ... }
+fn get_product(product_id: ProductId) -> Product { ... }
+
+let user_id = UserId(42);
+let product_id = ProductId(100);
+
+// Now this is a compile error!
+let user = get_user(product_id);  // ERROR: expected UserId, found ProductId
+```
+
+Even though both wrap `i32`, they are **different types**. The compiler won't let you mix them up.
+
+#### The NASA Example, Fixed
+
+```rust
+struct NewtonSeconds(f64);
+struct PoundForceSeconds(f64);
+
+fn apply_thrust(impulse: NewtonSeconds) { ... }
+
+let thrust = PoundForceSeconds(100.0);
+
+// Compile error! Can't pass PoundForceSeconds where NewtonSeconds expected.
+apply_thrust(thrust);
+```
+
+You'd be forced to write an explicit conversion:
+
+```rust
+impl PoundForceSeconds {
+    fn to_newton_seconds(self) -> NewtonSeconds {
+        NewtonSeconds(self.0 * 4.44822)
+    }
+}
+
+apply_thrust(thrust.to_newton_seconds());  // Now it's explicit and correct
+```
+
+---
+
+### Reason 3: Hiding Implementation Details
+
+#### The Problem
+
+Sometimes you want to expose a simple interface while hiding what's underneath. If your API returns a `HashMap<String, Vec<i32>>`, users might start depending on it being a `HashMap`. Later, if you want to change the internal representation, you can't without breaking their code.
+
+#### The Solution: Newtype
+
+```rust
+// Your public API
+pub struct UserScores(HashMap<String, Vec<i32>>);
+
+impl UserScores {
+    pub fn new() -> Self {
+        UserScores(HashMap::new())
+    }
+    
+    pub fn add_score(&mut self, user: &str, score: i32) {
+        self.0.entry(user.to_string())
+            .or_insert_with(Vec::new)
+            .push(score);
+    }
+    
+    pub fn get_average(&self, user: &str) -> Option<f64> {
+        self.0.get(user).map(|scores| {
+            let sum: i32 = scores.iter().sum();
+            sum as f64 / scores.len() as f64
+        })
+    }
+}
+```
+
+Users of your library interact with `UserScores` through your methods. They don't know (or care) that it's a `HashMap` inside. Later, you could change it to a `BTreeMap` or a database connection without changing your public API.
+
+---
+
+### The Downside: You Lose the Inner Type's Methods
+
+When you wrap a type, the wrapper doesn't automatically have the inner type's methods.
+
+```rust
+struct PrintableList(Vec<String>);
+
+let list = PrintableList(vec![String::from("hello")]);
+
+// This doesn't work!
+list.push(String::from("world"));  // ERROR: no method named `push` on PrintableList
+```
+
+You have three options:
+
+#### Option A: Access the inner value directly
+
+```rust
+list.0.push(String::from("world"));
+```
+
+Simple, but exposes the implementation.
+
+#### Option B: Implement the methods you need
+
+```rust
+impl PrintableList {
+    fn push(&mut self, value: String) {
+        self.0.push(value);
+    }
+    
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+```
+
+More work, but you control the interface.
+
+#### Option C: Implement `Deref` (use with caution)
+
+```rust
+use std::ops::Deref;
+
+impl Deref for PrintableList {
+    type Target = Vec<String>;
+    
+    fn deref(&self) -> &Vec<String> {
+        &self.0
+    }
+}
+```
+
+Now `PrintableList` automatically gets all of `Vec`'s methods through deref coercion. But this somewhat defeats the purpose of the newtype: you're exposing the inner type again.
+
+---
+
+### Newtype Has Zero Runtime Cost
+
+Here's something important: **newtypes are free at runtime.**
+
+```rust
+struct Meters(f64);
+```
+
+In memory, `Meters` is stored exactly like `f64`. No extra bytes, no indirection, no wrapper overhead. The struct exists only at compile time for type checking. The compiler "erases" it when generating machine code.
+
+This is why it's called "newtype": you're creating a new type for the type system, not a new runtime representation.
+
+---
+
+### Summary: Three Reasons for Newtype
+
+| Reason | Problem | Solution |
+|--------|---------|----------|
+| Orphan rule | Can't impl foreign trait on foreign type | Wrap in newtype you own |
+| Type safety | Primitive types have no semantic meaning | Wrap to create distinct types |
+| Encapsulation | Don't want to expose internal representation | Wrap to hide implementation |
+
+---
+
+
+## Topic 4: Type Aliases vs Newtype
+
+### The Confusion
+
+These two features look similar at first glance:
+
+```rust
+// Type alias
+type Kilometers = i32;
+
+// Newtype
+struct Kilometers(i32);
+```
+
+Both let you write `Kilometers` instead of `i32`. But they do **completely different things**.
+
+---
+
+### Type Alias: Just a New Name
+
+A type alias creates a **synonym**. It's literally just another name for the same type.
+
+```rust
+type Kilometers = i32;
+
+let distance: Kilometers = 100;
+let number: i32 = 50;
+
+// These are the SAME type. You can mix them freely.
+let total: i32 = distance + number;  // Works fine
+let other: Kilometers = number;       // Also works fine
+```
+
+The compiler treats `Kilometers` and `i32` as **identical**. Anywhere you can use `i32`, you can use `Kilometers`, and vice versa. No conversion needed. They're the same type with two names.
+
+Think of it like nicknames. "Robert" and "Bob" refer to the same person. Calling someone "Bob" doesn't create a new person.
+
+---
+
+### Newtype: A Genuinely Different Type
+
+A newtype creates an **actually distinct type** that happens to contain another type.
+
+```rust
+struct Kilometers(i32);
+
+let distance: Kilometers = Kilometers(100);
+let number: i32 = 50;
+
+// These are DIFFERENT types. You cannot mix them.
+let total = distance + number;  // ERROR! Can't add Kilometers and i32
+let other: Kilometers = number; // ERROR! Expected Kilometers, found i32
+```
+
+The compiler treats `Kilometers` and `i32` as **completely separate**. You must explicitly convert between them.
+
+---
+
+### Side by Side Comparison
+
+```rust
+// === Type Alias ===
+type AliasKm = i32;
+
+let a: AliasKm = 10;
+let b: i32 = 20;
+let c: AliasKm = a + b;    // Works! Same type.
+let d: i32 = a;            // Works! Same type.
+
+fn takes_i32(x: i32) {}
+takes_i32(a);              // Works! AliasKm IS i32.
+
+
+// === Newtype ===
+struct NewtypeKm(i32);
+
+let a: NewtypeKm = NewtypeKm(10);
+let b: i32 = 20;
+let c = a + b;             // ERROR! Different types.
+let d: i32 = a;            // ERROR! Different types.
+
+fn takes_i32(x: i32) {}
+takes_i32(a);              // ERROR! NewtypeKm is NOT i32.
+```
+
+---
+
+### When to Use Type Alias
+
+Type aliases are for **convenience and readability**, not safety.
+
+#### Use Case 1: Shortening Long Types
+
+Some types get really long:
+
+```rust
+std::collections::HashMap<String, Vec<Box<dyn Fn(i32) -> i32>>>
+```
+
+Writing that everywhere is painful. A type alias helps:
+
+```rust
+type CallbackMap = HashMap<String, Vec<Box<dyn Fn(i32) -> i32>>>;
+
+fn process(callbacks: CallbackMap) { ... }
+fn create() -> CallbackMap { ... }
+```
+
+Now your code is readable. But `CallbackMap` and the long type are still identical; you can use them interchangeably.
+
+#### Use Case 2: Giving Meaning to Generic Parameters
+
+Sometimes you're working with a generic type that's always used with the same parameter:
+
+```rust
+type Result<T> = std::result::Result<T, std::io::Error>;
+```
+
+This is exactly what the standard library's `std::io` module does. Instead of writing `Result<String, std::io::Error>` everywhere, you write `io::Result<String>`.
+
+The type is still `Result`; you've just baked in one of the parameters.
+
+#### Use Case 3: Documentation
+
+Even when types aren't long, aliases can document intent:
+
+```rust
+type UserId = i32;
+type ProductId = i32;
+
+fn get_user(id: UserId) -> User { ... }
+```
+
+**But wait!** This doesn't give you safety. You can still pass a `ProductId` where `UserId` is expected:
+
+```rust
+let product_id: ProductId = 42;
+get_user(product_id);  // Compiles! Both are just i32.
+```
+
+The alias documents your *intention*, but the compiler won't enforce it.
+
+---
+
+### When to Use Newtype
+
+Newtypes are for **safety and distinct behavior**.
+
+#### Use Case 1: Compile-Time Safety
+
+When you need the compiler to prevent mixing things up:
+
+```rust
+struct UserId(i32);
+struct ProductId(i32);
+
+fn get_user(id: UserId) -> User { ... }
+
+let product_id = ProductId(42);
+get_user(product_id);  // ERROR! Type mismatch.
+```
+
+Now mistakes are caught at compile time.
+
+#### Use Case 2: Different Trait Implementations
+
+A type alias can't have its own trait implementations (it's the same type). A newtype can:
+
+```rust
+// With type alias - can't do this
+type Wrapper = Vec<String>;
+impl Display for Wrapper { }  // ERROR! Orphan rule - Vec isn't yours
+
+// With newtype - works fine
+struct Wrapper(Vec<String>);
+impl Display for Wrapper { }  // OK! Wrapper is yours
+```
+
+#### Use Case 3: Different Behavior
+
+Sometimes the same underlying data should behave differently:
+
+```rust
+struct Celsius(f64);
+struct Fahrenheit(f64);
+
+impl Celsius {
+    fn to_fahrenheit(&self) -> Fahrenheit {
+        Fahrenheit(self.0 * 9.0 / 5.0 + 32.0)
+    }
+}
+
+impl Fahrenheit {
+    fn to_celsius(&self) -> Celsius {
+        Celsius((self.0 - 32.0) * 5.0 / 9.0)
+    }
+}
+```
+
+With type aliases, you couldn't have different methods for each; they'd both just be `f64`.
+
+---
+
+### The Decision Flowchart
+
+Ask yourself:
+
+**"Do I need the compiler to treat these as different types?"**
+
+- **No, just want a shorter/clearer name** → Type alias
+- **Yes, they should not be interchangeable** → Newtype
+
+**"Do I need to implement traits on this type?"**
+
+- **No** → Type alias might be fine
+- **Yes, and the orphan rule blocks me** → Newtype
+
+**"Is mixing these values up a bug I want to catch at compile time?"**
+
+- **No, it's fine if they mix** → Type alias
+- **Yes, mixing them would be a bug** → Newtype
+
+---
+
+### A Helpful Analogy
+
+**Type alias** is like a person having two names:
+
+> "Elizabeth" and "Liz" are the same person. Mail addressed to either name goes to the same house. They have the same birthday, same job, same everything.
+
+**Newtype** is like identical twins:
+
+> They might look the same and have the same DNA (underlying type), but they're different people. They have different names, different bank accounts, different jobs. Calling one won't reach the other.
+
+---
+
+### Quick Reference Table
+
+| Feature | Type Alias | Newtype |
+|---------|------------|---------|
+| Syntax | `type Name = Other;` | `struct Name(Other);` |
+| Are they the same type? | Yes | No |
+| Can mix freely? | Yes | No |
+| Can implement traits? | No (it's the original type) | Yes |
+| Compile-time safety? | No | Yes |
+| Runtime cost? | Zero | Zero |
+| Main purpose | Convenience | Safety |
+
+---
+
+## Topic 5: The Never Type (`!`)
+
+### Starting With a Puzzle
+
+Look at this code:
+
+```rust
+let value: i32 = match some_option {
+    Some(x) => x,
+    None => panic!("nothing here!"),
+};
+```
+
+This compiles. But wait... the first arm returns an `i32`. What does the second arm return? `panic!` doesn't return an `i32`. It doesn't return anything at all; it crashes the program.
+
+So how can both arms of a `match` have "the same type" when one returns a number and the other crashes?
+
+This is where the never type comes in.
+
+---
+
+### The Concept: A Type for "This Never Happens"
+
+The never type, written `!`, represents computations that **never produce a value**.
+
+Not "produce nothing" (that's `()`, the unit type). Not "produce something optional" (that's `Option`). But "literally never finish, never return, never produce anything, ever."
+
+---
+
+### The Difference Between `()` and `!`
+
+This is a crucial distinction.
+
+**Unit type `()`**: "I return, but I have nothing to give you."
+
+```rust
+fn prints_hello() {
+    println!("Hello");
+    // Implicitly returns ()
+}
+```
+
+This function runs, does something, and returns. It just returns an empty value.
+
+**Never type `!`**: "I never return at all."
+
+```rust
+fn crashes() -> ! {
+    panic!("goodbye");
+    // Never reaches here. Never returns. Ever.
+}
+```
+
+This function starts running but never finishes. No value ever comes back.
+
+---
+
+### An Analogy: Ordering Food
+
+**`()` is like ordering water at a restaurant:**
+
+You order. The waiter comes back. They bring you... water. It's not much, but they returned with something (an empty glass, essentially). The transaction completed.
+
+**`!` is like ordering from a restaurant that explodes:**
+
+You order. The restaurant explodes. The waiter never comes back. Not with nothing; they just *never come back*. The transaction never completes.
+
+---
+
+### Why Does This Type Exist?
+
+The never type exists to make the **type system consistent** in situations involving control flow that doesn't continue normally.
+
+Let's revisit that match expression:
+
+```rust
+let value: i32 = match some_option {
+    Some(x) => x,         // Returns i32
+    None => panic!("!"),  // Returns... what?
+};
+```
+
+Rust requires all arms of a match to have the same type. The first arm is `i32`. What about the second?
+
+Here's the key insight: **`!` can coerce to any type.**
+
+Why? Because if a piece of code never produces a value, it can "pretend" to produce any type you want. It's not a lie; you'll never actually get a value, so the type doesn't matter. It's like promising "I'll give you a million dollars when pigs fly." The promise can be for any amount because it'll never be fulfilled.
+
+So `panic!("!")` has type `!`, and `!` coerces to `i32`, so the match expression type-checks.
+
+---
+
+### Where You Encounter `!`
+
+#### 1. `panic!`
+
+```rust
+fn get_or_crash(opt: Option<i32>) -> i32 {
+    match opt {
+        Some(x) => x,
+        None => panic!("was None"),  // ! coerces to i32
+    }
+}
+```
+
+#### 2. Infinite Loops
+
+A `loop` that never breaks has type `!`:
+
+```rust
+fn run_forever() -> ! {
+    loop {
+        // Do stuff forever
+        // Never exits
+    }
+}
+```
+
+If the loop *does* break, it no longer has type `!`:
+
+```rust
+fn might_return() -> i32 {
+    loop {
+        if some_condition() {
+            break 42;  // Now the loop has type i32
+        }
+    }
+}
+```
+
+#### 3. `std::process::exit()`
+
+```rust
+fn bail_out() -> ! {
+    std::process::exit(1);
+    // Process ends. This function never returns.
+}
+```
+
+#### 4. Functions that always panic
+
+```rust
+fn unimplemented_feature() -> ! {
+    unimplemented!("coming soon");
+}
+
+fn todo_later() -> ! {
+    todo!("finish this");
+}
+```
+
+Both `unimplemented!()` and `todo!()` return `!` because they always panic.
+
+---
+
+### A Practical Example: `unwrap()`
+
+Ever wonder how `unwrap()` works on `Option`?
+
+```rust
+impl<T> Option<T> {
+    fn unwrap(self) -> T {
+        match self {
+            Some(value) => value,  // Returns T
+            None => panic!("called unwrap on None"),  // Returns !, coerces to T
+        }
+    }
+}
+```
+
+The `None` arm panics, which has type `!`. Since `!` coerces to any type, it coerces to `T`, and the whole function returns `T`.
+
+---
+
+### Another Example: The `loop` Trick
+
+Sometimes you see this pattern:
+
+```rust
+let answer: i32 = loop {
+    let guess = get_user_input();
+    
+    if guess.is_valid() {
+        break guess.value();
+    }
+    
+    println!("Invalid, try again");
+};
+```
+
+What's the type of this loop?
+
+- If we `break` with a value, that value's type determines the loop's type
+- If we never break... well, we loop forever, which is `!`
+
+But since we *do* break with an `i32`, the loop has type `i32`.
+
+What if we wrote:
+
+```rust
+let answer: i32 = loop {
+    println!("forever");
+};
+```
+
+This loop never breaks, so it has type `!`. But `!` coerces to `i32`, so this still compiles! (Though it would loop forever and never actually assign anything.)
+
+---
+
+### The Type System Perspective
+
+Think of types as "sets of possible values":
+
+- `bool` is the set `{true, false}`: two possible values
+- `u8` is the set `{0, 1, 2, ..., 255}`: 256 possible values  
+- `()` is the set `{()}`: one possible value (the unit value)
+- `!` is the **empty set** `{}`: zero possible values
+
+A value of type `!` can never exist. There's no way to create one. And since you can never have a value of type `!`, you can never actually use it. Any code that would "produce" a `!` instead diverges: it panics, loops forever, or exits the process.
+
+This is why `!` can coerce to any type. If I promise to give you a value from the empty set whenever you want, I can promise it's any type you like. I'll never have to deliver on that promise because you'll never successfully ask for one.
+
+---
+
+### Will You Write Functions Returning `!`?
+
+Probably not often! Common scenarios:
+
+**Scenario 1: A custom panic-like function**
+
+```rust
+fn fatal_error(message: &str) -> ! {
+    eprintln!("FATAL: {}", message);
+    std::process::exit(1);
+}
+
+fn do_something(opt: Option<i32>) -> i32 {
+    match opt {
+        Some(x) => x,
+        None => fatal_error("expected a value"),
+    }
+}
+```
+
+**Scenario 2: A server's main loop**
+
+```rust
+fn run_server() -> ! {
+    loop {
+        let request = accept_connection();
+        handle(request);
+    }
+}
+```
+
+**Scenario 3: Embedded systems**
+
+In embedded programming, the main function often never returns:
+
+```rust
+#[no_main]
+fn main() -> ! {
+    loop {
+        // Run forever, handling hardware events
+    }
+}
+```
+
+---
+
+### Summary
+
+| Concept | Symbol | Meaning | Example |
+|---------|--------|---------|---------|
+| Unit type | `()` | Returns with nothing | `println!("hi")` |
+| Never type | `!` | Never returns at all | `panic!("bye")` |
+
+Key insight: `!` coerces to any type, which makes match expressions and other control flow work cleanly when some branches don't return normally.
+
+---
+
+## Topic 6: Dynamically Sized Types (DSTs)
+
+### Starting With a Puzzle
+
+Why does this work:
+
+```rust
+let s: &str = "hello";
+```
+
+But this doesn't:
+
+```rust
+let s: str = "hello";  // ERROR!
+```
+
+Why can you have a *reference* to `str`, but not a `str` directly?
+
+---
+
+### The Problem: The Compiler Needs to Know Sizes
+
+When you declare a variable, the compiler needs to know **how many bytes to allocate on the stack**.
+
+```rust
+let x: i32 = 42;      // Compiler knows: 4 bytes
+let y: bool = true;   // Compiler knows: 1 byte
+let z: [i32; 5] = [0; 5];  // Compiler knows: 20 bytes (5 × 4)
+```
+
+For every local variable, the compiler must know its size at compile time. This is fundamental to how the stack works.
+
+But some types **don't have a known size**:
+
+```rust
+let s: str = ???;  // How many bytes? Could be "hi" (2) or "hello world" (11)
+```
+
+A `str` is a string slice; it could be any length. The compiler can't know how much stack space to reserve.
+
+---
+
+### What Are Dynamically Sized Types?
+
+A **Dynamically Sized Type (DST)** is a type whose size isn't known at compile time.
+
+The main DSTs you'll encounter:
+
+| DST | What it is | Why size is unknown |
+|-----|------------|---------------------|
+| `str` | A string slice | Could be any length |
+| `[T]` | A slice of T | Could have any number of elements |
+| `dyn Trait` | A trait object | Could be any type implementing the trait |
+
+Notice something? These are all "sequence-like" or "could be anything" types.
+
+---
+
+### The Rule: DSTs Must Live Behind a Pointer
+
+Since you can't have a DST directly on the stack, you always use them **behind some kind of pointer**:
+
+```rust
+// These don't work (can't have DST directly):
+let a: str = ...;
+let b: [i32] = ...;
+let c: dyn Display = ...;
+
+// These work (DST behind a pointer):
+let a: &str = "hello";
+let b: &[i32] = &[1, 2, 3];
+let c: &dyn Display = &42;
+
+// Also works with other pointer types:
+let a: Box<str> = "hello".into();
+let b: Box<[i32]> = vec![1, 2, 3].into_boxed_slice();
+let c: Box<dyn Display> = Box::new(42);
+```
+
+The pointer has a known size (8 bytes on 64-bit systems), so the compiler is happy.
+
+---
+
+### But Wait: How Does the Pointer Know the Size?
+
+Here's the clever part. A regular pointer is just a memory address: 8 bytes. But that's not enough information for a DST. If I give you a pointer to a `str`, how do you know where the string ends?
+
+The answer: **fat pointers**.
+
+A pointer to a DST is actually **two** pieces of information:
+
+```
+Regular pointer:  [memory address]           = 8 bytes
+
+Fat pointer:      [memory address] + [extra] = 16 bytes
+```
+
+What's the "extra" part?
+
+| DST | Extra information |
+|-----|-------------------|
+| `str` | Length (number of bytes) |
+| `[T]` | Length (number of elements) |
+| `dyn Trait` | Pointer to vtable (method lookup table) |
+
+---
+
+### Visualizing Fat Pointers
+
+#### For `&str`:
+
+```rust
+let s: &str = "hello";
+```
+
+```
+Stack:                          Somewhere in memory:
+┌─────────────────────┐         ┌───┬───┬───┬───┬───┐
+│ address: 0x1234     │────────▶│ h │ e │ l │ l │ o │
+│ length: 5           │         └───┴───┴───┴───┴───┘
+└─────────────────────┘
+    (16 bytes total)
+```
+
+The `&str` contains both where the string is AND how long it is.
+
+#### For `&[i32]`:
+
+```rust
+let arr = [10, 20, 30];
+let slice: &[i32] = &arr;
+```
+
+```
+Stack:                          Stack (the array):
+┌─────────────────────┐         ┌────┬────┬────┐
+│ address: 0x5678     │────────▶│ 10 │ 20 │ 30 │
+│ length: 3           │         └────┴────┴────┘
+└─────────────────────┘
+    (16 bytes total)
+```
+
+#### For `&dyn Trait`:
+
+```rust
+let num = 42i32;
+let displayable: &dyn Display = &num;
+```
+
+```
+Stack:                          Stack:     Static memory:
+┌─────────────────────┐         ┌────┐     ┌─────────────────┐
+│ address: 0x9ABC     │────────▶│ 42 │     │ vtable for i32: │
+│ vtable: 0xDEF0      │─────────────────▶  │   fmt() addr    │
+└─────────────────────┘         └────┘     │   ...           │
+    (16 bytes total)                       └─────────────────┘
+```
+
+The vtable tells Rust "if you want to call `fmt()` on this thing, jump to this address."
+
+---
+
+### Why Does This Matter to You?
+
+Most of the time, you don't think about this. You use `&str` and `&[T]` and it just works.
+
+But it matters when you're writing **generic code**.
+
+---
+
+### The `Sized` Trait
+
+Rust has a marker trait called `Sized`. A type is `Sized` if its size is known at compile time.
+
+Most types are `Sized`:
+- `i32`: Sized (always 4 bytes)
+- `String`: Sized (always 24 bytes: pointer + length + capacity)
+- `Vec<T>`: Sized (always 24 bytes, regardless of contents)
+- `[i32; 5]`: Sized (always 20 bytes)
+
+DSTs are not `Sized`:
+- `str`: Not Sized (could be any length)
+- `[T]`: Not Sized (could have any number of elements)
+- `dyn Trait`: Not Sized (could be any implementing type)
+
+---
+
+### The Hidden `Sized` Bound
+
+Here's something important: **every generic type parameter has an implicit `Sized` bound**.
+
+When you write:
+
+```rust
+fn print_it<T: Display>(value: T) {
+    println!("{}", value);
+}
+```
+
+Rust secretly interprets it as:
+
+```rust
+fn print_it<T: Display + Sized>(value: T) {
+    println!("{}", value);
+}
+```
+
+Why? Because `value` is on the stack, and stack variables must have known sizes.
+
+This means you **cannot** call this function with a DST:
+
+```rust
+print_it("hello");  // Works! &str is Sized (it's a fat pointer)
+print_it(*"hello"); // ERROR! str is not Sized
+```
+
+---
+
+### Opting Out: `?Sized`
+
+Sometimes you want to write generic code that works with DSTs too. You can opt out of the `Sized` requirement:
+
+```rust
+fn print_it<T: Display + ?Sized>(value: &T) {
+    println!("{}", value);
+}
+```
+
+The `?Sized` means "T may or may not be Sized."
+
+Notice I changed `value: T` to `value: &T`. Since `T` might not be `Sized`, I can't have it directly on the stack. I need it behind a reference.
+
+Now this works:
+
+```rust
+print_it(&42);       // T = i32 (Sized)
+print_it("hello");   // T = str (not Sized, but &str is fine)
+```
+
+---
+
+### When Would You Use `?Sized`?
+
+Mostly when writing library code that should be flexible.
+
+**Example: A function that works on both `String` and `str`**
+
+```rust
+fn count_words<T: AsRef<str> + ?Sized>(text: &T) -> usize {
+    text.as_ref().split_whitespace().count()
+}
+
+let owned = String::from("hello world");
+let slice = "hello world";
+
+count_words(&owned);  // Works
+count_words(slice);   // Works
+```
+
+Without `?Sized`, you'd be more restricted in what types could be passed.
+
+---
+
+### The Relationship Between Sized Types and DSTs
+
+Some types come in pairs:
+
+| Sized version | DST version | Relationship |
+|---------------|-------------|--------------|
+| `String` | `str` | `String` owns a `str` on the heap |
+| `Vec<T>` | `[T]` | `Vec<T>` owns a `[T]` on the heap |
+| `Box<T>` | `T` might be a DST | `Box` can hold DSTs on the heap |
+
+When you call `.as_str()` on a `String`, you get a `&str`: a fat pointer to the string data inside.
+
+When you call `.as_slice()` on a `Vec`, you get a `&[T]`: a fat pointer to the array data inside.
+
+---
+
+### A Mental Model
+
+Think of DSTs as **incomplete information**.
+
+- `str` is "some text, I don't know how much"
+- `[i32]` is "some i32s, I don't know how many"
+- `dyn Display` is "something displayable, I don't know what exactly"
+
+To actually work with them, you need the missing information:
+
+- For `str` and `[T]`: you need the **length**
+- For `dyn Trait`: you need the **vtable** (which methods to call)
+
+A fat pointer bundles the "where is it" with the "what's missing", giving you complete information to actually use the data.
+
+---
+
+### Summary
+
+| Concept | Meaning |
+|---------|---------|
+| DST | Type with size unknown at compile time |
+| Examples | `str`, `[T]`, `dyn Trait` |
+| How to use | Always behind a pointer (`&`, `Box`, `Rc`, etc.) |
+| Fat pointer | Pointer + extra info (length or vtable) |
+| `Sized` | Marker trait for types with known size |
+| `?Sized` | Opt-out to allow DSTs in generics |
+
+---
+
+## Topic 7: Function Pointers vs Closures
+
+### Starting With What You Know
+
+You've used closures a lot:
+
+```rust
+let numbers = vec![1, 2, 3, 4, 5];
+let doubled: Vec<i32> = numbers.iter().map(|x| x * 2).collect();
+```
+
+The `|x| x * 2` is a closure: an anonymous function you define inline.
+
+But Rust also has **function pointers**: a way to pass around regular named functions as values.
+
+```rust
+fn double(x: &i32) -> i32 {
+    x * 2
+}
+
+let doubled: Vec<i32> = numbers.iter().map(double).collect();
+```
+
+Both work. So what's the difference, and when do you use which?
+
+---
+
+### The Core Difference: Capturing Environment
+
+**Closures can capture variables from their surrounding scope.**
+
+```rust
+let multiplier = 3;
+let multiply = |x| x * multiplier;  // Captures `multiplier`
+
+println!("{}", multiply(10));  // Prints 30
+```
+
+The closure "closes over" `multiplier`: it grabs it from the environment and uses it.
+
+**Function pointers cannot capture anything.**
+
+```rust
+let multiplier = 3;
+
+fn multiply(x: i32) -> i32 {
+    x * multiplier  // ERROR! Can't access `multiplier`
+}
+```
+
+A regular function can only use its parameters and global/static items. It can't reach into some other scope and grab variables.
+
+---
+
+### Why Does This Distinction Matter?
+
+It affects the **type** and the **size**.
+
+#### Closures Have Unique, Anonymous Types
+
+Every closure has its own unique type that the compiler generates. You can't even write it:
+
+```rust
+let add_one = |x| x + 1;
+let also_add_one = |x| x + 1;
+
+// These are DIFFERENT types, even though they do the same thing!
+```
+
+The compiler creates something like:
+
+```rust
+// Compiler-generated (not real syntax):
+struct Closure1 { }
+impl Fn(i32) -> i32 for Closure1 { ... }
+
+struct Closure2 { }
+impl Fn(i32) -> i32 for Closure2 { ... }
+```
+
+If a closure captures variables, they become fields in that struct:
+
+```rust
+let multiplier = 3;
+let multiply = |x| x * multiplier;
+
+// Compiler generates something like:
+struct Closure3 {
+    multiplier: i32,  // Captured!
+}
+impl Fn(i32) -> i32 for Closure3 { ... }
+```
+
+#### Function Pointers Have a Known, Named Type
+
+A function pointer is written `fn(Args) -> Return`:
+
+```rust
+fn double(x: i32) -> i32 { x * 2 }
+fn triple(x: i32) -> i32 { x * 3 }
+
+let f: fn(i32) -> i32 = double;
+let g: fn(i32) -> i32 = triple;
+
+// f and g have THE SAME type: fn(i32) -> i32
+```
+
+All function pointers with the same signature have the same type. And that type has a known size (8 bytes on 64-bit systems: just a memory address).
+
+---
+
+### The Three Closure Traits
+
+You learned about these before, but let's connect them here:
+
+| Trait | Meaning | Can function pointer implement? |
+|-------|---------|--------------------------------|
+| `FnOnce` | Can be called at least once, might consume captured values | Yes |
+| `FnMut` | Can be called multiple times, might mutate captured values | Yes |
+| `Fn` | Can be called multiple times, only reads captured values | Yes |
+
+Function pointers implement **all three** traits. Why? Because they don't capture anything, so:
+- They don't consume anything (`FnOnce` ✓)
+- They don't mutate anything (`FnMut` ✓)
+- They only read their arguments (`Fn` ✓)
+
+This means you can pass a function pointer anywhere a closure is expected.
+
+---
+
+### Using Function Pointers Where Closures Are Expected
+
+Since function pointers implement the `Fn` traits, this works:
+
+```rust
+fn add_one(x: i32) -> i32 {
+    x + 1
+}
+
+let numbers = vec![1, 2, 3];
+
+// Using a closure:
+let result1: Vec<i32> = numbers.iter().map(|x| x + 1).collect();
+
+// Using a function pointer:
+let result2: Vec<i32> = numbers.iter().map(add_one).collect();
+```
+
+Wait, that doesn't quite work. The issue is `iter()` gives us `&i32`, but `add_one` takes `i32`. Let me fix:
+
+```rust
+fn add_one(x: &i32) -> i32 {
+    x + 1
+}
+
+let numbers = vec![1, 2, 3];
+let result: Vec<i32> = numbers.iter().map(add_one).collect();
+```
+
+Or use `into_iter()`:
+
+```rust
+fn add_one(x: i32) -> i32 {
+    x + 1
+}
+
+let numbers = vec![1, 2, 3];
+let result: Vec<i32> = numbers.into_iter().map(add_one).collect();
+```
+
+---
+
+### When to Use Function Pointers
+
+#### Situation 1: You Already Have a Named Function
+
+If a function already exists and does exactly what you need, just pass it:
+
+```rust
+let strings = vec!["42", "17", "99"];
+
+// Instead of this:
+let numbers: Vec<i32> = strings.iter().map(|s| s.parse().unwrap()).collect();
+
+// If you often parse strings, you might have:
+fn parse_i32(s: &&str) -> i32 {
+    s.parse().unwrap()
+}
+
+let numbers: Vec<i32> = strings.iter().map(parse_i32).collect();
+```
+
+Actually, even better: you can use methods directly:
+
+```rust
+let strings = vec!["42", "17", "99"];
+let numbers: Result<Vec<i32>, _> = strings.iter().map(|s| s.parse()).collect();
+```
+
+#### Situation 2: FFI (Foreign Function Interface)
+
+When interacting with C, you often pass function pointers as callbacks. C doesn't understand Rust closures, but it understands function pointers:
+
+```rust
+// A C library might want a callback:
+extern "C" {
+    fn register_callback(cb: fn(i32) -> i32);
+}
+
+fn my_callback(x: i32) -> i32 {
+    x * 2
+}
+
+unsafe {
+    register_callback(my_callback);
+}
+```
+
+#### Situation 3: Storing in Data Structures Without Generics
+
+Function pointers have a known, concrete type. This makes them easy to store:
+
+```rust
+struct Calculator {
+    operations: Vec<fn(i32, i32) -> i32>,
+}
+
+fn add(a: i32, b: i32) -> i32 { a + b }
+fn subtract(a: i32, b: i32) -> i32 { a - b }
+fn multiply(a: i32, b: i32) -> i32 { a * b }
+
+let calc = Calculator {
+    operations: vec![add, subtract, multiply],
+};
+```
+
+With closures, you'd need either generics (complex) or trait objects (heap allocation).
+
+---
+
+### When to Use Closures
+
+#### Situation 1: You Need to Capture Environment
+
+If you need variables from the surrounding scope, you must use a closure:
+
+```rust
+let threshold = 50;
+let above_threshold: Vec<i32> = numbers
+    .into_iter()
+    .filter(|x| *x > threshold)  // Captures `threshold`
+    .collect();
+```
+
+Can't do this with a plain function.
+
+#### Situation 2: Short, One-Off Logic
+
+If the logic is short and only used once, a closure is cleaner:
+
+```rust
+// Closure - clear and concise:
+let evens: Vec<i32> = numbers.into_iter().filter(|x| x % 2 == 0).collect();
+
+// Function - more ceremony for no benefit:
+fn is_even(x: &i32) -> bool { x % 2 == 0 }
+let evens: Vec<i32> = numbers.iter().filter(is_even).collect();
+```
+
+#### Situation 3: You Want Type Inference
+
+Closures get their parameter types inferred from context:
+
+```rust
+let numbers: Vec<i32> = vec![1, 2, 3];
+numbers.iter().map(|x| x + 1);  // Compiler knows x is &i32
+```
+
+Function pointers need explicit types in the signature.
+
+---
+
+### Returning Closures
+
+Here's where things get interesting. How do you return a closure from a function?
+
+You can't do this:
+
+```rust
+fn make_adder(n: i32) -> ??? {
+    |x| x + n
+}
+```
+
+What type goes in `???`? The closure has an anonymous type.
+
+#### Solution 1: `impl Fn` (when returning one concrete type)
+
+```rust
+fn make_adder(n: i32) -> impl Fn(i32) -> i32 {
+    move |x| x + n
+}
+
+let add_five = make_adder(5);
+println!("{}", add_five(10));  // Prints 15
+```
+
+The `impl Fn(i32) -> i32` says "I return something that implements `Fn(i32) -> i32`, but I'm not telling you exactly what type."
+
+The `move` keyword is important: it moves `n` into the closure. Without it, the closure would try to borrow `n`, which would be dropped when the function returns.
+
+#### Solution 2: `Box<dyn Fn>` (when returning different types)
+
+What if you want to return different closures based on a condition?
+
+```rust
+fn make_operation(double: bool) -> impl Fn(i32) -> i32 {
+    if double {
+        |x| x * 2
+    } else {
+        |x| x + 1
+    }
+}
+// ERROR! The two closures are different types!
+```
+
+Each closure is a different type, but `impl Fn` requires returning one concrete type.
+
+Solution: use a trait object:
+
+```rust
+fn make_operation(double: bool) -> Box<dyn Fn(i32) -> i32> {
+    if double {
+        Box::new(|x| x * 2)
+    } else {
+        Box::new(|x| x + 1)
+    }
+}
+```
+
+Now both branches return `Box<dyn Fn(i32) -> i32>`: same type.
+
+The tradeoff: heap allocation and dynamic dispatch (slightly slower).
+
+---
+
+### Summary Table
+
+| Aspect | Function Pointer | Closure |
+|--------|------------------|---------|
+| Syntax | `fn(i32) -> i32` | `\|x\| x + 1` |
+| Captures environment? | No | Yes |
+| Type | Named, known | Anonymous, unique |
+| Size | Fixed (8 bytes) | Varies (depends on captures) |
+| Can store in Vec easily? | Yes | Need generics or Box<dyn> |
+| Implements Fn traits? | Yes, all three | Depends on what it captures |
+| Use with FFI? | Yes | No |
+
+---
+
+### Quick Decision Guide
+
+**Use a function pointer when:**
+- You already have a named function that does what you need
+- You're interfacing with C code
+- You need to store functions in a collection without generics
+- You don't need to capture any environment
+
+**Use a closure when:**
+- You need to capture variables from the surrounding scope
+- The logic is short and used once
+- You want type inference on parameters
+- You're working with iterator adapters (the common case)
+
+---
+
+## Topic 8: Macros
+
+### The Big Picture: Code That Writes Code
+
+Everything we've covered so far happens at **runtime**: when your program executes. Macros are different. They run at **compile time**, and they generate code.
+
+When you write:
+
+```rust
+println!("Hello, {}", name);
+```
+
+The `println!` isn't a function. It's a macro. Before the compiler even sees your code, the macro **expands** into a bunch of actual Rust code: formatting logic, I/O calls, etc.
+
+Think of macros as **templates** that get filled in before compilation.
+
+---
+
+### Why Do Macros Exist?
+
+Functions have limitations. Macros exist to do things functions cannot.
+
+#### Limitation 1: Functions Have Fixed Numbers of Arguments
+
+```rust
+fn add_two(a: i32, b: i32) -> i32 { a + b }
+fn add_three(a: i32, b: i32, c: i32) -> i32 { a + b + c }
+// What about 4? 5? 100?
+```
+
+You can't write a function that takes "any number of arguments."
+
+But macros can:
+
+```rust
+println!("one");
+println!("one {}", two);
+println!("one {} {}", two, three);
+println!("{} {} {} {}", a, b, c, d);
+```
+
+`println!` accepts any number of arguments. That's impossible with a function.
+
+#### Limitation 2: Functions Can't Generate Code
+
+Sometimes you have repetitive patterns:
+
+```rust
+struct Point { x: i32, y: i32 }
+
+impl Point {
+    fn get_x(&self) -> i32 { self.x }
+    fn get_y(&self) -> i32 { self.y }
+    fn set_x(&mut self, val: i32) { self.x = val; }
+    fn set_y(&mut self, val: i32) { self.y = val; }
+}
+```
+
+Boring and repetitive. What if you have 20 fields? A macro could generate all those getters and setters for you.
+
+#### Limitation 3: Functions Can't Inspect Code Structure
+
+A function receives **values**. It can't see the structure of your code.
+
+```rust
+// I want to automatically implement Debug for this struct
+#[derive(Debug)]
+struct Point { x: i32, y: i32 }
+```
+
+The `derive` macro needs to **look at** your struct definition: see its name, see its fields, and generate an `impl Debug` block. A function can't do that. It can't "see" source code.
+
+---
+
+### Two Families of Macros
+
+Rust has two kinds of macros:
+
+| Kind | How It Works | Example |
+|------|--------------|---------|
+| Declarative (`macro_rules!`) | Pattern matching on syntax | `vec!`, `println!` |
+| Procedural | Rust code that manipulates tokens | `#[derive(Debug)]` |
+
+Let's start with declarative macros: they're more common and easier to understand.
+
+---
+
+### Declarative Macros: Pattern Matching on Syntax
+
+A `macro_rules!` macro says: "When you see this pattern, replace it with this code."
+
+#### The Simplest Possible Macro
+
+```rust
+macro_rules! say_hello {
+    () => {
+        println!("Hello!");
+    };
+}
+
+fn main() {
+    say_hello!();  // Expands to: println!("Hello!");
+}
+```
+
+Breaking it down:
+
+- `macro_rules! say_hello`: "I'm defining a macro called say_hello"
+- `()`: The pattern to match (empty parentheses, no arguments)
+- `=>`: "When matched, expand to..."
+- `{ println!("Hello!"); }`: The code to generate
+
+When the compiler sees `say_hello!()`, it replaces it with `println!("Hello!");` before continuing.
+
+#### Adding Parameters
+
+```rust
+macro_rules! greet {
+    ($name:expr) => {
+        println!("Hello, {}!", $name);
+    };
+}
+
+fn main() {
+    greet!("Meowy");  // Expands to: println!("Hello, {}!", "Meowy");
+}
+```
+
+The `$name:expr` means:
+- `$name`: A variable to capture something
+- `:expr`: It must be an expression
+
+So `greet!("Meowy")` captures `"Meowy"` as `$name`, then substitutes it into the template.
+
+---
+
+### Fragment Specifiers: What Can Macros Match?
+
+The `:expr` part is called a **fragment specifier**. It tells the macro what kind of syntax to expect.
+
+| Specifier | Matches | Example |
+|-----------|---------|---------|
+| `expr` | Any expression | `5`, `x + 1`, `foo()` |
+| `ident` | An identifier | `my_var`, `some_function` |
+| `ty` | A type | `i32`, `String`, `Vec<u8>` |
+| `stmt` | A statement | `let x = 5;` |
+| `literal` | A literal value | `42`, `"hello"`, `true` |
+| `tt` | A single token tree | Anything! (most flexible) |
+| `path` | A path | `std::io::Error` |
+| `block` | A code block | `{ x + 1 }` |
+
+#### Example: Creating a Variable
+
+```rust
+macro_rules! create_var {
+    ($name:ident, $value:expr) => {
+        let $name = $value;
+    };
+}
+
+fn main() {
+    create_var!(answer, 42);
+    println!("{}", answer);  // Prints 42
+}
+```
+
+The macro takes an identifier (`answer`) and an expression (`42`), then generates `let answer = 42;`.
+
+Notice: we used `ident` for the variable name because variable names are identifiers, not expressions.
+
+---
+
+### Multiple Patterns: Matching Different Inputs
+
+A macro can have multiple arms, like a `match`:
+
+```rust
+macro_rules! describe {
+    () => {
+        println!("Nothing to describe");
+    };
+    ($thing:expr) => {
+        println!("You gave me: {}", $thing);
+    };
+    ($a:expr, $b:expr) => {
+        println!("You gave me two things: {} and {}", $a, $b);
+    };
+}
+
+fn main() {
+    describe!();                    // "Nothing to describe"
+    describe!(42);                  // "You gave me: 42"
+    describe!("hello", "world");    // "You gave me two things: hello and world"
+}
+```
+
+The macro tries each pattern in order until one matches.
+
+---
+
+### Repetition: The Real Power
+
+Here's where macros shine. You can match **repeated** patterns.
+
+```rust
+macro_rules! make_list {
+    ( $( $item:expr ),* ) => {
+        {
+            let mut temp = Vec::new();
+            $(
+                temp.push($item);
+            )*
+            temp
+        }
+    };
+}
+
+fn main() {
+    let numbers = make_list![1, 2, 3, 4, 5];
+    println!("{:?}", numbers);  // [1, 2, 3, 4, 5]
+}
+```
+
+Breaking down the pattern `$( $item:expr ),*`:
+
+- `$( ... )`: Start a repetition group
+- `$item:expr`: Match an expression, call it `$item`
+- `,`: Separated by commas
+- `*`: Zero or more times
+
+And in the expansion `$( temp.push($item); )*`:
+
+- `$( ... )*`: Repeat this for each captured `$item`
+
+So `make_list![1, 2, 3]` expands to:
+
+```rust
+{
+    let mut temp = Vec::new();
+    temp.push(1);
+    temp.push(2);
+    temp.push(3);
+    temp
+}
+```
+
+#### Repetition Operators
+
+| Operator | Meaning |
+|----------|---------|
+| `*` | Zero or more |
+| `+` | One or more |
+| `?` | Zero or one (optional) |
+
+---
+
+### How `vec!` Actually Works
+
+Now you can understand `vec!`:
+
+```rust
+macro_rules! vec {
+    () => {
+        Vec::new()
+    };
+    ( $( $item:expr ),+ $(,)? ) => {
+        {
+            let mut temp = Vec::new();
+            $(
+                temp.push($item);
+            )+
+            temp
+        }
+    };
+}
+```
+
+The `$(,)?` at the end allows an optional trailing comma.
+
+So these all work:
+
+```rust
+vec![]
+vec![1, 2, 3]
+vec![1, 2, 3,]  // Trailing comma OK
+```
+
+---
+
+### A Practical Example: Simplifying Test Assertions
+
+Let's say you're tired of writing:
+
+```rust
+assert_eq!(result, expected, "Failed for input: {}", input);
+```
+
+You could make a macro:
+
+```rust
+macro_rules! check {
+    ($result:expr, $expected:expr, $input:expr) => {
+        assert_eq!(
+            $result,
+            $expected,
+            "Failed for input: {:?}, got {:?}, expected {:?}",
+            $input,
+            $result,
+            $expected
+        );
+    };
+}
+
+#[test]
+fn test_doubling() {
+    for i in 0..10 {
+        check!(double(i), i * 2, i);
+    }
+}
+```
+
+---
+
+### Procedural Macros: A Brief Overview
+
+Declarative macros are powerful, but they have limits. **Procedural macros** are actual Rust functions that receive tokens and output tokens.
+
+There are three kinds:
+
+#### 1. Derive Macros
+
+The ones you use most:
+
+```rust
+#[derive(Debug, Clone, PartialEq)]
+struct Point {
+    x: i32,
+    y: i32,
+}
+```
+
+A derive macro receives the tokens of your struct definition and generates an `impl` block.
+
+#### 2. Attribute Macros
+
+These transform items:
+
+```rust
+#[route(GET, "/")]
+fn index() -> &'static str {
+    "Hello, world!"
+}
+```
+
+The `#[route(...)]` macro might transform this function into something that registers it with a web framework.
+
+#### 3. Function-like Macros
+
+These look like macro invocations but are procedural:
+
+```rust
+let sql = sql!(SELECT * FROM users WHERE id = 1);
+```
+
+The `sql!` macro could parse the SQL at compile time, validate it, and generate type-safe code.
+
+---
+
+### Writing Procedural Macros (The Idea)
+
+I won't go deep here because procedural macros are complex. But here's the mental model:
+
+```rust
+// In a separate crate with proc-macro = true
+
+use proc_macro::TokenStream;
+
+#[proc_macro_derive(MyTrait)]
+pub fn my_derive(input: TokenStream) -> TokenStream {
+    // 1. Parse input tokens into a syntax tree
+    // 2. Analyze the syntax tree (what's the struct name? fields?)
+    // 3. Generate new tokens (the impl block)
+    // 4. Return those tokens
+}
+```
+
+Most people use helper crates:
+- `syn`: Parses tokens into a nice syntax tree
+- `quote`: Generates tokens from a template
+
+Writing procedural macros is like writing a mini-compiler. It's advanced but powerful.
+
+---
+
+### Macros vs Functions: When to Use Which
+
+| Use a Function When... | Use a Macro When... |
+|------------------------|---------------------|
+| Fixed number of arguments | Variable number of arguments |
+| Working with values | Working with syntax/code structure |
+| You want clear error messages | You need compile-time code generation |
+| Type checking is important | You need to repeat patterns |
+| Debugging is important | A function literally cannot do what you need |
+
+**Default to functions.** They're easier to write, read, debug, and maintain.
+
+**Use macros when you hit a wall**: when you need something functions cannot provide.
+
+---
+
+### Common Macros You Already Use
+
+| Macro | Why it's a macro |
+|-------|------------------|
+| `println!` | Variable arguments, format string parsing |
+| `vec!` | Variable number of elements |
+| `format!` | Variable arguments, returns String |
+| `panic!` | Includes file/line info automatically |
+| `assert!` / `assert_eq!` | Includes expression text in error message |
+| `#[derive(...)]` | Generates code based on struct definition |
+| `#[test]` | Transforms function into test harness |
+
+---
+
+### A Final Example: Building a Mini DSL
+
+Macros can create domain-specific mini-languages:
+
+```rust
+macro_rules! calculate {
+    (add $a:expr, $b:expr) => { $a + $b };
+    (sub $a:expr, $b:expr) => { $a - $b };
+    (mul $a:expr, $b:expr) => { $a * $b };
+    (div $a:expr, $b:expr) => { $a / $b };
+}
+
+fn main() {
+    let sum = calculate!(add 5, 3);        // 8
+    let diff = calculate!(sub 10, 4);      // 6
+    let product = calculate!(mul 6, 7);    // 42
+    let quotient = calculate!(div 20, 5);  // 4
+}
+```
+
+The macro creates a little "calculate" language. Not super practical, but shows the idea: macros can match custom syntax patterns.
+
+---
+
+### Summary
+
+| Concept | What It Does |
+|---------|--------------|
+| Macros | Code that generates code at compile time |
+| `macro_rules!` | Declarative macros using pattern matching |
+| Fragment specifiers | Tell macro what kind of syntax to expect (`expr`, `ident`, `ty`, etc.) |
+| Repetition (`$(...)*`) | Match and expand repeated patterns |
+| Procedural macros | Rust functions that manipulate tokens |
+| Derive macros | Auto-generate trait implementations |
+
+---
+

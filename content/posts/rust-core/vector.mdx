@@ -1,0 +1,585 @@
+---
+title: Common Collections in Rust Part 1 - Vector
+date: 2025-12-16
+category: rust-core
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+Collections are one of the most practical things you'll use constantly in Rust. Unlike the types we've covered before (like arrays or tuples), collections store data on the **heap**, which means they can grow and shrink while your program runs.
+
+Chapter 8 of rust book covers three core collections:
+1. **Vectors**: a growable list of items of the same type
+2. **Strings**: a growable collection of characters
+3. **Hash Maps**: a collection of key-value pairs
+
+This post covers **Vectors** in detail. For the other two collections, check out:
+
+- **[Strings](https://www.meowy.xyz/string-collection.html)**: Learn how Rust handles text, including the difference between `String` and `&str`, string slicing, and common string operations.
+
+- **[Hash Maps](https://www.meowy.xyz/hashmap.html)**: Discover how to store and retrieve key-value pairs efficiently, including when to use hash maps versus other collections.
+
+
+---
+
+## Part 1: Vectors (`Vec<T>`)
+
+### What is a Vector?
+
+Think of a vector as a **resizable array**. You know how arrays in Rust have a fixed size? Vectors solve that limitation. They let you store multiple values of the same type, and you can add or remove items as needed.
+
+Before we talk about vectors in details, let's remember what an **array** is:
+
+```rust
+let numbers = [10, 20, 30, 40];
+```
+
+An array is a fixed-size collection. Once you create it with 4 items, it will always have exactly 4 items. You can't add a 5th item. You can't remove items. The size is locked at compile time.
+
+A **vector** removes this limitation. It's a collection that can grow and shrink while your program runs.
+
+```rust
+let mut numbers = vec![10, 20, 30, 40];
+numbers.push(50);  // Now it has 5 items!
+numbers.push(60);  // Now it has 6 items!
+```
+
+### Why Does This Flexibility Exist?
+
+It comes down to **where the data lives in memory**.
+
+**Arrays live on the stack.** The stack is fast but rigid, Rust needs to know exactly how much space to reserve at compile time. That's why arrays have fixed sizes.
+
+**Vectors store their data on the heap.** The heap is more flexible, you can request more memory while the program runs. The vector itself (a small "controller" that tracks where the data is, how many items exist, and how much space is available) lives on the stack, but the actual items live on the heap.
+
+Think of it like this: an array is like a row of assigned seats in a classroom, fixed and predetermined. A vector is like a waiting list that can keep growing as more people sign up.
+
+### The `<T>` Thing (Generics Preview)
+
+When you see `Vec<T>`, the `T` is a placeholder that means "some type." It's like a blank that gets filled in:
+
+- `Vec<i32>`: a vector holding 32-bit integers
+- `Vec<String>`: a vector holding owned strings
+- `Vec<bool>`: a vector holding booleans
+- `Vec<char>`: a vector holding characters
+
+The key rule: **all items in a vector must be the same type**. You can't mix integers and strings in the same vector (we'll see a workaround later with enums).
+
+```rust
+// This is fine
+let ages: Vec<i32> = vec![25, 30, 22, 28];
+
+// This would NOT compile
+let mixed = vec![25, "hello", true];  // ERROR: mixed types
+```
+
+### Creating Vectors: Two Methods Explained
+
+#### Method 1: `Vec::new()`
+
+```rust
+let mut temperatures: Vec<i32> = Vec::new();
+```
+
+Let's break this apart piece by piece:
+
+- `let mut`: we're creating a mutable variable (we'll need mutability to add items later)
+- `temperatures`: the variable name
+- `: Vec<i32>`: the type annotation saying "this is a vector of i32 integers"
+- `Vec::new()`: calls the `new` function associated with the `Vec` type, creating an empty vector
+
+**Why do we need the type annotation here?**
+
+Because the vector is empty! Rust looks at `Vec::new()` and thinks "okay, an empty vector... but a vector of *what*?" It has no clues. So we must tell it explicitly.
+
+#### Method 2: The `vec!` Macro
+
+```rust
+let scores = vec![85, 92, 78, 90];
+```
+
+The `vec!` macro is syntactic sugar, a convenient shortcut. It creates a vector and populates it with the values you provide.
+
+**Why don't we need a type annotation here?**
+
+Because Rust can see the values `85, 92, 78, 90` and infer "ah, these are integers, so this must be a `Vec<i32>`."
+
+#### When Rust Can and Cannot Infer Types
+
+Here's a subtlety. Even with `Vec::new()`, you don't always need the annotation:
+
+```rust
+let mut temperatures = Vec::new();
+temperatures.push(72);  // Rust now knows it's Vec<i32>
+```
+
+Rust sees you pushing an `i32` into it, so it works backward and figures out the type. But this only works if you use the vector in a way that reveals its type. If you never add anything, Rust will complain:
+
+```rust
+let temperatures = Vec::new();  // ERROR: cannot infer type
+// We never use it, so Rust has no clues
+```
+
+***
+
+
+### Adding Elements with `push`
+
+```rust
+let mut fruits = Vec::new();
+fruits.push("apple");
+fruits.push("banana");
+fruits.push("cherry");
+```
+
+The `push` method adds an item to the **end** of the vector.
+
+#### Why Must the Vector Be Mutable?
+
+Remember Rust's core philosophy: everything is immutable by default. If you want to change something, you must explicitly say so with `mut`.
+
+Adding an item to a vector is definitely changing it, you're modifying its contents. So `mut` is required.
+
+```rust
+let fruits = Vec::new();  // immutable
+fruits.push("apple");     // ERROR: cannot borrow as mutable
+```
+
+The error message says "cannot borrow as mutable" because `push` needs to mutably borrow the vector to modify it.
+
+***
+
+### Reading Elements: Two Approaches
+
+This is important to understand deeply because it connects to Rust's safety philosophy.
+
+#### Approach 1: Direct Indexing with `[]`
+
+```rust
+let planets = vec!["Mercury", "Venus", "Earth", "Mars"];
+let home = planets[2];  // "Earth"
+```
+
+Index `0` is the first item, index `1` is the second, and so on.
+
+**The danger:** What if you access an invalid index?
+
+```rust
+let planets = vec!["Mercury", "Venus", "Earth", "Mars"];
+let oops = planets[100];  // PANIC!
+```
+
+Your program crashes immediately with a "panic." This is Rust saying "you tried to do something impossible, and I'm stopping everything to prevent worse problems."
+
+**When to use indexing:** When you're absolutely certain the index is valid. For example, if you just checked the vector's length, or you're iterating with indices you know are in bounds.
+
+#### Approach 2: The `.get()` Method
+
+```rust
+let planets = vec!["Mercury", "Venus", "Earth", "Mars"];
+let maybe_home = planets.get(2);
+```
+
+Here's the crucial difference: `.get()` doesn't return the value directly. It returns an `Option`.
+
+**What is `Option` again?**
+
+From Chapter 6, `Option` is an enum with two variants:
+
+```rust
+enum Option<T> {
+    Some(T),  // Contains a value
+    None,     // Contains nothing
+}
+```
+
+So when you call `planets.get(2)`:
+
+- If index 2 exists → you get `Some(&"Earth")`
+- If index 2 doesn't exist → you get `None`
+
+```rust
+let planets = vec!["Mercury", "Venus", "Earth", "Mars"];
+
+let result = planets.get(2);
+// result is Some(&"Earth")
+
+let result = planets.get(100);
+// result is None (no panic!)
+```
+
+**How do you actually use the value?**
+
+You need to handle both possibilities. Common ways:
+
+```rust
+let planets = vec!["Mercury", "Venus", "Earth", "Mars"];
+
+// Method 1: match
+match planets.get(2) {
+    Some(planet) => println!("Found: {}", planet),
+    None => println!("No planet at that index"),
+}
+
+// Method 2: if let
+if let Some(planet) = planets.get(2) {
+    println!("Found: {}", planet);
+}
+
+// Method 3: unwrap_or (provide a default)
+let planet = planets.get(100).unwrap_or(&"Unknown");
+println!("{}", planet);  // prints "Unknown"
+```
+
+**When to use `.get()`:** When you're not 100% sure the index is valid, or when you want to handle the missing case gracefully instead of crashing.
+
+#### Quick Note: References
+
+Notice that `.get()` returns `Some(&T)`, not `Some(T)`. That `&` means it's giving you a **reference** to the item, not a copy. The vector still owns the data; you're just borrowing it to look at it.
+
+Same with indexing:
+
+```rust
+let planets = vec!["Mercury", "Venus", "Earth", "Mars"];
+let home = &planets[2];  // home is a reference to the item
+```
+
+***
+
+### Iterating Over Vectors
+
+Iterating means "going through each item one by one." This is something you'll do constantly.
+
+### Read-Only Iteration
+
+```rust
+let prices = vec![100, 200, 300, 400];
+
+for price in &prices {
+    println!("Price: {}", price);
+}
+```
+
+**What's happening here:**
+
+- `&prices` creates an **immutable borrow** of the vector
+- The `for` loop goes through each item
+- `price` is a reference to each item (`&i32` in this case)
+- After the loop, `prices` is still usable because we only borrowed it
+
+**Why `&prices` instead of just `prices`?**
+
+If you write `for price in prices`, you're **moving** ownership of the vector into the loop. After the loop, `prices` would be gone, you couldn't use it anymore.
+
+```rust
+let prices = vec![100, 200, 300, 400];
+
+for price in prices {  // prices is MOVED here
+    println!("Price: {}", price);
+}
+
+// println!("{:?}", prices);  // ERROR: prices was moved
+```
+
+Using `&prices` means "borrow the vector for the duration of this loop, then give it back."
+
+#### Mutable Iteration (Modifying Items)
+
+```rust
+let mut scores = vec![80, 85, 90, 75];
+
+for score in &mut scores {
+    *score += 5;  // Add 5 to each score
+}
+
+// scores is now [85, 90, 95, 80]
+```
+
+**Breaking this down:**
+
+- `&mut scores` creates a **mutable borrow** of the vector
+- `score` is now a mutable reference to each item (`&mut i32`)
+- `*score` is the **dereference operator**: it means "the actual value that this reference points to"
+
+#### The Dereference Operator (`*`) Explained
+
+This is often confusing, so let me explain it with an analogy.
+
+Imagine a reference is like a **house address written on a piece of paper**. The address itself isn't the house, it's just directions to find the house.
+
+- `score` is the address (the reference)
+- `*score` is "go to that address and access the actual house" (the value)
+
+When you want to **read** through a reference, Rust often handles the dereferencing automatically:
+
+```rust
+let x = 10;
+let r = &x;
+println!("{}", r);  // Rust auto-dereferences, prints 10
+```
+
+But when you want to **modify** the value behind a reference, you must explicitly dereference:
+
+```rust
+let mut x = 10;
+let r = &mut x;
+*r += 5;  // Go to what r points to, and add 5
+// x is now 15
+```
+
+So in our loop:
+
+```rust
+for score in &mut scores {
+    *score += 5;
+}
+```
+
+We're saying: "For each mutable reference `score`, go to the actual value it points to (`*score`) and add 5 to it."
+
+***
+
+### The Ownership Rules with Vectors (Critical!)
+
+This is the trickiest part and the most "Rust-like." Let's go through it carefully.
+
+#### The Rule
+
+**You cannot have a mutable reference to a vector while any immutable references to its elements exist.**
+
+#### The Problem Illustrated
+
+```rust
+let mut numbers = vec![1, 2, 3, 4, 5];
+
+let first = &numbers[0];  // Immutable borrow of first element
+
+numbers.push(6);          // Mutable borrow of the whole vector
+
+println!("{}", first);    // Try to use the immutable borrow
+```
+
+This code will **not compile**. But why?
+
+#### The "Why" Behind This Rule
+
+When you call `push`, the vector might need to grow. Here's what happens internally:
+
+1. The vector checks if it has room for one more item
+2. If yes, it adds the item at the end
+3. If no, it needs to **allocate new, larger memory** on the heap, **copy all existing items** to the new location, and **free the old memory**
+
+Here's the danger: if step 3 happens, the old memory location becomes invalid. But `first` was pointing to the old memory location! It would become a **dangling reference**: pointing to memory that's no longer valid.
+
+In C or C++, this could cause crashes, security vulnerabilities, or silent data corruption. Rust prevents this at compile time.
+
+
+Before `push`:
+
+```
+Stack:                    Heap:
+numbers ──────────────►  [1, 2, 3, 4, 5]
+                              ▲
+first ────────────────────────┘ (points to first element)
+```
+
+After `push` (if reallocation happens):
+
+```
+Stack:                    Heap:
+numbers ──────────────►  [1, 2, 3, 4, 5, 6]  (new location)
+                         
+first ────────────────►  [garbage]  (old location, now invalid!)
+```
+
+Rust sees this possibility and says "nope, not allowed."
+
+#### How to Fix It
+
+**Option 1:** Don't keep the reference alive across the `push`
+
+```rust
+let mut numbers = vec![1, 2, 3, 4, 5];
+
+let first = numbers[0];  // Copy the value (i32 implements Copy)
+numbers.push(6);         // Fine now
+println!("{}", first);   // Using the copied value, not a reference
+```
+
+**Option 2:** Do your reading after all mutations are done
+
+```rust
+let mut numbers = vec![1, 2, 3, 4, 5];
+numbers.push(6);
+numbers.push(7);
+
+let first = &numbers[0];  // Borrow after mutations
+println!("{}", first);    // Fine
+```
+
+**Option 3:** Scope the borrow so it ends before mutation
+
+```rust
+let mut numbers = vec![1, 2, 3, 4, 5];
+
+{
+    let first = &numbers[0];
+    println!("{}", first);
+}  // first goes out of scope, borrow ends
+
+numbers.push(6);  // Fine now
+```
+
+***
+
+### Storing Multiple Types with Enums
+
+Vectors require all elements to be the same type. But sometimes you need variety. The solution: wrap different types in an enum.
+
+#### The Problem
+
+```rust
+// This won't work
+let row = vec![42, 3.14, "hello"];  // ERROR: mixed types
+```
+
+#### The Solution
+
+```rust
+enum DataCell {
+    Integer(i32),
+    Decimal(f64),
+    Text(String),
+}
+
+let row = vec![
+    DataCell::Integer(42),
+    DataCell::Decimal(3.14),
+    DataCell::Text(String::from("hello")),
+];
+```
+
+Now every element is the same type: `DataCell`. But each `DataCell` can contain different inner data.
+
+#### Accessing the Inner Values
+
+You use pattern matching:
+
+```rust
+for cell in &row {
+    match cell {
+        DataCell::Integer(n) => println!("Integer: {}", n),
+        DataCell::Decimal(d) => println!("Decimal: {}", d),
+        DataCell::Text(s) => println!("Text: {}", s),
+    }
+}
+```
+
+This pattern is extremely common in Rust. It's how you handle heterogeneous data in a type-safe way.
+
+***
+
+### Useful Vector Methods (Quick Reference)
+
+Here are some methods you'll use often:
+
+```rust
+let mut v = vec![1, 2, 3];
+
+v.push(4);           // Add to end: [1, 2, 3, 4]
+v.pop();             // Remove from end, returns Option<T>
+v.len();             // Number of elements: 3
+v.is_empty();        // Returns true if empty
+v.clear();           // Remove all elements
+v.contains(&2);      // Returns true if 2 is in the vector
+v.first();           // Returns Option<&T> of first element
+v.last();            // Returns Option<&T> of last element
+```
+
+***
+
+
+
+
+## Here are some exercises for vectors:
+
+---
+
+### Exercise 1: Creating and Growing
+
+Create an empty vector of `i32` called `numbers`.
+
+Push the values 10, 20, 30, 40 into it.
+
+Print the vector using `{:?}`.
+
+Then create the same vector in one line using the `vec!` macro.
+
+---
+
+### Exercise 2: Accessing Elements
+
+Create a vector: `vec!["apple", "banana", "cherry", "date"]`
+
+1. Use indexing `[]` to print the second element
+2. Use `.get()` to safely print the fourth element
+3. Use `.get()` to try accessing index 10, handle the `None` case by printing "Not found"
+
+---
+
+### Exercise 3: Mutable Iteration
+
+Create a vector of prices: `vec![100, 200, 150, 300]`
+
+Use a `for` loop with mutable references to apply a 10% discount to each price (multiply by 0.9, you may need to adjust types).
+
+Print the vector before and after.
+
+Hint: You'll need `&mut` and the dereference operator `*`.
+
+---
+
+### Exercise 4: The Ownership Rule
+
+This code won't compile:
+
+```rust
+let mut names = vec![String::from("Alice"), String::from("Bob")];
+let first = &names[0];
+names.push(String::from("Charlie"));
+println!("{}", first);
+```
+
+1. Explain *why* Rust prevents this
+2. Fix the code using one of the three approaches (copy the value, reorder operations, or use scoping)
+
+---
+
+### Exercise 5: Enums in Vectors
+
+
+You're building a recipe app. Create an enum `Step` with three variants:
+- `Prep(String)`: holds a preparation task description
+- `Cook(String, u32)`: holds what to cook and duration in minutes
+- `Wait(u32)`: holds resting/waiting time in minutes
+
+Create a vector representing this pasta recipe:
+- Prep "chop onions and garlic"
+- Prep "boil water and add salt"
+- Cook "pasta" for 10 minutes
+- Cook "onions and garlic in olive oil" for 5 minutes
+- Wait 2 minutes (let it rest)
+- Prep "mix everything together"
+
+Iterate over the vector and use `match` to print instructions like:
+```
+→ Prep: chop onions and garlic
+→ Prep: boil water and add salt
+→ Cook: pasta for 10 minutes
+→ Cook: onions and garlic in olive oil for 5 minutes
+→ Wait: let it rest for 2 minutes
+→ Prep: mix everything together
+```
+---
+

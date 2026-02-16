@@ -1,0 +1,1523 @@
+---
+title: Generic Types in Rust
+date: 2025-12-21
+category: rust-core
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+In this post, we'll explore **generic types** in Rust - a powerful feature that lets you write flexible, reusable code without sacrificing type safety.
+
+Once you've mastered generics, continue your learning journey with these next concepts:
+
+- [Traits](https://www.meowy.xyz/traits.html): Define shared behavior across different types
+- [Lifetimes](https://www.meowy.xyz/lifetimes.html): Ensure references remain valid throughout your program
+
+## Before We Start: What Problem Are We Solving?
+
+Imagine you have a backpack. What can you put in it?
+
+- Books
+- Snacks
+- A laptop
+- Clothes
+- Anything that fits!
+
+The backpack doesn't care what's inside. It just holds stuff.
+
+Now imagine someone said: "You need a separate backpack for books, a separate backpack for snacks, a separate backpack for clothes..."
+
+That's ridiculous, right? One backpack works for everything.
+
+**This is exactly what generics solve in code.**
+
+Without generics, you'd write separate code for every type. With generics, you write the code once and it works with any type, just like one backpack holds anything.
+
+---
+
+## Step 1: The Problem - Repetitive Code
+
+Let's say you want to create a simple "box" that holds one thing.
+
+### A Box for Numbers
+
+```rust
+struct NumberBox {
+    item: i32,
+}
+
+fn main() {
+    let my_box = NumberBox { item: 5 };
+    println!("Box contains: {}", my_box.item);
+}
+```
+
+This works! But what if you want a box for text?
+
+### A Box for Text
+
+```rust
+struct TextBox {
+    item: String,
+}
+
+fn main() {
+    let my_box = TextBox { item: String::from("hello") };
+    println!("Box contains: {}", my_box.item);
+}
+```
+
+This also works! But what if you also need a box for decimals?
+
+### A Box for Decimals
+
+```rust
+struct DecimalBox {
+    item: f64,
+}
+
+fn main() {
+    let my_box = DecimalBox { item: 3.14 };
+    println!("Box contains: {}", my_box.item);
+}
+```
+
+### The Problem
+
+Look at these three structs side by side:
+
+```rust
+struct NumberBox {
+    item: i32,
+}
+
+struct TextBox {
+    item: String,
+}
+
+struct DecimalBox {
+    item: f64,
+}
+```
+
+They're almost identical! The only difference is the type of `item`:
+- `i32` for numbers
+- `String` for text  
+- `f64` for decimals
+
+If you needed 20 different types, you'd write 20 nearly-identical structs. That's:
+- Tedious to write
+- Easy to make mistakes
+- Hard to maintain
+
+**There must be a better way.**
+
+---
+
+## Step 2: The Solution: A Generic Box
+
+Instead of writing separate structs for each type, we write ONE struct that works with ANY type.
+
+```rust
+struct Box<T> {
+    item: T,
+}
+```
+
+That's it. This single struct replaces `NumberBox`, `TextBox`, `DecimalBox`, and any other box you'd ever need.
+
+### But What Does This Mean?
+
+Let's break it down piece by piece.
+
+---
+
+## Step 3: Understanding the Syntax: What is `<T>`?
+
+Look at our generic struct again:
+
+```rust
+struct Box<T> {
+    item: T,
+}
+```
+
+### The `<T>` Part
+
+```rust
+struct Box<T>
+//        ^^^
+```
+
+This `<T>` is called a **type parameter**. Let me explain what that means.
+
+**Think of `T` as a blank space.** It's like a fill-in-the-blank on a form:
+
+```
+Name: _______
+Age: _______
+Favorite Color: _______
+```
+
+You fill in the blanks when you actually use the form. Similarly, `T` gets filled in when you actually use the struct.
+
+**The angle brackets `<>` are how Rust knows you're declaring a type parameter.** When Rust sees `<T>`, it understands: "Okay, `T` is a placeholder that will be filled in later."
+
+### The `item: T` Part
+
+```rust
+struct Box<T> {
+    item: T,
+//        ^
+}
+```
+
+This says: "The field `item` has type `T`, whatever `T` turns out to be."
+
+Since `T` is a blank, `item` could end up being:
+- An `i32` (if `T` becomes `i32`)
+- A `String` (if `T` becomes `String`)
+- A `bool` (if `T` becomes `bool`)
+- Anything!
+
+### Why the Letter `T`?
+
+`T` is just a name. It stands for "Type" and is the traditional choice. But you could use any name:
+
+```rust
+struct Box<Anything> {
+    item: Anything,
+}
+```
+
+```rust
+struct Box<Stuff> {
+    item: Stuff,
+}
+```
+
+```rust
+struct Box<X> {
+    item: X,
+}
+```
+
+These all work exactly the same. We use `T` by convention because:
+- It's short
+- Everyone recognizes it
+- It reminds us it's a "Type"
+
+---
+
+## Step 4: Using a Generic Struct
+
+Now let's actually use our `Box<T>`:
+
+```rust
+struct Box<T> {
+    item: T,
+}
+
+fn main() {
+    let number_box = Box { item: 5 };
+    let text_box = Box { item: String::from("hello") };
+    let decimal_box = Box { item: 3.14 };
+    let bool_box = Box { item: true };
+}
+```
+
+### What's Happening Here?
+
+When you create a `Box`, Rust looks at what you put inside and figures out what `T` should be.
+
+Let's go through each one:
+
+---
+
+**Line 1:**
+```rust
+let number_box = Box { item: 5 };
+```
+
+- You're putting `5` inside
+- `5` is an `i32`
+- So Rust figures out: `T = i32`
+- This creates a `Box<i32>`
+
+It's as if you wrote:
+```rust
+struct Box_i32 {
+    item: i32,
+}
+let number_box = Box_i32 { item: 5 };
+```
+
+---
+
+**Line 2:**
+```rust
+let text_box = Box { item: String::from("hello") };
+```
+
+- You're putting a `String` inside
+- So Rust figures out: `T = String`
+- This creates a `Box<String>`
+
+It's as if you wrote:
+```rust
+struct Box_String {
+    item: String,
+}
+let text_box = Box_String { item: String::from("hello") };
+```
+
+---
+
+**Line 3:**
+```rust
+let decimal_box = Box { item: 3.14 };
+```
+
+- You're putting `3.14` inside
+- `3.14` is an `f64`
+- So Rust figures out: `T = f64`
+- This creates a `Box<f64>`
+
+---
+
+**Line 4:**
+```rust
+let bool_box = Box { item: true };
+```
+
+- You're putting `true` inside
+- `true` is a `bool`
+- So Rust figures out: `T = bool`
+- This creates a `Box<bool>`
+
+---
+
+### The Magic
+
+One struct definition:
+```rust
+struct Box<T> {
+    item: T,
+}
+```
+
+Creates unlimited specific types:
+- `Box<i32>`
+- `Box<String>`
+- `Box<f64>`
+- `Box<bool>`
+- `Box<char>`
+- `Box<YourOwnStruct>`
+- Anything!
+
+---
+
+## Step 5: The Type Gets "Locked In"
+
+Here's something important to understand. Once you create a specific `Box`, its type is fixed.
+
+```rust
+struct Box<T> {
+    item: T,
+}
+
+fn main() {
+    let mut my_box = Box { item: 5 };
+    // my_box is now a Box<i32>
+    
+    my_box.item = 10;    // OK! 10 is also an i32
+    my_box.item = 20;    // OK! 20 is also an i32
+    
+    // my_box.item = "hello";  // ERROR! "hello" is not an i32
+}
+```
+
+When you put `5` in, the box became a `Box<i32>`. It's now an integer box. You can put other integers in it, but not strings.
+
+### Analogy
+
+Think of it like pouring concrete:
+
+1. **The mold (generic struct):** Can be used to make anything
+2. **Pouring concrete (creating an instance):** You commit to a specific shape
+3. **Hardened concrete (the variable):** Now it's fixed in that shape
+
+The generic `Box<T>` is the mold. Once you create `Box { item: 5 }`, you've poured the concrete, it's now a `Box<i32>` forever.
+
+---
+
+## Step 6: Being Explicit About the Type
+
+Usually Rust figures out `T` automatically. But sometimes you want to be explicit:
+
+```rust
+struct Box<T> {
+    item: T,
+}
+
+fn main() {
+    // Rust infers the type
+    let a = Box { item: 5 };  // Rust figures out Box<i32>
+    
+    // You explicitly state the type
+    let b: Box<i32> = Box { item: 5 };  // You tell Rust it's Box<i32>
+}
+```
+
+### When Would You Be Explicit?
+
+Sometimes Rust can't figure out the type:
+
+```rust
+struct Box<T> {
+    item: T,
+}
+
+fn main() {
+    // This won't compile, Rust doesn't know what T should be
+    // let empty = Box { item: ??? };
+    
+    // You must be explicit
+    let empty: Box<i32>;  // Now Rust knows it's Box<i32>
+}
+```
+
+Or when you want to be extra clear for readability:
+
+```rust
+let config: Box<Settings> = Box { item: load_settings() };
+```
+
+---
+
+## Step 7: Multiple Type Parameters
+
+What if you want a struct that holds TWO things, and they might be different types?
+
+### The Problem
+
+```rust
+struct Pair<T> {
+    first: T,
+    second: T,
+}
+```
+
+With one type parameter, both fields must be the SAME type:
+
+```rust
+fn main() {
+    let p = Pair { first: 1, second: 2 };        // OK! Both i32
+    let q = Pair { first: 1.0, second: 2.0 };    // OK! Both f64
+    
+    // let r = Pair { first: 1, second: "two" }; // ERROR! Can't mix i32 and &str
+}
+```
+
+Why? Because `T` is ONE placeholder. If `T` becomes `i32`, then BOTH `first` and `second` must be `i32`.
+
+### The Solution
+
+Use TWO type parameters:
+
+```rust
+struct Pair<T, U> {
+    first: T,
+    second: U,
+}
+```
+
+Now `T` and `U` are separate placeholders. They can be different types.
+
+### Breaking It Down
+
+```rust
+struct Pair<T, U> {
+//         ^^^^
+//         Two type parameters, separated by comma
+    first: T,
+//         ^ first field uses T
+    second: U,
+//          ^ second field uses U
+}
+```
+
+### Using It
+
+```rust
+struct Pair<T, U> {
+    first: T,
+    second: U,
+}
+
+fn main() {
+    // T and U are DIFFERENT types
+    let mixed = Pair { first: 10, second: "ten" };
+    // T = i32
+    // U = &str
+    // This is a Pair<i32, &str>
+    
+    // T and U are the SAME type (that's allowed!)
+    let both_numbers = Pair { first: 1, second: 2 };
+    // T = i32
+    // U = i32
+    // This is a Pair<i32, i32>
+    
+    // Another mix
+    let bool_and_decimal = Pair { first: true, second: 3.14 };
+    // T = bool
+    // U = f64
+    // This is a Pair<bool, f64>
+}
+```
+
+### Key Point
+
+`T` and `U` are INDEPENDENT. They CAN be the same type, but they don't HAVE to be.
+
+### Why `T` and `U`?
+
+Convention. We use consecutive letters:
+- `T`: first type parameter
+- `U`: second type parameter
+- `V`: third type parameter (if needed)
+- And so on...
+
+Some people use descriptive names like `Key` and `Value` for a map:
+
+```rust
+struct Map<Key, Value> {
+    key: Key,
+    value: Value,
+}
+```
+
+Both styles work. Single letters are more common.
+
+---
+
+## Step 8: Generic Enums
+
+Enums can be generic too. In fact, you've already used generic enums!
+
+### Option: You Know This One!
+
+Remember `Option` from Chapter 6?
+
+```rust
+enum Option<T> {
+    Some(T),
+    None,
+}
+```
+
+Let's break it down:
+
+```rust
+enum Option<T> {
+//          ^
+//          One type parameter
+    Some(T),
+//       ^
+//       The Some variant holds a value of type T
+    None,
+//  ^^^^
+//  None holds nothing (no type needed)
+}
+```
+
+### How Option Works
+
+When you use `Option`, you fill in what `T` is:
+
+```rust
+fn main() {
+    // T = i32
+    // Some holds an i32
+    let some_number: Option<i32> = Some(5);
+    
+    // T = String
+    // Some holds a String
+    let some_text: Option<String> = Some(String::from("hello"));
+    
+    // T = i32 (we still specify the type, even for None)
+    let no_number: Option<i32> = None;
+    
+    // T = String
+    let no_text: Option<String> = None;
+}
+```
+
+**Why does `None` need a type?**
+
+Even though `None` holds nothing, Rust needs to know what type the `Option` is. A `Option<i32>` that's `None` is different from a `Option<String>` that's `None`.
+
+### Result: Two Type Parameters
+
+Remember `Result` from Chapter 9?
+
+```rust
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
+
+Breaking it down:
+
+```rust
+enum Result<T, E> {
+//          ^  ^
+//          |  Error type
+//          Success type
+    Ok(T),
+//     ^
+//     Ok holds the success value (type T)
+    Err(E),
+//      ^
+//      Err holds the error value (type E)
+}
+```
+
+### How Result Works
+
+```rust
+fn main() {
+    // T = i32 (success type)
+    // E = String (error type)
+    let success: Result<i32, String> = Ok(42);
+    
+    // Same types, but this time it's an error
+    let failure: Result<i32, String> = Err(String::from("something went wrong"));
+}
+```
+
+### Creating Your Own Generic Enum
+
+You can make your own:
+
+```rust
+enum Status<T> {
+    Loading,
+    Ready(T),
+    Failed(String),
+}
+```
+
+Breaking it down:
+
+```rust
+enum Status<T> {
+    Loading,
+//  ^^^^^^^
+//  No data, doesn't use T
+    Ready(T),
+//        ^
+//        Holds a value of type T
+    Failed(String),
+//         ^^^^^^
+//         Always holds a String (the error message)
+}
+```
+
+Using it:
+
+```rust
+enum Status<T> {
+    Loading,
+    Ready(T),
+    Failed(String),
+}
+
+fn main() {
+    // T = i32
+    let loading: Status<i32> = Status::Loading;
+    let success: Status<i32> = Status::Ready(42);
+    let failure: Status<i32> = Status::Failed(String::from("oops"));
+    
+    // T = String
+    let text_ready: Status<String> = Status::Ready(String::from("hello"));
+}
+```
+
+---
+
+## Step 9: Generic Functions
+
+Functions can be generic too. This is where generics become really powerful.
+
+### The Problem: Repetitive Functions
+
+Let's say you want a function that returns the first element of a slice.
+
+For integers:
+
+```rust
+fn first_integer(list: &[i32]) -> &i32 {
+    &list[0]
+}
+```
+
+For characters:
+
+```rust
+fn first_char(list: &[char]) -> &char {
+    &list[0]
+}
+```
+
+For strings:
+
+```rust
+fn first_string(list: &[String]) -> &String {
+    &list[0]
+}
+```
+
+These are IDENTICAL except for the type! If you needed this for 10 types, you'd write 10 copy-paste functions.
+
+### The Solution: A Generic Function
+
+```rust
+fn first<T>(list: &[T]) -> &T {
+    &list[0]
+}
+```
+
+One function that works with ANY type.
+
+### Breaking Down the Syntax
+
+Let's look at each part:
+
+```rust
+fn first<T>(list: &[T]) -> &T {
+// ^^
+// Keyword to define a function
+```
+
+```rust
+fn first<T>(list: &[T]) -> &T {
+//   ^^^^^
+//   Function name
+```
+
+```rust
+fn first<T>(list: &[T]) -> &T {
+//      ^^^
+//      Declares a type parameter T
+//      This is what makes the function generic!
+```
+
+```rust
+fn first<T>(list: &[T]) -> &T {
+//          ^^^^
+//          Parameter name
+```
+
+```rust
+fn first<T>(list: &[T]) -> &T {
+//                ^^^^^
+//                Parameter type: a slice of T
+//                (a slice of whatever type T turns out to be)
+```
+
+```rust
+fn first<T>(list: &[T]) -> &T {
+//                         ^^
+//                         Return type: a reference to T
+```
+
+```rust
+fn first<T>(list: &[T]) -> &T {
+    &list[0]
+//  ^^^^^^^^
+//  Return a reference to the first element
+}
+```
+
+### Key Point
+
+The `<T>` comes RIGHT AFTER the function name, BEFORE the parameters:
+
+```rust
+fn first<T>(...)
+//      ^^^
+//      Here!
+```
+
+This is how Rust knows "this function is generic over type T."
+
+### Using a Generic Function
+
+```rust
+fn first<T>(list: &[T]) -> &T {
+    &list[0]
+}
+
+fn main() {
+    let numbers = [1, 2, 3, 4, 5];
+    let letters = ['a', 'b', 'c'];
+    let words = [String::from("hi"), String::from("bye")];
+    
+    let first_number = first(&numbers);
+    // Rust sees: you passed &[i32]
+    // So T = i32
+    // Returns &i32
+    println!("{}", first_number);  // 1
+    
+    let first_letter = first(&letters);
+    // Rust sees: you passed &[char]
+    // So T = char
+    // Returns &char
+    println!("{}", first_letter);  // a
+    
+    let first_word = first(&words);
+    // Rust sees: you passed &[String]
+    // So T = String
+    // Returns &String
+    println!("{}", first_word);  // hi
+}
+```
+
+### How Rust Figures Out T
+
+When you call `first(&numbers)`:
+
+1. Rust looks at what you passed: `&numbers`
+2. `numbers` is `[i32; 5]` (an array of 5 i32s)
+3. `&numbers` becomes `&[i32]` (a slice of i32s)
+4. The function expects `&[T]`
+5. Rust matches: `&[T]` = `&[i32]`
+6. Therefore: `T` = `i32`
+
+This happens automatically. You don't have to tell Rust what `T` is.
+
+### Functions With Multiple Type Parameters
+
+Just like structs, functions can have multiple type parameters:
+
+```rust
+struct Pair<T, U> {
+    first: T,
+    second: U,
+}
+
+fn make_pair<T, U>(first: T, second: U) -> Pair<T, U> {
+    Pair { first, second }
+}
+```
+
+Breaking it down:
+
+```rust
+fn make_pair<T, U>(first: T, second: U) -> Pair<T, U> {
+//          ^^^^
+//          Two type parameters
+```
+
+```rust
+fn make_pair<T, U>(first: T, second: U) -> Pair<T, U> {
+//                 ^^^^^^^^
+//                 First parameter has type T
+```
+
+```rust
+fn make_pair<T, U>(first: T, second: U) -> Pair<T, U> {
+//                          ^^^^^^^^^
+//                          Second parameter has type U
+```
+
+```rust
+fn make_pair<T, U>(first: T, second: U) -> Pair<T, U> {
+//                                         ^^^^^^^^^^
+//                                         Returns a Pair<T, U>
+```
+
+Using it:
+
+```rust
+fn main() {
+    let p1 = make_pair(10, "ten");
+    // T = i32 (from 10)
+    // U = &str (from "ten")
+    // Returns Pair<i32, &str>
+    
+    let p2 = make_pair(true, 3.14);
+    // T = bool (from true)
+    // U = f64 (from 3.14)
+    // Returns Pair<bool, f64>
+    
+    let p3 = make_pair('a', 'b');
+    // T = char
+    // U = char
+    // Returns Pair<char, char>
+}
+```
+
+---
+
+## Step 10: Generic Methods (Adding Methods to Generic Structs)
+
+Now let's add methods to our generic structs.
+
+### The Problem
+
+We have:
+
+```rust
+struct Box<T> {
+    item: T,
+}
+```
+
+We want to add methods like `get()` to retrieve the item.
+
+### The Syntax
+
+```rust
+struct Box<T> {
+    item: T,
+}
+
+impl<T> Box<T> {
+    fn get(&self) -> &T {
+        &self.item
+    }
+}
+```
+
+### Why Do We Need `<T>` Twice?
+
+This is confusing at first. Let's break it down:
+
+```rust
+impl<T> Box<T> {
+// ^^^^
+// First <T>: "I'm going to talk about some type called T"
+```
+
+```rust
+impl<T> Box<T> {
+//      ^^^^^^
+//      Second <T>: "I'm implementing methods for Box<T>"
+```
+
+Think of it like this:
+1. `impl<T>` = "Let me introduce a type parameter called T"
+2. `Box<T>` = "I'm implementing for Box that uses that T"
+
+### A Complete Example
+
+```rust
+struct Box<T> {
+    item: T,
+}
+
+impl<T> Box<T> {
+    // Create a new Box
+    fn new(item: T) -> Box<T> {
+        Box { item }
+    }
+    
+    // Get a reference to the item
+    fn get(&self) -> &T {
+        &self.item
+    }
+    
+    // Replace the item
+    fn set(&mut self, new_item: T) {
+        self.item = new_item;
+    }
+}
+```
+
+### Breaking Down Each Method
+
+**The `new` method:**
+
+```rust
+fn new(item: T) -> Box<T> {
+//     ^^^^^^^
+//     Takes an item of type T
+```
+
+```rust
+fn new(item: T) -> Box<T> {
+//                 ^^^^^^
+//                 Returns a Box<T>
+```
+
+```rust
+fn new(item: T) -> Box<T> {
+    Box { item }
+//  ^^^^^^^^^^^^
+//  Create and return a new Box containing the item
+}
+```
+
+**The `get` method:**
+
+```rust
+fn get(&self) -> &T {
+//     ^^^^^
+//     Borrows self (the Box instance)
+```
+
+```rust
+fn get(&self) -> &T {
+//               ^^
+//               Returns a reference to T
+```
+
+```rust
+fn get(&self) -> &T {
+    &self.item
+//  ^^^^^^^^^^
+//  Return a reference to the item field
+}
+```
+
+**The `set` method:**
+
+```rust
+fn set(&mut self, new_item: T) {
+//     ^^^^^^^^^
+//     Borrows self mutably (we're going to change it)
+```
+
+```rust
+fn set(&mut self, new_item: T) {
+//                ^^^^^^^^^^^
+//                Takes a new item of type T
+```
+
+```rust
+fn set(&mut self, new_item: T) {
+    self.item = new_item;
+//  ^^^^^^^^^^^^^^^^^^^^
+//  Replace the stored item with the new one
+}
+```
+
+### Using These Methods
+
+```rust
+struct Box<T> {
+    item: T,
+}
+
+impl<T> Box<T> {
+    fn new(item: T) -> Box<T> {
+        Box { item }
+    }
+    
+    fn get(&self) -> &T {
+        &self.item
+    }
+    
+    fn set(&mut self, new_item: T) {
+        self.item = new_item;
+    }
+}
+
+fn main() {
+    // Create a Box<i32>
+    let mut my_box = Box::new(5);
+    
+    // Get the item
+    println!("Box contains: {}", my_box.get());  // 5
+    
+    // Change the item
+    my_box.set(10);
+    
+    // Get it again
+    println!("Box now contains: {}", my_box.get());  // 10
+    
+    // Create a Box<String>
+    let string_box = Box::new(String::from("hello"));
+    println!("String box contains: {}", string_box.get());  // hello
+}
+```
+
+---
+
+## Step 11: Methods Only for Specific Types
+
+Sometimes you want a method that only exists for certain types.
+
+### The Scenario
+
+We have `Box<T>` that can hold anything. But we want a method `is_positive` that only makes sense for numbers.
+
+It wouldn't make sense to ask: "Is this string positive?" or "Is this boolean positive?"
+
+### The Solution
+
+```rust
+struct Box<T> {
+    item: T,
+}
+
+// Methods for ALL Box<T>
+impl<T> Box<T> {
+    fn get(&self) -> &T {
+        &self.item
+    }
+}
+
+// Methods ONLY for Box<i32>
+impl Box<i32> {
+    fn is_positive(&self) -> bool {
+        self.item > 0
+    }
+}
+```
+
+### Breaking Down the Specific impl
+
+```rust
+impl Box<i32> {
+//   ^^^^^^^^
+//   Implementing for Box<i32> specifically
+//   Notice: NO <T> after impl!
+```
+
+When you implement for a SPECIFIC type:
+- You DON'T write `impl<T>`
+- You write the concrete type directly: `impl Box<i32>`
+
+### What This Means
+
+```rust
+struct Box<T> {
+    item: T,
+}
+
+impl<T> Box<T> {
+    fn get(&self) -> &T {
+        &self.item
+    }
+}
+
+impl Box<i32> {
+    fn is_positive(&self) -> bool {
+        self.item > 0
+    }
+}
+
+fn main() {
+    let number_box = Box { item: 42 };     // Box<i32>
+    let text_box = Box { item: "hello" };  // Box<&str>
+    
+    // get() works on BOTH
+    // (because it's defined for all Box<T>)
+    println!("{}", number_box.get());  // 42
+    println!("{}", text_box.get());    // hello
+    
+    // is_positive() works ONLY on Box<i32>
+    println!("{}", number_box.is_positive());  // true
+    
+    // This would NOT compile:
+    // println!("{}", text_box.is_positive());
+    // Error: no method named `is_positive` found for `Box<&str>`
+}
+```
+
+### Key Point
+
+The method `is_positive` simply DOESN'T EXIST on `Box<&str>`. It's not a runtime error, Rust won't even let you compile code that tries to call it.
+
+This is powerful! You can add specialized behavior that only makes sense for certain types.
+
+---
+
+## Step 12: How Rust Handles Generics (Monomorphization)
+
+You might wonder: "Does all this flexibility slow things down?"
+
+**No! Generics in Rust have ZERO runtime cost.**
+
+### What Happens When You Compile
+
+Rust uses a process called **monomorphization**. Here's what that means:
+
+When Rust compiles your code, it looks at every place you use a generic and creates a SPECIFIC version for each type you actually use.
+
+### Example
+
+You write:
+
+```rust
+struct Box<T> {
+    item: T,
+}
+
+fn main() {
+    let a = Box { item: 5 };        // Box<i32>
+    let b = Box { item: "hello" };  // Box<&str>
+    let c = Box { item: true };     // Box<bool>
+}
+```
+
+Rust generates (behind the scenes):
+
+```rust
+// Rust creates THREE separate structs:
+
+struct Box_i32 {
+    item: i32,
+}
+
+struct Box_str {
+    item: &str,
+}
+
+struct Box_bool {
+    item: bool,
+}
+
+fn main() {
+    let a = Box_i32 { item: 5 };
+    let b = Box_str { item: "hello" };
+    let c = Box_bool { item: true };
+}
+```
+
+### What This Means for You
+
+**1. No runtime overhead**
+
+The compiled code is EXACTLY as fast as if you wrote separate structs by hand. There's no "figuring out types" at runtime.
+
+**2. Slightly larger binary**
+
+If you use `Box<i32>`, `Box<String>`, and `Box<bool>`, your compiled program contains three separate struct definitions.
+
+**3. Abstraction for free**
+
+You get all the flexibility of generics with the performance of hand-written specific code. The best of both worlds!
+
+---
+
+## Step 13: Quick Reference
+
+Here's everything we learned in one place:
+
+### Generic Struct (One Type)
+
+```rust
+struct Box<T> {
+    item: T,
+}
+
+let x = Box { item: 5 };  // Box<i32>
+```
+
+### Generic Struct (Two Types)
+
+```rust
+struct Pair<T, U> {
+    first: T,
+    second: U,
+}
+
+let x = Pair { first: 5, second: "hi" };  // Pair<i32, &str>
+```
+
+### Generic Enum
+
+```rust
+enum Option<T> {
+    Some(T),
+    None,
+}
+
+let x: Option<i32> = Some(5);
+```
+
+### Generic Function
+
+```rust
+fn first<T>(list: &[T]) -> &T {
+    &list[0]
+}
+
+let x = first(&[1, 2, 3]);  // returns &i32
+```
+
+### Generic Methods (For All Types)
+
+```rust
+impl<T> Box<T> {
+    fn get(&self) -> &T {
+        &self.item
+    }
+}
+```
+
+### Methods for Specific Type Only
+
+```rust
+impl Box<i32> {
+    fn is_positive(&self) -> bool {
+        self.item > 0
+    }
+}
+```
+
+---
+
+## Summary: What We Learned About Generics
+
+1. **Generics let you write flexible code**: one definition that works with many types
+
+2. **Type parameters are placeholders**: `T`, `U`, etc. get filled in when you use them
+
+3. **The angle brackets `<>` declare type parameters**: `struct Box<T>`, `fn first<T>()`, etc.
+
+4. **Rust figures out types automatically**: usually you don't need to specify them
+
+5. **Types get locked in**: once you create `Box<i32>`, it stays `Box<i32>`
+
+6. **Structs, enums, and functions can all be generic**
+
+7. **Methods need `impl<T>`**: you declare the type parameter on the impl block
+
+8. **You can have type-specific methods**: use `impl Box<i32>` without `<T>`
+
+9. **Zero runtime cost**: Rust generates specific code at compile time
+
+
+---
+
+
+## Exercise 1: Your First Generic Struct
+
+Create a generic struct called `Wrapper<T>` that holds a single field called `value` of type `T`.
+
+In `main`, create:
+1. A `Wrapper` holding `42`
+2. A `Wrapper` holding `"hello"`
+3. A `Wrapper` holding `true`
+
+Print each wrapper's value.
+
+Expected output:
+```
+42
+hello
+true
+```
+
+---
+
+## Exercise 2: Two Type Parameters
+
+Create a struct called `Pair<T, U>` with two fields:
+- `first` of type `T`
+- `second` of type `U`
+
+Create these pairs and print their fields:
+1. `first: 1`, `second: "one"`
+2. `first: true`, `second: 3.14`
+
+Expected output:
+```
+Pair: 1 and one
+Pair: true and 3.14
+```
+
+---
+
+## Exercise 3: Generic Enum
+
+Create an enum called `Maybe<T>` with two variants:
+- `Something(T)`: holds a value
+- `Nothing`: holds nothing
+
+Create:
+1. A `Something` holding `100`
+2. A `Nothing` of type `Maybe<i32>`
+
+Use `match` to print what each holds.
+
+Expected output:
+```
+Got: 100
+Got nothing
+```
+
+---
+
+## Exercise 4: Generic Function
+
+Write a function called `first<T>` that:
+- Takes a slice `&[T]`
+- Returns `&T` (reference to first element)
+
+Test with:
+1. `[10, 20, 30]`
+2. `['a', 'b', 'c']`
+
+Expected output:
+```
+First number: 10
+First char: a
+```
+
+---
+
+## Exercise 5: Generic Methods
+
+Take your `Wrapper<T>` from Exercise 1.
+
+Add an `impl<T>` block with two methods:
+1. `new(value: T) -> Wrapper<T>`: creates a new Wrapper
+2. `get(&self) -> &T`: returns a reference to the value
+
+Test:
+```rust
+let w = Wrapper::new(42);
+println!("Value: {}", w.get());
+```
+
+Expected output:
+```
+Value: 42
+```
+
+---
+
+## Exercise 6: Methods for Specific Types
+
+Using your `Wrapper<T>`, add a method that ONLY exists for `Wrapper<i32>`:
+
+- `is_positive(&self) -> bool`: returns true if value > 0
+
+Test:
+```rust
+let pos = Wrapper::new(10);
+let neg = Wrapper::new(-5);
+println!("10 is positive: {}", pos.is_positive());
+println!("-5 is positive: {}", neg.is_positive());
+```
+
+Expected output:
+```
+10 is positive: true
+-5 is positive: false
+```
+
+**Hint:** Use `impl Wrapper<i32>` (no `<T>` after `impl`)
+
+---
+
+## Exercise 7: Generic Function with Two Type Parameters
+
+Write a function `make_pair<T, U>` that:
+- Takes `first: T` and `second: U`
+- Returns `Pair<T, U>` (from Exercise 2)
+
+Test:
+```rust
+let p = make_pair(42, "answer");
+println!("Pair: {} and {}", p.first, p.second);
+```
+
+Expected output:
+```
+Pair: 42 and answer
+```
+
+---
+
+## Exercise 8: Generic Struct Holding a Vector
+
+Create a struct:
+```rust
+struct Collection<T> {
+    items: Vec<T>,
+}
+```
+
+Add methods:
+1. `new() -> Collection<T>`: creates empty collection
+2. `add(&mut self, item: T)`: adds an item
+3. `get(&self, index: usize) -> Option<&T>`: gets item at index (use `self.items.get(index)`)
+
+Test:
+```rust
+let mut c: Collection<&str> = Collection::new();
+c.add("apple");
+c.add("banana");
+println!("Item 0: {:?}", c.get(0));
+println!("Item 5: {:?}", c.get(5));
+```
+
+Expected output:
+```
+Item 0: Some("apple")
+Item 5: None
+```
+
+---
+
+## Exercise 9: Multiple impl Blocks
+
+Using your `Collection<T>` from Exercise 8:
+
+Add a method ONLY for `Collection<i32>`:
+- `sum(&self) -> i32`: returns sum of all items
+
+Test:
+```rust
+let mut nums: Collection<i32> = Collection::new();
+nums.add(10);
+nums.add(20);
+nums.add(30);
+println!("Sum: {}", nums.sum());
+```
+
+Expected output:
+```
+Sum: 60
+```
+
+**Hint:** You can iterate over `&self.items` and add up the values.
+
+---
+
+## Exercise 10: Understanding Type Locking
+
+Predict what happens, then test:
+
+**A)** Does this compile?
+```rust
+let mut w = Wrapper::new(5);
+w.set(10);
+```
+
+**B)** Does this compile?
+```rust
+let mut w = Wrapper::new(5);
+w.set("hello");
+```
+
+**C)** Does this compile?
+```rust
+let p1 = Pair { first: 1, second: 2 };
+let p2 = Pair { first: 1, second: "two" };
+```
+
+Explain WHY for each answer.
+
+---
+
+

@@ -1,0 +1,1956 @@
+---
+title: Functional Language Features in Rust - Closures & Iterators
+date: 2025-12-25
+category: rust-advanced
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+
+## Part 1: Closures
+
+## What Is a Closure?
+
+A closure is a mini-function you can write inline and store in a variable.
+
+```rust
+fn main() {
+    let add_one = |x| x + 1;
+    
+    println!("{}", add_one(5)); // 6
+}
+```
+
+That's it at its core. `|x| x + 1` means "take `x`, return `x + 1`."
+
+---
+
+## The Syntax: Breaking It Down Piece by Piece
+
+Let's look at `|x| x + 1` very carefully:
+
+```
+|x|      x + 1
+ ↑         ↑
+ │         └── the body (what it does/returns)
+ │
+ └── the parameter (what it receives)
+```
+
+The pipes `| |` are like parentheses in a regular function. They hold the parameters.
+
+### Comparing to a Regular Function
+
+Regular function:
+
+```rust
+fn add_one(x: i32) -> i32 {
+    x + 1
+}
+```
+
+Closure:
+
+```rust
+let add_one = |x| x + 1;
+```
+
+The closure version:
+- No `fn` keyword
+- No name (we give it a name by storing it in a variable)
+- No type annotations (Rust figures them out)
+- More compact
+
+---
+
+## Different Numbers of Parameters
+
+### No parameters
+
+When a closure takes nothing, the pipes are empty:
+
+```rust
+fn main() {
+    let say_hello = || println!("Hello!");
+    
+    say_hello(); // Hello!
+}
+```
+
+`||` means "takes nothing."
+
+### One parameter
+
+```rust
+fn main() {
+    let double = |x| x * 2;
+    
+    println!("{}", double(5)); // 10
+}
+```
+
+### Two parameters
+
+```rust
+fn main() {
+    let add = |a, b| a + b;
+    
+    println!("{}", add(3, 4)); // 7
+}
+```
+
+### Three or more parameters
+
+```rust
+fn main() {
+    let sum = |a, b, c, d| a + b + c + d;
+    
+    println!("{}", sum(1, 2, 3, 4)); // 10
+}
+```
+
+---
+
+## Short vs Long Closure Bodies
+
+### Short body (single expression)
+
+When the closure is just one expression, you don't need curly braces:
+
+```rust
+let double = |x| x * 2;
+```
+
+The result of the expression is automatically returned.
+
+### Long body (multiple statements)
+
+When you need multiple lines, use curly braces:
+
+```rust
+fn main() {
+    let process = |x| {
+        let doubled = x * 2;
+        let plus_ten = doubled + 10;
+        plus_ten  // This is returned (no semicolon)
+    };
+    
+    println!("{}", process(5)); // 20
+}
+```
+
+This is just like a regular function body — the last expression without a semicolon is the return value.
+
+---
+
+## Type Annotations (Usually Not Needed)
+
+Rust infers types from how you use the closure:
+
+```rust
+fn main() {
+    let add = |a, b| a + b;
+    
+    let result = add(5, 3); // Rust sees i32 + i32, so a and b are i32
+    println!("{}", result);
+}
+```
+
+But you can write types explicitly:
+
+```rust
+fn main() {
+    let add = |a: i32, b: i32| -> i32 {
+        a + b
+    };
+    
+    println!("{}", add(5, 3));
+}
+```
+
+When would you write types explicitly?
+- When Rust can't infer them (rare)
+- When you want to be extra clear for readability
+- When the closure is complex
+
+Most of the time, let Rust figure it out.
+
+---
+
+## Important: Types Get Locked In
+
+Once you use a closure with specific types, those types are fixed:
+
+```rust
+fn main() {
+    let print_it = |x| println!("{}", x);
+    
+    print_it(5);       // x is now i32
+    // print_it("hi"); // ERROR! x is already i32, can't use &str
+}
+```
+
+The first call "locks in" the type. This is different from generics.
+
+---
+
+## Capturing: The Special Power of Closures
+
+This is what makes closures different from regular functions.
+
+A closure can "see" and use variables from the code around it:
+
+```rust
+fn main() {
+    let factor = 10;
+    
+    let multiply = |x| x * factor;  // Uses `factor` from outside!
+    
+    println!("{}", multiply(5)); // 50
+}
+```
+
+The closure `|x| x * factor` uses `factor` even though `factor` wasn't passed as a parameter. The closure "captured" it.
+
+### Why Can't Regular Functions Do This?
+
+```rust
+fn main() {
+    let factor = 10;
+    
+    // This does NOT compile:
+    // fn multiply(x: i32) -> i32 {
+    //     x * factor  // Error: can't find `factor`
+    // }
+}
+```
+
+Regular functions are isolated. They only see:
+1. Their parameters
+2. Global/static items
+3. Things defined inside them
+
+Closures are different. They can see the local variables around them.
+
+### Why Is Capturing Useful?
+
+Imagine you want to create a multiplier, but the multiplier value comes from somewhere else (user input, configuration, etc.):
+
+```rust
+fn main() {
+    // Pretend this came from user input
+    let user_multiplier = 7;
+    
+    // Create a closure that uses this value
+    let multiply = |x| x * user_multiplier;
+    
+    println!("{}", multiply(10)); // 70
+    println!("{}", multiply(5));  // 35
+}
+```
+
+Without closures, you'd have to pass `user_multiplier` as a parameter every time. Closures let you "bake in" the value.
+
+---
+
+## The Three Capture Modes (In Depth)
+
+When a closure captures a variable, Rust needs to decide *how* to capture it. There are three options:
+
+1. **Borrow** — just look at the variable
+2. **Mutable borrow** — look at and modify the variable
+3. **Take ownership** — take the variable entirely
+
+Rust automatically picks the gentlest option that works. Let me explain each in depth.
+
+---
+
+### Capture Mode 1: Borrowing (Immutable Reference)
+
+When the closure only needs to *read* a variable, Rust borrows it:
+
+```rust
+fn main() {
+    let name = String::from("Alice");
+    
+    let greet = || {
+        println!("Hello, {}!", name);  // Just reading `name`
+    };
+    
+    greet();
+    greet();
+    
+    // `name` is still usable because it was only borrowed
+    println!("Name is still here: {}", name);
+}
+```
+
+What's happening:
+- The closure only reads `name`
+- Rust creates an immutable borrow (`&name`) inside the closure
+- The original `name` is still valid
+- You can call the closure many times
+- After you're done with the closure, `name` is still yours
+
+**Analogy:** Borrowing is like looking at a friend's book. You can read it, but it's still their book. When you're done looking, they still have it.
+
+---
+
+### Capture Mode 2: Mutable Borrowing (Mutable Reference)
+
+When the closure needs to *modify* a variable, Rust borrows it mutably:
+
+```rust
+fn main() {
+    let mut counter = 0;
+    
+    let mut increment = || {
+        counter += 1;  // Modifying `counter`
+        println!("Counter is now: {}", counter);
+    };
+    
+    increment(); // Counter is now: 1
+    increment(); // Counter is now: 2
+    increment(); // Counter is now: 3
+    
+    println!("Final value: {}", counter); // 3
+}
+```
+
+Notice two `mut` keywords:
+1. `let mut counter` — the variable itself must be mutable
+2. `let mut increment` — the closure must be mutable too
+
+**Why does the closure need to be `mut`?**
+
+The closure holds a mutable borrow of `counter`. Every time you call the closure, it uses that mutable borrow to change `counter`. Calling the closure is a mutating action, so the closure variable itself needs to be mutable.
+
+Think of it this way: the closure's internal state changes each time you call it (because it modifies something it holds onto).
+
+**Analogy:** Mutable borrowing is like borrowing a friend's notebook to write in it. While you have it, they can't use it. When you give it back, they can see everything you wrote.
+
+**Important rule:** While the mutable borrow is active (while the closure exists and might be called), you can't access `counter` directly:
+
+```rust
+fn main() {
+    let mut counter = 0;
+    
+    let mut increment = || {
+        counter += 1;
+    };
+    
+    // This would NOT compile:
+    // println!("{}", counter);  // Error! `counter` is mutably borrowed
+    
+    increment();
+    increment();
+    
+    // After we're done with the closure, we can use counter again
+    // (The closure goes out of scope or we stop using it)
+}
+```
+
+Actually, let me correct that — Rust is smart about this. It tracks when borrows are active:
+
+```rust
+fn main() {
+    let mut counter = 0;
+    
+    let mut increment = || {
+        counter += 1;
+    };
+    
+    increment();
+    increment();
+    
+    // After the last use of `increment`, the borrow ends
+    println!("Final: {}", counter); // This works: 2
+}
+```
+
+---
+
+### Capture Mode 3: Taking Ownership (Moving)
+
+Sometimes the closure needs to *own* the variable entirely:
+
+```rust
+fn main() {
+    let name = String::from("Bob");
+    
+    let consume = || {
+        let owned = name;  // Moving `name` into a new variable
+        println!("I own: {}", owned);
+    };
+    
+    consume();
+    
+    // `name` is gone — it was moved into the closure
+    // println!("{}", name);  // Error!
+}
+```
+
+When does this happen automatically?
+- When you move the captured variable inside the closure (like assigning it to something else)
+- When you return the captured variable from the closure
+
+**Analogy:** Taking ownership is like a friend giving you their book. It's now yours. They don't have it anymore.
+
+---
+
+### How Does Rust Choose?
+
+Rust analyzes what your closure does with each captured variable:
+
+| What the closure does | How Rust captures |
+|-----------------------|-------------------|
+| Only reads the variable | Immutable borrow (`&T`) |
+| Modifies the variable | Mutable borrow (`&mut T`) |
+| Moves the variable (takes ownership of it) | Ownership (`T`) |
+
+Rust always picks the least restrictive option that works. If borrowing is enough, it borrows. It only takes ownership when necessary.
+
+---
+
+## The `move` Keyword (Forcing Ownership)
+
+Sometimes you need the closure to take ownership even when Rust would normally just borrow. Use `move`:
+
+```rust
+fn main() {
+    let name = String::from("Charlie");
+    
+    // Without `move`, Rust would just borrow `name`
+    let greet = move || {
+        println!("Hello, {}!", name);
+    };
+    
+    greet();
+    
+    // `name` was moved into the closure, can't use it here
+    // println!("{}", name);  // Error!
+}
+```
+
+### When Do You Need `move`?
+
+The most common reason: **the closure needs to outlive the variables it captures.**
+
+Example — returning a closure from a function:
+
+```rust
+fn make_greeter(name: String) -> impl Fn() {
+    // The closure is returned from this function
+    // After the function ends, `name` would be dropped
+    // So the closure MUST own `name`
+    move || {
+        println!("Hello, {}!", name);
+    }
+}
+
+fn main() {
+    let greet = make_greeter(String::from("Diana"));
+    
+    greet(); // Hello, Diana!
+    greet(); // Hello, Diana!
+}
+```
+
+Without `move`:
+- The closure would try to borrow `name`
+- But `name` is a local variable in `make_greeter`
+- When `make_greeter` ends, `name` would be destroyed
+- The closure would hold a reference to nothing!
+- Rust prevents this disaster
+
+With `move`:
+- The closure takes ownership of `name`
+- `name` now lives inside the closure
+- The closure can be returned safely
+- `name` lives as long as the closure lives
+
+### Another Common Case: Threads
+
+When you spawn a new thread, the closure might run after the original scope ends:
+
+```rust
+use std::thread;
+
+fn main() {
+    let message = String::from("Hello from thread!");
+    
+    let handle = thread::spawn(move || {
+        println!("{}", message);
+    });
+    
+    handle.join().unwrap();
+}
+```
+
+The thread might run after `main` continues (or even after `main` ends in some cases). So the closure must own `message`, not borrow it.
+
+---
+
+## The Three `Fn` Traits (In Depth)
+
+Now we get to something important: Rust categorizes closures into three types based on how they capture variables. These are called the `Fn` traits.
+
+### Why Do These Traits Exist?
+
+When you write a function that accepts a closure, you need to tell Rust what kind of closure you accept. Can the closure:
+- Only read captured variables?
+- Modify captured variables?
+- Consume captured variables?
+
+The three traits answer this question:
+
+| Trait | What the closure can do with captured variables |
+|-------|------------------------------------------------|
+| `Fn` | Only read them (immutable borrow) |
+| `FnMut` | Read and modify them (mutable borrow) |
+| `FnOnce` | Consume/move them (ownership) — can only be called once |
+
+### The Hierarchy
+
+These traits form a hierarchy:
+
+```
+       FnOnce
+         ↑
+       FnMut
+         ↑
+        Fn
+```
+
+- Every `Fn` is also an `FnMut` (if you can read, you can also "read and maybe modify")
+- Every `FnMut` is also an `FnOnce` (if you can modify, you can also "maybe consume")
+
+This means:
+- A function that accepts `FnOnce` can accept ANY closure
+- A function that accepts `Fn` can only accept closures that don't modify or consume
+
+---
+
+### `Fn` — Closures That Only Read
+
+A closure that only reads captured variables implements `Fn`:
+
+```rust
+fn main() {
+    let factor = 10;
+    
+    // This closure only READS `factor`
+    let multiply = |x| x * factor;
+    
+    // Can call it many times
+    println!("{}", multiply(1)); // 10
+    println!("{}", multiply(2)); // 20
+    println!("{}", multiply(3)); // 30
+}
+```
+
+Characteristics of `Fn` closures:
+- Can be called unlimited times
+- Don't change anything
+- The most flexible (can be used anywhere that accepts `FnMut` or `FnOnce` too)
+
+### `FnMut` — Closures That Modify
+
+A closure that modifies captured variables implements `FnMut`:
+
+```rust
+fn main() {
+    let mut total = 0;
+    
+    // This closure MODIFIES `total`
+    let mut add_to_total = |x| {
+        total += x;
+    };
+    
+    add_to_total(5);
+    add_to_total(10);
+    add_to_total(3);
+    
+    println!("Total: {}", total); // 18
+}
+```
+
+Characteristics of `FnMut` closures:
+- Can be called multiple times
+- Each call might change something
+- The closure variable must be `mut`
+- Cannot be used where `Fn` is required
+
+### `FnOnce` — Closures That Consume
+
+A closure that consumes (moves) captured variables implements only `FnOnce`:
+
+```rust
+fn main() {
+    let name = String::from("Alice");
+    
+    // This closure MOVES `name` out
+    let consume = || {
+        let taken = name;  // `name` is moved here
+        println!("Consumed: {}", taken);
+    };
+    
+    consume();
+    // consume();  // ERROR! Can't call again — `name` is already gone
+}
+```
+
+Characteristics of `FnOnce` closures:
+- Can only be called once
+- After calling, the captured variables are gone
+- The least flexible
+
+---
+
+### How to Decide Which Trait to Use
+
+When writing a function that accepts a closure, ask yourself:
+
+**"How many times do I need to call this closure?"**
+
+- **Once** → Use `FnOnce` (most permissive, accepts any closure)
+- **Multiple times, and I need to mutate** → Use `FnMut`
+- **Multiple times, read-only** → Use `Fn` (most restrictive)
+
+**Rule of thumb:** Start with `FnOnce`. If you need to call it multiple times, use `FnMut`. If you need to call it multiple times AND share it across threads or need the most flexibility, use `Fn`.
+
+---
+
+### Practical Examples
+
+#### Example 1: A function that calls a closure once
+
+```rust
+fn do_once<F>(f: F)
+where
+    F: FnOnce(),
+{
+    f();
+}
+
+fn main() {
+    let name = String::from("Bob");
+    
+    do_once(|| {
+        println!("Hello, {}!", name);
+    });
+}
+```
+
+Using `FnOnce` means this function accepts any closure — even ones that consume variables.
+
+#### Example 2: A function that calls a closure multiple times
+
+```rust
+fn do_three_times<F>(mut f: F)
+where
+    F: FnMut(),
+{
+    f();
+    f();
+    f();
+}
+
+fn main() {
+    let mut count = 0;
+    
+    do_three_times(|| {
+        count += 1;
+        println!("Count: {}", count);
+    });
+}
+```
+
+Using `FnMut` means the closure can modify things, and we can call it multiple times.
+
+Note: The parameter `f` must be `mut f` because calling an `FnMut` is a mutating operation.
+
+#### Example 3: A function that needs a pure, read-only closure
+
+```rust
+fn do_three_times<F>(f: F)
+where
+    F: Fn(),
+{
+    f();
+    f();
+    f();
+}
+
+fn main() {
+    let message = "Hello!";
+    
+    do_three_times(|| {
+        println!("{}", message);
+    });
+}
+```
+
+Using `Fn` means the closure can only read, never modify. This is the safest but most restrictive.
+
+---
+
+### Closures with Parameters and Return Values
+
+The traits can specify input and output types:
+
+```rust
+// Fn(i32) -> i32 means:
+// - Takes one i32
+// - Returns one i32
+// - Only reads captured variables
+
+fn apply<F>(f: F, value: i32) -> i32
+where
+    F: Fn(i32) -> i32,
+{
+    f(value)
+}
+
+fn main() {
+    let factor = 10;
+    let multiply = |x| x * factor;
+    
+    println!("{}", apply(multiply, 5)); // 50
+}
+```
+
+More examples:
+
+```rust
+// FnMut(i32) means: takes i32, returns nothing, can modify
+// FnOnce() -> String means: takes nothing, returns String, might consume
+// Fn(&str, &str) -> bool means: takes two &str, returns bool, read-only
+```
+
+---
+
+## Closures Summary So Far
+
+Let me summarize everything about closures:
+
+1. **Syntax:** `|parameters| body`
+
+2. **Capture modes:**
+   - Immutable borrow (just reads)
+   - Mutable borrow (modifies)
+   - Ownership (moves)
+
+3. **Rust chooses the gentlest capture mode automatically**
+
+4. **`move` keyword:** Forces ownership capture
+
+5. **Three traits:**
+   - `Fn` — only reads, can call many times
+   - `FnMut` — can modify, can call many times
+   - `FnOnce` — might consume, can call only once
+
+6. **When accepting closures:**
+   - Use `FnOnce` if you only call it once
+   - Use `FnMut` if you call it multiple times and it might modify
+   - Use `Fn` if you call it multiple times and it must be read-only
+
+---
+
+## Part 2: Iterators
+
+## What Is an Iterator?
+
+An iterator is something that produces items one at a time.
+
+Think of it like a dispenser:
+- You press a button (call `next()`)
+- It gives you one item (wrapped in `Some`)
+- When empty, it tells you (returns `None`)
+
+```rust
+fn main() {
+    let numbers = vec![10, 20, 30];
+    
+    // Get an iterator from the vector
+    let mut iter = numbers.iter();
+    
+    // Get items one at a time
+    println!("{:?}", iter.next()); // Some(10)
+    println!("{:?}", iter.next()); // Some(20)
+    println!("{:?}", iter.next()); // Some(30)
+    println!("{:?}", iter.next()); // None
+    println!("{:?}", iter.next()); // None (stays None forever)
+}
+```
+
+---
+
+## Why `Some` and `None`?
+
+The iterator doesn't know if there's a next item until you ask. So it returns an `Option`:
+
+- `Some(item)` — "Here's an item for you"
+- `None` — "Nothing left"
+
+This makes it safe — you can never accidentally access an item that doesn't exist.
+
+---
+
+## Why Is the Iterator `mut`?
+
+```rust
+let mut iter = numbers.iter();
+```
+
+Every time you call `next()`, the iterator moves forward. It changes its internal position. That's a mutation, so the iterator must be mutable.
+
+Think of it like a bookmark moving through a book. The book stays the same, but the bookmark's position changes.
+
+---
+
+## The `for` Loop Does This Automatically
+
+You rarely call `next()` manually. The `for` loop handles it:
+
+```rust
+fn main() {
+    let numbers = vec![10, 20, 30];
+    
+    for n in numbers.iter() {
+        println!("{}", n);
+    }
+}
+```
+
+Behind the scenes, `for` does this:
+1. Get an iterator
+2. Call `next()` repeatedly
+3. When `Some(item)`, run the loop body with that item
+4. When `None`, stop
+
+---
+
+## Three Ways to Create an Iterator (In Depth)
+
+This is important. There are three methods, and they behave differently:
+
+### `iter()` — Borrows the Items
+
+```rust
+fn main() {
+    let names = vec![
+        String::from("Alice"),
+        String::from("Bob"),
+        String::from("Charlie"),
+    ];
+    
+    for name in names.iter() {
+        // `name` is &String (a reference)
+        println!("Hello, {}!", name);
+    }
+    
+    // `names` is still valid — we only borrowed
+    println!("Names: {:?}", names);
+}
+```
+
+**What you get:** References (`&T`)
+
+**When to use:** When you just want to look at the items without changing or consuming them.
+
+### `iter_mut()` — Borrows the Items Mutably
+
+```rust
+fn main() {
+    let mut prices = vec![10, 20, 30];
+    
+    for price in prices.iter_mut() {
+        // `price` is &mut i32 (a mutable reference)
+        *price += 5;  // Add 5 to each price
+    }
+    
+    // `prices` is still valid, but modified
+    println!("Prices: {:?}", prices); // [15, 25, 35]
+}
+```
+
+**What you get:** Mutable references (`&mut T`)
+
+**When to use:** When you want to modify each item in place.
+
+**Note:** The original collection must be `mut`, and you use `*` to dereference and modify.
+
+### `into_iter()` — Takes Ownership of the Items
+
+```rust
+fn main() {
+    let names = vec![
+        String::from("Alice"),
+        String::from("Bob"),
+        String::from("Charlie"),
+    ];
+    
+    for name in names.into_iter() {
+        // `name` is String (owned, not a reference)
+        println!("I now own: {}", name);
+    }
+    
+    // `names` is GONE — it was consumed
+    // println!("{:?}", names);  // Error!
+}
+```
+
+**What you get:** Owned values (`T`)
+
+**When to use:** When you want to consume the collection and own each item.
+
+---
+
+### Summary Table
+
+| Method | What you get | Original collection |
+|--------|--------------|---------------------|
+| `iter()` | `&T` (shared reference) | Still usable after |
+| `iter_mut()` | `&mut T` (mutable reference) | Still usable after (modified) |
+| `into_iter()` | `T` (owned value) | Gone (consumed) |
+
+---
+
+### When to Use Each
+
+**Use `iter()` when:**
+- You just want to read/look at items
+- You need to use the collection afterwards
+
+**Use `iter_mut()` when:**
+- You want to modify items in place
+- You need to use the collection afterwards
+
+**Use `into_iter()` when:**
+- You're done with the collection
+- You want to move items somewhere else
+- The items will be consumed or transformed
+
+---
+
+## Iterator Adaptors (In Depth)
+
+Iterator adaptors take an iterator and return a *new* iterator that behaves differently.
+
+Key concept: **They are lazy.** They don't do anything until you consume them.
+
+---
+
+### `map` — Transform Each Item
+
+`map` takes a closure and applies it to every item:
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5];
+    
+    let doubled: Vec<i32> = numbers
+        .iter()           // Get iterator of &i32
+        .map(|x| x * 2)   // Transform each: multiply by 2
+        .collect();       // Gather into a Vec
+    
+    println!("{:?}", doubled); // [2, 4, 6, 8, 10]
+}
+```
+
+Step by step:
+1. `numbers.iter()` — creates an iterator that yields `&1`, `&2`, `&3`, `&4`, `&5`
+2. `.map(|x| x * 2)` — wraps that iterator; for each item, it will multiply by 2
+3. `.collect()` — actually runs the chain and gathers results
+
+**The closure receives each item one at a time.** Here, `x` is `&i32` (because we used `iter()`).
+
+Another example — converting types:
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3];
+    
+    let strings: Vec<String> = numbers
+        .iter()
+        .map(|n| n.to_string())  // Convert each number to String
+        .collect();
+    
+    println!("{:?}", strings); // ["1", "2", "3"]
+}
+```
+
+---
+
+### `filter` — Keep Only Matching Items
+
+`filter` takes a closure that returns `true` or `false`. It keeps only items where the closure returns `true`:
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    
+    let evens: Vec<i32> = numbers
+        .iter()
+        .filter(|x| *x % 2 == 0)  // Keep only even numbers
+        .copied()                  // Convert &i32 to i32
+        .collect();
+    
+    println!("{:?}", evens); // [2, 4, 6, 8, 10]
+}
+```
+
+**Why `*x`?**
+
+When you use `iter()`, you get `&i32` (references).
+When you use `filter()`, it gives you `&&i32` (reference to the reference).
+
+So inside the filter closure, `x` is `&&i32`, and `*x` is `&i32`, which we can compare.
+
+**Why `copied()`?**
+
+After filtering, we still have `&i32`. The `copied()` method converts `&i32` to `i32` by copying the value. (This only works for types that implement `Copy`, like integers.)
+
+---
+
+### Chaining Adaptors Together
+
+The real power comes from chaining:
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    
+    let result: Vec<i32> = numbers
+        .iter()                    // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        .filter(|x| *x % 2 == 0)   // [2, 4, 6, 8, 10]
+        .map(|x| x * 100)          // [200, 400, 600, 800, 1000]
+        .collect();
+    
+    println!("{:?}", result);
+}
+```
+
+Read it top to bottom:
+1. Start with 1 through 10
+2. Keep only even numbers → 2, 4, 6, 8, 10
+3. Multiply each by 100 → 200, 400, 600, 800, 1000
+4. Collect into a Vec
+
+---
+
+## Laziness: Why It Matters
+
+Iterator adaptors are **lazy**. They build up a chain of operations but don't execute until you consume.
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3];
+    
+    // This does NOTHING
+    let _ = numbers.iter().map(|x| {
+        println!("Processing {}", x);
+        x * 2
+    });
+    
+    println!("Nothing was printed above!");
+}
+```
+
+Output:
+```
+Nothing was printed above!
+```
+
+The `map` closure never ran! We created an iterator chain but never consumed it.
+
+Now let's consume it:
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3];
+    
+    // Now we consume with collect()
+    let _result: Vec<i32> = numbers.iter().map(|x| {
+        println!("Processing {}", x);
+        x * 2
+    }).collect();
+}
+```
+
+Output:
+```
+Processing 1
+Processing 2
+Processing 3
+```
+
+**Why is laziness good?**
+
+1. **No wasted work:** If you only need the first 3 items from a million, you only process 3.
+2. **No intermediate collections:** Each step doesn't create a new Vec — items flow through one at a time.
+3. **Can work with infinite sequences:** You can have an iterator that goes forever, then use `take(10)` to get just 10.
+
+---
+
+## Consuming Adaptors (In Depth)
+
+Consuming adaptors "use up" the iterator and produce a final result.
+
+### `collect` — Gather Into a Collection
+
+This is the most common consumer. It gathers all items into a collection:
+
+```rust
+fn main() {
+    // Into a Vec
+    let vec: Vec<i32> = (1..=5).collect();
+    println!("{:?}", vec); // [1, 2, 3, 4, 5]
+    
+    // Into a String
+    let chars = vec!['h', 'e', 'l', 'l', 'o'];
+    let word: String = chars.into_iter().collect();
+    println!("{}", word); // "hello"
+}
+```
+
+**Note:** You usually need to specify the type (like `Vec<i32>`) because `collect` can create many different collection types.
+
+---
+
+### `sum` — Add All Items
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5];
+    
+    let total: i32 = numbers.iter().sum();
+    
+    println!("Sum: {}", total); // 15
+}
+```
+
+You need to specify the type (`i32`) because `sum` needs to know what type to produce.
+
+---
+
+### `product` — Multiply All Items
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5];
+    
+    let result: i32 = numbers.iter().product();
+    
+    println!("Product: {}", result); // 120 (1*2*3*4*5)
+}
+```
+
+---
+
+### `count` — How Many Items
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5];
+    
+    let total = numbers.iter().count();
+    
+    println!("Count: {}", total); // 5
+}
+```
+
+---
+
+### `find` — Get First Matching Item
+
+Returns `Some(item)` if found, `None` if not:
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5, 6];
+    
+    let first_even = numbers.iter().find(|x| *x % 2 == 0);
+    println!("{:?}", first_even); // Some(2)
+    
+    let first_negative = numbers.iter().find(|x| **x < 0);
+    println!("{:?}", first_negative); // None
+}
+```
+
+**Note:** `find` stops as soon as it finds a match — it doesn't process the whole iterator.
+
+---
+
+### `any` — Does At Least One Match?
+
+Returns `true` if any item matches:
+
+```rust
+fn main() {
+    let numbers = vec![1, 3, 5, 7, 8, 9];
+    
+    let has_even = numbers.iter().any(|x| x % 2 == 0);
+    println!("Has even? {}", has_even); // true
+}
+```
+
+---
+
+### `all` — Do All Items Match?
+
+Returns `true` only if every item matches:
+
+```rust
+fn main() {
+    let numbers = vec![2, 4, 6, 8, 10];
+    
+    let all_even = numbers.iter().all(|x| x % 2 == 0);
+    println!("All even? {}", all_even); // true
+    
+    let numbers2 = vec![2, 4, 5, 8, 10];
+    let all_even2 = numbers2.iter().all(|x| x % 2 == 0);
+    println!("All even? {}", all_even2); // false
+}
+```
+
+---
+
+## More Iterator Adaptors (In Depth)
+
+### `take` — Get First N Items
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    
+    let first_three: Vec<i32> = numbers
+        .iter()
+        .take(3)      // Only take first 3
+        .copied()
+        .collect();
+    
+    println!("{:?}", first_three); // [1, 2, 3]
+}
+```
+
+---
+
+### `skip` — Skip First N Items
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    
+    let after_first_three: Vec<i32> = numbers
+        .iter()
+        .skip(3)      // Skip first 3
+        .copied()
+        .collect();
+    
+    println!("{:?}", after_first_three); // [4, 5, 6, 7, 8, 9, 10]
+}
+```
+
+---
+
+### `enumerate` — Get Index Along with Value
+
+Sometimes you need to know the position:
+
+```rust
+fn main() {
+    let fruits = vec!["apple", "banana", "cherry"];
+    
+    for (index, fruit) in fruits.iter().enumerate() {
+        println!("{}: {}", index, fruit);
+    }
+}
+```
+
+Output:
+```
+0: apple
+1: banana
+2: cherry
+```
+
+`enumerate` transforms each item `x` into a tuple `(index, x)`.
+
+---
+
+### `zip` — Pair Two Iterators Together
+
+Combines two iterators into one that yields pairs:
+
+```rust
+fn main() {
+    let names = vec!["Alice", "Bob", "Charlie"];
+    let scores = vec![85, 92, 78];
+    
+    for (name, score) in names.iter().zip(scores.iter()) {
+        println!("{} scored {}", name, score);
+    }
+}
+```
+
+Output:
+```
+Alice scored 85
+Bob scored 92
+Charlie scored 78
+```
+
+**Note:** `zip` stops when the shorter iterator runs out.
+
+---
+
+### `flatten` — Flatten Nested Iterators
+
+If you have a collection of collections, `flatten` makes it one level:
+
+```rust
+fn main() {
+    let nested = vec![
+        vec![1, 2, 3],
+        vec![4, 5],
+        vec![6, 7, 8, 9],
+    ];
+    
+    let flat: Vec<i32> = nested
+        .into_iter()
+        .flatten()
+        .collect();
+    
+    println!("{:?}", flat); // [1, 2, 3, 4, 5, 6, 7, 8, 9]
+}
+```
+
+---
+
+## `fold` — The Most Powerful Consumer (In Depth)
+
+`fold` is like building something step by step. You start with an initial value, then for each item, you combine it with what you've built so far.
+
+### Basic Syntax
+
+```rust
+iterator.fold(initial_value, |accumulator, item| {
+    // Return new accumulator value
+})
+```
+
+### Example: Sum (Recreating `.sum()`)
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5];
+    
+    let sum = numbers.iter().fold(0, |acc, x| acc + x);
+    
+    println!("{}", sum); // 15
+}
+```
+
+Let me trace through this step by step:
+
+```
+Initial: acc = 0
+
+Step 1: acc = 0, x = 1  → return 0 + 1 = 1   → new acc = 1
+Step 2: acc = 1, x = 2  → return 1 + 2 = 3   → new acc = 3
+Step 3: acc = 3, x = 3  → return 3 + 3 = 6   → new acc = 6
+Step 4: acc = 6, x = 4  → return 6 + 4 = 10  → new acc = 10
+Step 5: acc = 10, x = 5 → return 10 + 5 = 15 → new acc = 15
+
+Final result: 15
+```
+
+### Example: Product
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5];
+    
+    let product = numbers.iter().fold(1, |acc, x| acc * x);
+    
+    println!("{}", product); // 120
+}
+```
+
+Start with 1 (not 0, because multiplying by 0 would give 0).
+
+### Example: Building a String
+
+```rust
+fn main() {
+    let words = vec!["Hello", "beautiful", "world"];
+    
+    let sentence = words.iter().fold(String::new(), |mut acc, word| {
+        if !acc.is_empty() {
+            acc.push(' ');
+        }
+        acc.push_str(word);
+        acc
+    });
+    
+    println!("{}", sentence); // "Hello beautiful world"
+}
+```
+
+Trace:
+```
+Initial: acc = ""
+
+Step 1: acc = "", word = "Hello"
+        acc is empty, so don't add space
+        Push "Hello" → acc = "Hello"
+        
+Step 2: acc = "Hello", word = "beautiful"
+        acc is not empty, add space → acc = "Hello "
+        Push "beautiful" → acc = "Hello beautiful"
+        
+Step 3: acc = "Hello beautiful", word = "world"
+        acc is not empty, add space → acc = "Hello beautiful "
+        Push "world" → acc = "Hello beautiful world"
+
+Final: "Hello beautiful world"
+```
+
+### Example: Finding Maximum
+
+```rust
+fn main() {
+    let numbers = vec![3, 1, 4, 1, 5, 9, 2, 6];
+    
+    let max = numbers.iter().fold(i32::MIN, |acc, &x| {
+        if x > acc { x } else { acc }
+    });
+    
+    println!("Max: {}", max); // 9
+}
+```
+
+`fold` is extremely versatile — almost any iterator operation can be written as a `fold`.
+
+---
+
+## Creating Your Own Iterator (In Depth)
+
+You can make any type iterable by implementing the `Iterator` trait.
+
+### What You Need
+
+The `Iterator` trait requires two things:
+
+1. `type Item` — what type of items you yield
+2. `fn next(&mut self) -> Option<Self::Item>` — the logic to get the next item
+
+### Example: A Countdown
+
+```rust
+struct Countdown {
+    current: u32,
+}
+
+impl Countdown {
+    fn new(start: u32) -> Countdown {
+        Countdown { current: start }
+    }
+}
+
+impl Iterator for Countdown {
+    type Item = u32;  // We yield u32 values
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current > 0 {
+            let value = self.current;
+            self.current -= 1;
+            Some(value)
+        } else {
+            None
+        }
+    }
+}
+
+fn main() {
+    let countdown = Countdown::new(5);
+    
+    for num in countdown {
+        println!("{}...", num);
+    }
+    println!("Liftoff!");
+}
+```
+
+Output:
+```
+5...
+4...
+3...
+2...
+1...
+Liftoff!
+```
+
+### Example: Fibonacci Sequence
+
+```rust
+struct Fibonacci {
+    current: u64,
+    next: u64,
+}
+
+impl Fibonacci {
+    fn new() -> Fibonacci {
+        Fibonacci { current: 0, next: 1 }
+    }
+}
+
+impl Iterator for Fibonacci {
+    type Item = u64;
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = self.current;
+        self.current = self.next;
+        self.next = result + self.next;
+        Some(result)  // This iterator never ends!
+    }
+}
+
+fn main() {
+    let fib = Fibonacci::new();
+    
+    // Take only first 10 (because it's infinite)
+    let first_ten: Vec<u64> = fib.take(10).collect();
+    
+    println!("{:?}", first_ten);
+    // [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+}
+```
+
+This iterator is **infinite** — it never returns `None`. That's okay! We just use `take(10)` to get only what we need.
+
+---
+
+## Performance Note
+
+You might think all these abstractions are slow. They're not!
+
+Rust's iterator methods are **zero-cost abstractions**. The compiler optimizes them into the same code as hand-written loops.
+
+```rust
+// These two are equally fast after compilation:
+
+// Iterator style
+let sum: i32 = numbers.iter().sum();
+
+// Loop style
+let mut sum = 0;
+for n in &numbers {
+    sum += n;
+}
+```
+
+Sometimes the iterator version is actually *faster* because the compiler can optimize it better.
+
+---
+
+# Complete Chapter Summary
+
+## Closures
+
+| Concept | Key Points |
+|---------|------------|
+| Syntax | `\|params\| body` |
+| Capture | Closures can use variables from surrounding scope |
+| Capture modes | Borrow, mutable borrow, or ownership (Rust chooses automatically) |
+| `move` keyword | Forces ownership capture |
+| `Fn` trait | Only reads captured variables, can call many times |
+| `FnMut` trait | Can modify captured variables, can call many times |
+| `FnOnce` trait | Might consume captured variables, can call only once |
+
+**When to use each trait:**
+- `FnOnce` — when you only call the closure once
+- `FnMut` — when you call multiple times and it might modify
+- `Fn` — when you call multiple times and need read-only
+
+## Iterators
+
+| Concept | Key Points |
+|---------|------------|
+| Core method | `next()` returns `Some(item)` or `None` |
+| `iter()` | Borrows items (`&T`) |
+| `iter_mut()` | Mutably borrows items (`&mut T`) |
+| `into_iter()` | Takes ownership of items (`T`) |
+| Laziness | Adaptors don't run until consumed |
+
+**Common adaptors (transform iterators):**
+- `map` — transform each item
+- `filter` — keep matching items
+- `take` — get first N
+- `skip` — skip first N
+- `enumerate` — add indices
+- `zip` — pair with another iterator
+- `flatten` — flatten nested structures
+
+**Common consumers (produce final results):**
+- `collect` — gather into collection
+- `sum` — add all
+- `count` — count items
+- `find` — get first match
+- `any` — check if any match
+- `all` — check if all match
+- `fold` — build up a result step by step
+
+---
+
+## Practice Exercises: Closures and Iterators
+
+---
+
+## Part 1: Closures
+
+---
+
+### Exercise 1: Basic Closure Syntax
+
+Create three closures:
+
+1. `add`: takes two numbers and returns their sum
+2. `is_even`: takes one number and returns `true` if it's even
+3. `greet`: takes a name (`&str`) and prints "Hello, {name}!"
+
+Call each closure to test it.
+
+---
+
+### Exercise 2: Closures Capturing Variables
+
+Create a variable `tax_rate` set to `0.08` (8% tax).
+
+Create a closure `calculate_total` that takes a `price` and returns the price plus tax.
+
+Use the closure to calculate totals for prices: 100.0, 250.0, and 50.0
+
+Print each result.
+
+The point: your closure should capture `tax_rate` from the environment.
+
+---
+
+### Exercise 3: Mutable Capture
+
+Create a mutable variable `count` starting at 0.
+
+Create a closure `increment` that adds 1 to `count` each time it's called. The closure should also print the current count.
+
+Call the closure 5 times.
+
+After the calls, print the final value of `count`.
+
+Hint: Both the variable and the closure need to be `mut`.
+
+---
+
+### Exercise 4: The `move` Keyword
+
+This code won't compile:
+
+```rust
+fn create_multiplier(factor: i32) -> impl Fn(i32) -> i32 {
+    |x| x * factor
+}
+
+fn main() {
+    let double = create_multiplier(2);
+    let triple = create_multiplier(3);
+    
+    println!("{}", double(5));
+    println!("{}", triple(5));
+}
+```
+
+1. Explain why it doesn't compile
+2. Fix it using the `move` keyword
+
+---
+
+### Exercise 5: Passing Closures to Functions
+
+Write a function `apply_twice` that:
+- Takes a closure and an `i32` value
+- Calls the closure on the value
+- Calls the closure again on the result
+- Returns the final result
+
+The function signature should be:
+
+```rust
+fn apply_twice<F>(f: F, value: i32) -> i32
+where
+    F: Fn(i32) -> i32,
+```
+
+Test it with these closures:
+- One that adds 10
+- One that doubles the number
+
+Example output:
+```
+apply_twice(add_ten, 5) = 25      (5 + 10 = 15, 15 + 10 = 25)
+apply_twice(double, 3) = 12       (3 * 2 = 6, 6 * 2 = 12)
+```
+
+---
+
+### Exercise 6: Choosing the Right `Fn` Trait
+
+For each scenario below, decide which trait (`Fn`, `FnMut`, or `FnOnce`) is most appropriate and explain why:
+
+1. A closure that logs a message (just reads a captured string)
+2. A closure that counts how many times it's been called (modifies a captured counter)
+3. A closure that takes ownership of a `String` and returns it
+4. A function that needs to call a closure inside a loop 100 times
+
+No code required, just explain your reasoning.
+
+---
+
+## Part 2: Iterators
+
+---
+
+### Exercise 7: The Three Iterator Types
+
+Given this vector:
+
+```rust
+let mut words = vec![
+    String::from("hello"),
+    String::from("world"),
+    String::from("rust"),
+];
+```
+
+Write three separate loops:
+
+1. Using `iter()`: print each word with its length. After the loop, print the original vector to prove it still exists.
+
+2. Using `iter_mut()`: convert each word to uppercase in place. Print the vector after.
+
+3. Using `into_iter()`: move each word into a new vector with "!" appended. Try to use the original vector after (it should fail, explain why in a comment).
+
+---
+
+### Exercise 8: `map` and `collect`
+
+Given this vector of temperatures in Celsius:
+
+```rust
+let celsius = vec![0.0, 20.0, 37.5, 100.0];
+```
+
+Use `iter()`, `map()`, and `collect()` to create a new vector with the temperatures converted to Fahrenheit.
+
+Formula: `F = C * 9.0 / 5.0 + 32.0`
+
+Print the resulting vector.
+
+---
+
+### Exercise 9: `filter`
+
+Given this vector:
+
+```rust
+let numbers = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+```
+
+Use `filter` to create three new vectors:
+
+1. Only even numbers
+2. Only numbers greater than 6
+3. Only numbers divisible by 3
+
+Print each result.
+
+---
+
+### Exercise 10: Chaining `filter` and `map`
+
+Given a list of product prices:
+
+```rust
+let prices = vec![25, 99, 150, 45, 210, 89, 30];
+```
+
+Find all prices over 50, apply a 20% discount to each, and collect the results.
+
+Print the discounted prices.
+
+Hint: Chain `filter`, `map`, and `collect`.
+
+---
+
+### Exercise 11: Using Consumers
+
+Given:
+
+```rust
+let scores = vec![85, 92, 78, 95, 88, 76, 90, 82];
+```
+
+Use iterator methods (not manual loops) to find:
+
+1. The total of all scores (`sum`)
+2. How many scores there are (`count`, but be careful, this consumes the iterator)
+3. The first score above 90 (`find`)
+4. Whether all scores are passing (>= 60) (`all`)
+5. Whether any score is perfect (100) (`any`)
+
+Print each result.
+
+---
+
+### Exercise 12: `fold`
+
+Using `fold`, solve these problems:
+
+1. Given `vec![1, 2, 3, 4, 5]`, calculate the product of all numbers (1 × 2 × 3 × 4 × 5 = 120)
+
+2. Given `vec!["Hello", "World", "From", "Rust"]`, join them into a single string with spaces: `"Hello World From Rust"`
+
+3. Given `vec![3, 7, 2, 9, 1, 5]`, find the maximum value using fold (start with `i32::MIN`)
+
+---
+
+### Exercise 13: `enumerate` and `zip`
+
+**Part A:** Given a list of runners:
+
+```rust
+let runners = vec!["Alice", "Bob", "Charlie", "Diana"];
+```
+
+Use `enumerate` to print their finishing positions:
+
+```
+1st place: Alice
+2nd place: Bob
+3rd place: Charlie
+4th place: Diana
+```
+
+Hint: `enumerate` gives you index 0, 1, 2, 3... so you'll need to add 1.
+
+**Part B:** Given two vectors:
+
+```rust
+let items = vec!["Coffee", "Sandwich", "Cookie"];
+let prices = vec![4.50, 8.99, 2.50];
+```
+
+Use `zip` to print a receipt:
+
+```
+Coffee: $4.50
+Sandwich: $8.99
+Cookie: $2.50
+```
+
+---
+
+## Part 3: Combining Closures and Iterators
+
+---
+
+### Exercise 14: Custom Filter Logic
+
+Given student data:
+
+```rust
+let students = vec![
+    ("Alice", 85),
+    ("Bob", 92),
+    ("Charlie", 78),
+    ("Diana", 95),
+    ("Eve", 88),
+];
+```
+
+Create a variable `passing_grade` set to 80.
+
+Use `filter` with a closure that captures `passing_grade` to find all students who passed.
+
+Then use `map` to extract just their names.
+
+Collect and print the result.
+
+---
+
+### Exercise 15: Building a Processing Pipeline
+
+You have this raw data:
+
+```rust
+let raw_data = vec!["  42 ", "  not_a_number", "17", "   99  ", "hello", "8"];
+```
+
+Build an iterator chain that:
+
+1. Trims whitespace from each string
+2. Attempts to parse each as an `i32` (use `.parse::<i32>()` which returns `Result`)
+3. Filters to keep only the successful parses
+4. Doubles each number
+5. Collects into a `Vec<i32>`
+
+Expected result: `[84, 34, 198, 16]` (the parsed and doubled values of 42, 17, 99, 8)
+
+Hint: Use `filter_map`, it combines `filter` and `map`. It takes a closure that returns `Option<T>` and keeps only the `Some` values.
+
+```rust
+.filter_map(|s| s.parse::<i32>().ok())
+```
+
+The `.ok()` converts `Result` to `Option`.
+
+---
+
+### Exercise 16: Implementing Your Own Iterator
+
+Create a struct `EvenNumbers` that generates even numbers starting from a given value.
+
+Implement the `Iterator` trait for it.
+
+Then use your iterator to:
+
+1. Print the first 10 even numbers starting from 0
+2. Print the first 5 even numbers starting from 100
+
+```rust
+struct EvenNumbers {
+    current: u32,
+}
+
+impl EvenNumbers {
+    fn starting_from(start: u32) -> EvenNumbers {
+        // If start is odd, round up to next even
+        // Your code here
+    }
+}
+
+impl Iterator for EvenNumbers {
+    type Item = u32;
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        // Your code here
+    }
+}
+```
+
+---
+
+Good luck! Take your time with each exercises. 

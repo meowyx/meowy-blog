@@ -1,0 +1,1113 @@
+---
+title: Structs in Rust
+date: 2025-12-01
+category: rust-core
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+Rust structs are common data structure that allows you to group together related values that represents something meaningful in your program under a single name. 
+
+
+---
+
+## Why Structs Exist
+
+Let's say you're building a game and need to track a player:
+
+```rust
+let player_name = String::from("Hero");
+let player_health = 100;
+let player_x = 0.0;
+let player_y = 0.0;
+```
+
+This works, but problems appear fast:
+
+- These four variables aren't connected but Rust doesn't know they belong together
+- If you have two players, you need eight variables
+- Passing a "player" to a function means passing four separate things
+
+A struct solves this. You define what a "player" *is*:
+
+```rust
+struct Player {
+    name: String,
+    health: i32,
+    x: f64,
+    y: f64,
+}
+```
+
+Now "Player" is a real type in your program, just like `String` or `i32`.
+
+---
+
+## Defining a Struct
+
+Let's break down the syntax:
+
+```rust
+struct Player {
+    name: String,
+    health: i32,
+    x: f64,
+    y: f64,
+}
+```
+
+- `struct`: keyword that says "I'm defining a new type"
+- `Player`: the name of your type (capitalize it, this is convention)
+- `{ }`: contains all the fields
+- `name: String`: a field called "name" that holds a `String`
+- Each field has a name and a type, separated by `:`
+- Fields are separated by commas
+
+You're creating a blueprint. This doesn't create any actual player but it just describes what a player looks like.
+
+
+## Creating an Instance
+
+Now you use that blueprint to make an actual player:
+
+```rust
+let player1 = Player {
+    name: String::from("Hero"),
+    health: 100,
+    x: 0.0,
+    y: 0.0,
+};
+```
+
+Every field must be filled in. Miss one and Rust complains:
+
+```rust
+let player1 = Player {
+    name: String::from("Hero"),
+    health: 100,
+    // forgot x and y
+};
+// ERROR: missing fields `x` and `y`
+```
+
+Order doesn't matter cause Rust matches by name:
+
+```rust
+let player1 = Player {
+    y: 0.0,           // y first
+    health: 100,
+    x: 0.0,
+    name: String::from("Hero"),  // name last
+};
+// This is fine
+```
+
+---
+
+## Reading Fields
+
+Use the dot:
+
+```rust
+println!("{}", player1.name);    // Hero
+println!("{}", player1.health);  // 100
+```
+
+You can use fields anywhere you'd use a regular value:
+
+```rust
+let damage = 25;
+let remaining = player1.health - damage;
+
+if player1.health > 0 {
+    println!("{} is alive", player1.name);
+}
+```
+
+
+## Changing Fields
+
+By default, everything is locked:
+
+```rust
+let player1 = Player { /* ... */ };
+player1.health = 75;  // ERROR: cannot assign
+```
+
+Add `mut` to unlock:
+
+```rust
+let mut player1 = Player { /* ... */ };
+player1.health = 75;  // works now
+player1.x = 10.5;     // this too
+```
+
+Important: `mut` applies to the whole struct. You can't make just one field mutable. It's all or nothing.
+
+
+## Passing Structs Around
+
+This is where structs shine. One value, not four:
+
+```rust
+fn print_status(player: &Player) {
+    println!("{} has {} health", player.name, player.health);
+    println!("Position: ({}, {})", player.x, player.y);
+}
+
+fn take_damage(player: &mut Player, amount: i32) {
+    player.health -= amount;
+}
+
+fn main() {
+    let mut player1 = Player {
+        name: String::from("Hero"),
+        health: 100,
+        x: 0.0,
+        y: 0.0,
+    };
+
+    print_status(&player1);
+    take_damage(&mut player1, 25);
+    print_status(&player1);
+}
+```
+
+The `&Player` means "borrow this player to look at it." The `&mut Player` means "borrow this player to change it."
+
+
+## Making Multiple Instances
+
+One struct definition, unlimited instances:
+
+```rust
+let player1 = Player {
+    name: String::from("Hero"),
+    health: 100,
+    x: 0.0,
+    y: 0.0,
+};
+
+let player2 = Player {
+    name: String::from("Villain"),
+    health: 150,
+    x: 50.0,
+    y: 30.0,
+};
+
+let player3 = Player {
+    name: String::from("Sidekick"),
+    health: 80,
+    x: 5.0,
+    y: 0.0,
+};
+```
+
+Each is independent. Changing `player1.health` doesn't affect the others.
+
+
+
+
+## 3 Types of Structs
+
+A named struct has names for each field:
+
+```rust
+struct Color {
+    red: u8,
+    green: u8,
+    blue: u8,
+}
+```
+
+A tuple struct skips the names:
+
+```rust
+struct Color(u8, u8, u8);
+```
+
+That's the whole definition. Three `u8` values, no names.
+
+Creating one:
+
+```rust
+let red = Color(255, 0, 0);
+let white = Color(255, 255, 255);
+```
+
+Reading values - use position numbers starting from 0:
+
+```rust
+println!("{}", red.0);  // 255 (first)
+println!("{}", red.1);  // 0 (second)
+println!("{}", red.2);  // 0 (third)
+```
+
+**Why not just use a tuple?**
+
+A plain tuple looks similar:
+
+```rust
+let red = (255, 0, 0);
+```
+
+But there's a key difference. Watch:
+
+```rust
+struct Color(u8, u8, u8);
+struct Point(u8, u8, u8);
+
+let c = Color(255, 0, 0);
+let p = Point(10, 20, 30);
+```
+
+`Color` and `Point` are different types. You can't accidentally use a color where a point is expected:
+
+```rust
+fn draw_at(location: Point) {
+    // ...
+}
+
+draw_at(c);  // ERROR: expected Point, found Color
+draw_at(p);  // works
+```
+
+With plain tuples, both would just be `(u8, u8, u8)`, no protection.
+
+**The newtype pattern**
+
+This is powerful for wrapping single values:
+
+```rust
+struct Meters(f64);
+struct Seconds(f64);
+
+let distance = Meters(100.0);
+let time = Seconds(9.58);
+
+// Can't accidentally mix them up
+// even though both contain f64
+```
+
+
+#### Unit Structs
+
+A struct with nothing inside:
+
+```rust
+struct Marker;
+```
+
+No parentheses, no braces. Just a name.
+
+Creating one:
+
+```rust
+let m = Marker;
+```
+
+This feels pointless right now. Why have a type with no data?
+
+It becomes useful when you learn traits. Sometimes you need a type that represents something but doesn't need to hold anything. For example, different "strategies" or "markers" in generic code.
+
+For now, just know it exists. You'll recognize it when you need it later.
+
+
+### Field Init Shorthand
+
+When creating a struct, you often have variables that match field names:
+
+```rust
+fn create_player(name: String, health: i32) -> Player {
+    Player {
+        name: name,      // variable "name" goes into field "name"
+        health: health,  // variable "health" goes into field "health"
+        x: 0.0,
+        y: 0.0,
+    }
+}
+```
+
+That repetition is annoying. Rust lets you shorten it:
+
+```rust
+fn create_player(name: String, health: i32) -> Player {
+    Player {
+        name,     // same as name: name
+        health,   // same as health: health
+        x: 0.0,
+        y: 0.0,
+    }
+}
+```
+
+If the variable name matches the field name exactly, skip the `: value` part.
+
+You can mix both styles:
+
+```rust
+let name = String::from("Hero");
+let health = 100;
+
+let player = Player {
+    name,           // shorthand
+    health,         // shorthand
+    x: 5.0,         // normal (no variable called "x")
+    y: 10.0,        // normal
+};
+```
+
+
+### Struct Update Syntax
+
+You have one struct and want to make another that's mostly the same:
+
+```rust
+let player1 = Player {
+    name: String::from("Hero"),
+    health: 100,
+    x: 0.0,
+    y: 0.0,
+};
+```
+
+Without update syntax:
+
+```rust
+let player2 = Player {
+    name: String::from("Hero Clone"),
+    health: player1.health,  // copy from player1
+    x: player1.x,            // copy from player1
+    y: player1.y,            // copy from player1
+};
+```
+
+With update syntax:
+
+```rust
+let player2 = Player {
+    name: String::from("Hero Clone"),
+    ..player1  // get the rest from player1
+};
+```
+
+The `..player1` means "fill remaining fields from player1."
+
+It must come last:
+
+```rust
+// ERROR
+let player2 = Player {
+    ..player1,
+    name: String::from("Hero Clone"),
+};
+
+// CORRECT
+let player2 = Player {
+    name: String::from("Hero Clone"),
+    ..player1,
+};
+```
+
+**The ownership trap**
+
+This is where beginners get bitten. The `..player1` doesn't always copy, it can *move*.
+
+```rust
+let player1 = Player {
+    name: String::from("Hero"),  // String cannot be copied
+    health: 100,                  // i32 can be copied
+    x: 0.0,                       // f64 can be copied
+    y: 0.0,                       // f64 can be copied
+};
+
+let player2 = Player {
+    health: 50,
+    ..player1  // moves name, copies x and y
+};
+
+// Now:
+println!("{}", player1.health);  // works (we gave player2 its own health)
+println!("{}", player1.x);       // works (f64 was copied)
+println!("{}", player1.name);    // ERROR: name was moved to player2
+```
+
+The rule: if a type implements `Copy` (like numbers), it gets copied. If it doesn't (like `String`), it gets moved.
+
+
+## Methods with `impl`
+
+So far, structs only hold data. Methods let them *do* things.
+
+```rust
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+}
+```
+
+Breaking this down:
+
+- `impl Rectangle` - "I'm implementing functions for Rectangle"
+- `fn area(&self) -> u32`: a function that takes a reference to self and returns `u32`
+- `self.width`: access the width field of this rectangle
+
+Using it:
+
+```rust
+let rect = Rectangle { width: 30, height: 50 };
+let a = rect.area();
+println!("{}", a);  // 1500
+```
+
+You call methods with dot notation, just like fields.
+
+You can have multiple methods:
+
+```rust
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+
+    fn perimeter(&self) -> u32 {
+        2 * self.width + 2 * self.height
+    }
+
+    fn is_square(&self) -> bool {
+        self.width == self.height
+    }
+}
+```
+
+### Why Methods Instead of Functions?
+
+You could write everything as regular functions:
+
+```rust
+struct Player {
+    name: String,
+    health: i32,
+}
+
+fn is_alive(player: &Player) -> bool {
+    player.health > 0
+}
+
+fn heal(player: &mut Player, amount: i32) {
+    player.health += amount;
+}
+
+let mut p = Player { name: String::from("Hero"), health: 50 };
+heal(&mut p, 20);
+println!("{}", is_alive(&p));
+```
+
+This works. But methods are better for a few reasons:
+
+**1. Organization** - all `Player` behavior lives inside `impl Player`. You know where to look.
+
+**2. Cleaner calls** - compare:
+
+```rust
+// Function style
+heal(&mut p, 20);
+is_alive(&p);
+
+// Method style
+p.heal(20);
+p.is_alive();
+```
+
+Method style reads like English: "player heal 20", "player is alive".
+
+**3. No need to pass the struct explicitly** - `self` handles it automatically.
+
+
+### How `self` Gets Passed
+
+This trips up beginners. You define:
+
+```rust
+impl Player {
+    fn heal(&mut self, amount: i32) {
+        self.health += amount;
+    }
+}
+```
+
+Two parameters: `&mut self` and `amount`.
+
+But you call it with one argument:
+
+```rust
+p.heal(20);
+```
+
+Where did `self` go?
+
+Rust fills it in. When you write `p.heal(20)`, Rust sees:
+
+```rust
+Player::heal(&mut p, 20);
+```
+
+The thing before the dot becomes `self`. That's why methods feel cleaner, you don't manually pass the instance.
+
+
+
+### Multiple `impl` Blocks
+
+You can split methods into separate blocks:
+
+```rust
+impl Player {
+    fn new(name: String) -> Player {
+        Player { name, health: 100 }
+    }
+}
+
+impl Player {
+    fn is_alive(&self) -> bool {
+        self.health > 0
+    }
+}
+
+impl Player {
+    fn heal(&mut self, amount: i32) {
+        self.health += amount;
+    }
+}
+```
+
+This is identical to putting them all in one block. Why do it? Sometimes it helps organize code group related methods together, or separate constructors from other methods.
+
+## The Three Kinds of `self`
+
+How you write `self` controls what the method can do.
+
+**`&self`: borrow, read only**
+
+```rust
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.height  // can read fields
+    }
+}
+
+let rect = Rectangle { width: 30, height: 50 };
+rect.area();
+rect.area();  // can call multiple times, rect still usable
+```
+
+**`&mut self`: borrow, can modify**
+
+```rust
+impl Rectangle {
+    fn double_size(&mut self) {
+        self.width *= 2;
+        self.height *= 2;
+    }
+}
+
+let mut rect = Rectangle { width: 30, height: 50 };
+rect.double_size();
+println!("{}", rect.width);  // 60
+```
+
+Note: the instance must be declared `mut` to call `&mut self` methods.
+
+**`self`: takes ownership**
+
+```rust
+impl Rectangle {
+    fn into_square(self) -> Rectangle {
+        let size = self.width.max(self.height);
+        Rectangle {
+            width: size,
+            height: size,
+        }
+    }
+}
+
+let rect = Rectangle { width: 30, height: 50 };
+let square = rect.into_square();
+// rect is gone now, ownership moved into the method
+// println!("{}", rect.width);  // ERROR
+```
+
+Use this when the method transforms or consumes the struct.
+
+**Which to use?**
+
+- `&self`: most of the time (just reading)
+- `&mut self`: when you need to change fields
+- `self`: rare, when transforming into something else
+
+
+### Choosing the Right One
+
+Ask yourself: what does this method need to do?
+
+**Just looking at data?** Use `&self`
+
+```rust
+fn get_name(&self) -> &str {
+    &self.name
+}
+
+fn is_dead(&self) -> bool {
+    self.health <= 0
+}
+
+fn distance_from_origin(&self) -> f64 {
+    (self.x * self.x + self.y * self.y).sqrt()
+}
+```
+
+**Changing data?** Use `&mut self`
+
+```rust
+fn take_damage(&mut self, amount: i32) {
+    self.health -= amount;
+}
+
+fn rename(&mut self, new_name: String) {
+    self.name = new_name;
+}
+
+fn move_to(&mut self, x: f64, y: f64) {
+    self.x = x;
+    self.y = y;
+}
+```
+
+**Consuming or transforming?** Use `self`
+
+```rust
+fn into_corpse(self) -> Corpse {
+    Corpse { name: self.name }
+}
+
+fn kill(self) {
+    println!("{} has been removed from the game", self.name);
+    // self is dropped here, player is gone
+}
+```
+
+
+### What Happens After Each Call
+
+**`&self`**: instance unchanged, use it again:
+
+```rust
+let p = Player::new(String::from("Hero"));
+println!("{}", p.is_alive());  // true
+println!("{}", p.is_alive());  // can call again
+println!("{}", p.name);        // can still access fields
+```
+
+**`&mut self`**: instance changed, but still yours:
+
+```rust
+let mut p = Player::new(String::from("Hero"));
+p.take_damage(30);
+p.take_damage(20);             // can call again
+println!("{}", p.health);      // 50 (changed from 100)
+```
+
+**`self`**: instance gone:
+
+```rust
+let p = Player::new(String::from("Hero"));
+p.kill();
+// p.is_alive();   // ERROR: p was moved
+// p.health;       // ERROR: p was moved
+```
+
+
+### Common Mistake: Wrong `self` Type
+
+Using `&self` when you need `&mut self`:
+
+```rust
+impl Player {
+    fn heal(&self, amount: i32) {  // should be &mut self
+        self.health += amount;     // ERROR: cannot assign
+    }
+}
+```
+
+Rust catches this, you can't modify through an immutable borrow.
+
+Forgetting `mut` on the instance:
+
+```rust
+impl Player {
+    fn heal(&mut self, amount: i32) {
+        self.health += amount;
+    }
+}
+
+let p = Player::new(String::from("Hero"));  // not mut!
+p.heal(20);  // ERROR: cannot borrow as mutable
+```
+
+The method wants `&mut self`, but `p` isn't mutable. Fix: `let mut p = ...`
+
+
+
+## Associated Functions
+
+Methods have `self`. Associated functions don't:
+
+```rust
+impl Rectangle {
+    fn new(width: u32, height: u32) -> Rectangle {
+        Rectangle { width, height }
+    }
+
+    fn square(size: u32) -> Rectangle {
+        Rectangle {
+            width: size,
+            height: size,
+        }
+    }
+}
+```
+
+No `self` parameter, these aren't called on an instance.
+
+Call them with `::`:
+
+```rust
+let rect = Rectangle::new(30, 50);
+let sq = Rectangle::square(25);
+```
+
+This is how constructors work in Rust. The name `new` is convention, not special.
+
+You can have multiple constructors:
+
+```rust
+impl Player {
+    fn new(name: String) -> Player {
+        Player {
+            name,
+            health: 100,
+            x: 0.0,
+            y: 0.0,
+        }
+    }
+
+    fn with_position(name: String, x: f64, y: f64) -> Player {
+        Player {
+            name,
+            health: 100,
+            x,
+            y,
+        }
+    }
+}
+
+let p1 = Player::new(String::from("Hero"));
+let p2 = Player::with_position(String::from("Villain"), 50.0, 30.0);
+```
+
+### Why Associated Functions Exist
+
+Sometimes you need a function related to a type, but you don't have an instance yet. The most common case: creating an instance.
+
+```rust
+impl Player {
+    fn new(name: String) -> Player {
+        Player {
+            name,
+            health: 100,
+        }
+    }
+}
+```
+
+No `self`, because the player doesn't exist yet. We're making it.
+
+
+### Constructors Are Just Convention
+
+Rust has no special `constructor` keyword. A constructor is just an associated function that returns `Self` (or the type name).
+
+The name `new` is convention, not required:
+
+```rust
+impl Player {
+    fn new(name: String) -> Player { /* ... */ }
+    fn create(name: String) -> Player { /* ... */ }
+    fn spawn(name: String) -> Player { /* ... */ }
+    fn from_name(name: String) -> Player { /* ... */ }
+}
+```
+
+All valid. `new` is just what Rustaceans expect.
+
+
+### Using `Self` as Return Type
+
+Inside `impl`, you can write `Self` instead of the type name:
+
+```rust
+impl Player {
+    fn new(name: String) -> Self {  // Self = Player
+        Self {                       // Self = Player
+            name,
+            health: 100,
+        }
+    }
+}
+```
+
+`Self` means "the type I'm implementing for." Both versions work, `Self` is just shorter and adapts if you rename the struct.
+
+
+### Multiple Constructors
+
+One type can have many ways to create it:
+
+```rust
+impl Player {
+    // Basic: just a name
+    fn new(name: String) -> Self {
+        Self {
+            name,
+            health: 100,
+            x: 0.0,
+            y: 0.0,
+        }
+    }
+
+    // With custom health
+    fn with_health(name: String, health: i32) -> Self {
+        Self {
+            name,
+            health,
+            x: 0.0,
+            y: 0.0,
+        }
+    }
+
+    // With position
+    fn at_position(name: String, x: f64, y: f64) -> Self {
+        Self {
+            name,
+            health: 100,
+            x,
+            y,
+        }
+    }
+
+    // Fully custom
+    fn full(name: String, health: i32, x: f64, y: f64) -> Self {
+        Self { name, health, x, y }
+    }
+}
+
+// Now you have options
+let p1 = Player::new(String::from("Hero"));
+let p2 = Player::with_health(String::from("Tank"), 200);
+let p3 = Player::at_position(String::from("Scout"), 10.0, 20.0);
+let p4 = Player::full(String::from("Custom"), 150, 5.0, 5.0);
+```
+
+
+### Associated Functions That Aren't Constructors
+
+Not every associated function creates an instance:
+
+```rust
+impl Player {
+    fn max_health() -> i32 {
+        100
+    }
+
+    fn default_name() -> String {
+        String::from("Unknown")
+    }
+}
+
+let max = Player::max_health();
+let name = Player::default_name();
+```
+
+These return other types, not `Player`. They're still associated with `Player` but don't create one.
+
+
+### Method vs Associated Function: Quick Reference
+
+|                 | Method            | Associated Function |
+| --------------- | ----------------- | ------------------- |
+| Has `self`?     | Yes               | No                  |
+| Called with     | `.` (dot)         | `::`                |
+| Needs instance? | Yes               | No                  |
+| Example         | `player.heal(10)` | `Player::new(name)` |
+
+
+---
+
+
+I will add some extra exercise so that you can test your rust knowledge on struct:
+
+
+---
+
+## Exercise 1: Basic Struct
+
+Create a `Book` struct with:
+- `title` (String)
+- `author` (String)
+- `pages` (u32)
+
+Create two books and print their titles and page counts.
+
+---
+
+## Exercise 2: Mutable Fields
+
+Create a `Counter` struct with a `count: i32` field.
+
+Create a counter, print the count, change it to 10, print again.
+
+---
+
+## Exercise 3: Field Init Shorthand
+
+Write a function `create_book` that takes `title`, `author`, and `pages` as parameters and returns a `Book`.
+
+Use field init shorthand where possible.
+
+---
+
+## Exercise 4: Struct Update Syntax
+
+Create a `Config` struct with:
+- `volume: u32`
+- `brightness: u32`
+- `dark_mode: bool`
+
+Create one config, then create a second config that only changes `dark_mode` but keeps other values from the first. What fields can you still access from the first config?
+
+---
+
+## Exercise 5: Tuple Struct
+
+Create a tuple struct `Rgb` that holds three `u8` values.
+
+Create red (255, 0, 0) and print each component.
+
+---
+
+## Exercise 6: Basic Method
+
+Create a `Rectangle` struct with `width: u32` and `height: u32`.
+
+Add a method `area(&self)` that returns the area.
+
+Test it by creating a rectangle and printing its area.
+
+---
+
+## Exercise 7: Mutable Method
+
+Using the same `Rectangle`, add a method `widen(&mut self, amount: u32)` that increases the width.
+
+Create a rectangle, print area, widen it by 10, print area again.
+
+---
+
+## Exercise 8: Constructor
+
+Add an associated function `new(width: u32, height: u32)` to `Rectangle` that creates a new rectangle.
+
+Add another associated function `square(size: u32)` that creates a rectangle where width equals height.
+
+---
+
+## Exercise 9: Multiple Methods
+
+Create a `BankAccount` struct with:
+- `holder: String`
+- `balance: f64`
+
+Add these:
+- `new(holder: String)`: creates account with 0 balance
+- `deposit(&mut self, amount: f64)`: adds to balance
+- `withdraw(&mut self, amount: f64)`: subtracts from balance
+- `get_balance(&self) -> f64`: returns current balance
+
+Test by creating an account, depositing 100, withdrawing 30, and printing balance.
+
+---
+
+## Exercise 10: Method That Consumes
+
+Create a `Gift` struct with:
+- `item: String`
+- `recipient: String`
+
+Add these:
+- `new(item: String, recipient: String)`: constructor
+- `peek(&self)`: prints "A gift for {recipient}"
+- `open(self)`: prints "{recipient} received {item}!" and consumes the gift
+
+Test by creating a gift, peeking, then opening. Try to peek again after opening, what happens?
+
+---
+
+## Exercise 11: Putting It Together
+
+Create a `Player` struct for a game:
+- `name: String`
+- `health: i32`
+- `x: f64`
+- `y: f64`
+
+Add these methods:
+- `new(name: String)`: health starts at 100, position at (0, 0)
+- `at_position(name: String, x: f64, y: f64)`: custom starting position
+- `is_alive(&self) -> bool`
+- `take_damage(&mut self, amount: i32)`
+- `heal(&mut self, amount: i32)`: health shouldn't go above 100
+- `move_to(&mut self, x: f64, y: f64)`
+- `distance_from(&self, other: &Player) -> f64`: distance between two players
+
+Test:
+1. Create two players at different positions
+2. Print if each is alive
+3. Damage one player
+4. Heal them (make sure it caps at 100)
+5. Calculate distance between them
+
+Hint for distance: `((x2-x1)² + (y2-y1)²).sqrt()`
+
+---
+
+## Exercise 12: Struct Update With Ownership
+
+Create a `Message` struct:
+- `sender: String`
+- `content: String`
+- `priority: u32`
+
+Create a message. Then create a second message using struct update syntax that changes only `priority`.
+
+After this:
+- Which fields of the first message can you still access?
+- Why?
+
+---
+

@@ -1,0 +1,344 @@
+---
+title: Common and Unique Concepts in Rust
+date: 2025-11-30
+category: rust-core
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+There are concepts on rust that is common and similar to all the other programming languages and then there's also concepts that are unique to rust. 
+
+Let's get into it, let's first think about variables and immutability. In rust, things are immutable by default but there are exceptions to that which you'll have to write into the code to have that exception. 
+
+Let's start a new project with `cargo new variables` , and `cd variables` to get into the directory. Let's write some code there:
+
+```rust
+
+fn main() {
+    let x = 5;
+    println!("The value of x is:{}", x)
+    x = 6
+    println!("The value of x is:{}", x)
+}
+
+```
+
+Over here we have `let x = 5` , so let is telling us to make our variable name x and we're gonna put the value 5 into it so that's called binding. We are binding 5 into x and then we're printing it out. 
+
+Then we're also assigning value 6 tox but if we run this, we'll get errors. But if we just do this, `let mut x = 5;` , it won't be an issue anymore. 
+So that's how you reassign the value into something different by using `mut` . 
+
+There's also another variable type called constants, so constants are good if you know that the variables are not going to change. 
+
+something like this:
+
+```rust
+const THREE_HOURS_IN_SECONDS:u32 = 60 * 60 * 3;
+
+```
+
+There is no `mut` for const, and cosnt has to be capital letters and seperated by underscore.
+
+One thing to note is, once you declare a variable mentioning it's type like `let x = 5;` , you can't reassign x to a different type like string. You'll have to follow different rules if you want to convert one value to another. 
+
+Every value in rust is a data type. So rust is an statically typed language, which means it needs to know about all types at compile time. 
+There are many types, like integers, floating point numbers, booleans and characters. 
+Here's a small table of what these types look like. 
+
+# Integer Types in Programming
+
+| Length | Signed | Signed Range | Unsigned | Unsigned Range |
+|:---|:---|:---|:---|:---|
+| 8-bit | i8 | -128 to 127 | u8 | 0 to 255 |
+| 16-bit | i16 | -32,768 to 32,767 | u16 | 0 to 65,535 |
+| 32-bit | i32 | -2,147,483,648 to 2,147,483,647 | u32 | 0 to 4,294,967,295 |
+| 64-bit | i64 | -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807 | u64 | 0 to 18,446,744,073,709,551,615 |
+| 128-bit | i128 | -2¹²⁷ to 2¹²⁷-1 | u128 | 0 to 2¹²⁸-1 |
+| arch | isize | depends on architecture (32/64-bit) | usize | depends on architecture (32/64-bit) |
+
+Signed integers can represent both **positive and negative** numbers but unsigned integers can only represent **positive numbers** (including zero).
+
+Arch type is pretty special and will actually be different based on your operating system. 
+
+There's also floating point numbers. The `f64` is the default floating type.
+
+```rust
+
+fn main () {
+    let x = 2.0; //f64 default so no need to mention it here
+
+    let y:f32 = 3.0; //f32
+}
+```
+
+Let's look at some numeric types and operations. 
+
+```rust
+
+fn main () {
+
+// addition
+let sum = 5 + 10; 
+
+// substraction
+let difference = 95.5 - 4.3;
+
+// multiplication
+let product = 4 * 30;
+
+// division
+let quotient = 56.7 /32.2;
+let floored = 2 / 3;
+
+// remainder
+let remainder = 43 % 5;
+
+}
+```
+If you notice here, there's addition, substraction and few other operations.
+
+```rust
+
+fn main() {
+    let t = true;
+
+    let f:bool = false; //with explicit type annotation
+
+}
+
+```
+There's boolean here, we can also explicitly mention the types. 
+
+
+```rust
+
+fn main() {
+    let c = 'z';
+    let x = 'Z';
+    let heart_eyed_cat = '😻';
+}
+```
+
+This is `char` types or character types. It's four bytes in rust.
+
+Now this concludes all scalar types or single  value types. 
+
+Now we're moving on to compound types, this types can group together multiple values in one types. There's two primitive we get in rust are tuples and arrays. 
+
+```rust
+
+fn main() {
+
+//tuple
+let x : (i32, f64, u8) = (500, 6.4, 1);
+
+let five_hundred = x.0;
+
+let six_point_four = x.1;
+
+let one = x.2;
+}
+```
+
+Here it's a tuple, comnining multiple types and we can access them by index.There's also a special tuple called `unit` , it's a tuple without any value. It's value and type are both written with `()`, represents empty value or empty return type. 
+
+
+```rust
+
+fn main() {
+    //array
+    let a = [1, 2, 3, 4, 5];
+}
+
+```
+
+This is array and it's fixed size array. All of it's elements have to be same type and in this example these are all i32 integers. Arrays always allocate memory on the stack rather than heap and we will go more details on that later. 
+
+There's also another type called vector which actually can change it's size and store on heap, we'll discuss more about that soon. 
+
+Let's look at some more example of arrays. 
+
+```rust
+
+fn main() {
+
+// months are always fixed
+    let months = ["January", "February", "March", "April", "May", "June", "July",
+              "August", "September", "October", "November", "December"];
+    
+    let a: [i32; 5] = [1, 2, 3, 4, 5]; // this is the array type and then the size of array
+    let a = [3; 5]; // this translates to [3, 3, 3, 3, 3]
+
+
+}
+
+```
+
+if you want to access different parts of the array, that's where you could do integers of index, something like this `let a = [1, 2, 3, 4, 5]` and to access this it can be `let first = a[0];` . 
+
+
+### FUNCTIONS
+
+Time to look at functions, it's a very important concept. 
+
+
+```rust
+fn main() {
+    println!("Hello, world!");
+
+    another_function();
+}
+
+fn another_function() {
+    println!("Another function.");
+}
+
+```
+
+In rust, we define function by entering `fn` then function name and a set of parentheses. `another_function() also has no argument and no return value. 
+
+```rust
+
+fn main() {
+    another_function(5);
+}
+
+fn another_function(x: i32) {
+    println!("The value of x is: {x}");
+}
+
+```
+
+In this version, we add a parameter. It specified the type of x. Here ⁠x is a parameter, it's an input value that the function receives. When you call ⁠another_function(5), the value ⁠5 is passed into the function as ⁠x.
+
+Now let's look at function with return values. 
+
+
+```rust
+
+fn another_function() {
+    println!("another function");
+}
+
+
+fn main() {
+
+    println!("Hello, world!");
+
+    another_function();
+    
+}
+
+fn another_function_num (x:i32) {
+    println!("The value of x is: {}", x)
+}
+
+fn five() -> i32 {
+    5
+}
+
+fn plus_one(x: i32) -> i32 {
+    x + 1
+}
+
+```
+
+Here we are mentioning the return type which is i32 on plus one and five function. On `five` function if you notice, we aren't putting any semicolon after `5` , which means we're returning 5. In other programming language you might write return 5 or something but here if the function expects a return type you have to skip putting the semicolon to return the value. 
+
+We can even do math expressions inside function. 
+
+```rust
+
+fn main() {
+    let y = {
+        let x = 3;
+        x + 1
+    };
+
+    println!("The value of y is: {y}");
+}
+```
+
+This expression:
+
+```rust
+{
+    let x = 3;
+    x + 1
+}
+```
+is a block that, in this case, evaluates to 4. That value gets bound to y as part of the let statement. Note that the x + 1 line doesn’t have a semicolon at the end, which is unlike most of the lines we’ve seen so far. Expressions do not include ending semicolons. If you add a semicolon to the end of an expression, you turn it into a statement, and it will then not return a value. 
+
+### `if` Expressions
+
+If expressions are expressions that allow you to create branches within your so like if this is true then do something else, do something else. 
+
+
+```rust
+fn main() {
+    let number = 3;
+
+    if number < 5 {
+        println!("condition was true");
+    } else {
+        println!("condition was false");
+    }
+}
+
+```
+
+Over here if number is less than 5 then we print it's true otherwise it's false. 
+Mix types will not compare with static typed language. Like you can't compare an integer with a string.
+
+### Loops: while, for and loop
+
+Let's look at this example of loop:
+
+```rust
+fn main() {
+    loop {
+        println!("again!");
+    }
+}
+
+```
+
+This is an infinite loop, that will keep printing. 
+
+There's also conditional `while` loop:
+
+```rust
+fn main() {
+    let mut number = 3;
+
+    while number != 0 {
+        println!("{number}!");
+
+        number -= 1;
+    }
+
+    println!("LIFTOFF!!!");
+}
+
+```
+
+This doesn't need esting which you had needed with if else or with loop.
+
+```rust
+fn main() {
+    let a = [10, 20, 30, 40, 50];
+    let mut index = 0;
+
+    while index < 5 {
+        println!("the value is: {}", a[index]);
+
+        index += 1;
+    }
+}
+
+```
+
+We can loop through a collection with for loop. 
+
+we can also declare range like this `let range = 1..5;`.

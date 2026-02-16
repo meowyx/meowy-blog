@@ -1,0 +1,1617 @@
+---
+title: Writing Tests in Rust
+date: 2025-12-23
+category: rust-advanced
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+
+## Part 1: What Is a Test? (The Very Basics)
+
+### The Problem Tests Solve
+
+Imagine you write a function that adds two numbers:
+
+```rust
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+```
+
+How do you know it works? You probably run your program and check manually:
+
+```rust
+fn main() {
+    let result = add(2, 3);
+    println!("Result is: {}", result);  // You look at this and think "yes, 5 is correct"
+}
+```
+
+This works when your program is small. But imagine you have 100 functions. Are you going to manually check all 100 every time you change something? That's exhausting and error-prone.
+
+**A test is a small program that checks your code automatically.** You write it once, and then you can run it thousands of times with a single command.
+
+---
+
+## Part 2: Your First Test (Every Detail Explained)
+
+Let's write the simplest possible test:
+
+```rust
+#[test]
+fn it_works() {
+    
+}
+```
+
+That's a complete test! Let me explain every single piece:
+
+### The `#[test]` Part
+
+```rust
+#[test]
+```
+
+This is called an **attribute**. Think of it as a sticky note you attach to your code. This particular sticky note says: "Hey Rust, the function below this line is a test, not regular code."
+
+Without `#[test]`, Rust thinks it's just a normal function and won't run it as a test.
+
+The syntax is:
+- `#`: starts the attribute
+- `[`: opens the attribute
+- `test`: the name of this specific attribute
+- `]`: closes the attribute
+
+### The Function Part
+
+```rust
+fn it_works() {
+    
+}
+```
+
+This is just a regular function! Nothing special about it:
+- `fn`: keyword to define a function
+- `it_works`: the name (you can name it anything)
+- `()`: empty parentheses because test functions take no inputs
+- `{ }`: the body of the function (currently empty)
+
+### What Happens When This Test Runs?
+
+When you run `cargo test`, Rust will:
+
+1. Find all functions with `#[test]` above them
+2. Run each one
+3. Check if they **panic** or not
+
+Here's the key rule:
+
+> **If a test function runs without panicking → TEST PASSES**
+> **If a test function panics → TEST FAILS**
+
+Our empty test has nothing in it, so nothing can go wrong, so it passes!
+
+---
+
+## Part 3: Making a Test Actually Check Something
+
+An empty test is useless. We need to make our test **check** something and **panic if it's wrong**.
+
+### The Manual Way (Using `panic!`)
+
+You already know `panic!`, it crashes your program. We can use it in tests:
+
+```rust
+#[test]
+fn check_addition() {
+    let result = 2 + 2;
+    
+    if result != 4 {
+        panic!("Math is broken!");
+    }
+}
+```
+
+Step by step:
+
+1. `let result = 2 + 2;`: We calculate something (result is 4)
+2. `if result != 4`: We check: is result NOT equal to 4?
+3. If yes (result is wrong) → `panic!` → test fails
+4. If no (result is 4) → we skip the panic → function ends normally → test passes
+
+This works, but writing `if ... panic!` everywhere is tedious. Rust gives us a shortcut.
+
+---
+
+## Part 4: The `assert!` Macro (Your Testing Friend)
+
+Instead of writing `if ... panic!`, Rust provides `assert!`:
+
+```rust
+#[test]
+fn check_addition() {
+    let result = 2 + 2;
+    assert!(result == 4);
+}
+```
+
+### What Does `assert!` Do?
+
+The word "assert" means "to state something is true." The `assert!` macro:
+
+1. Takes a boolean expression (something that's `true` or `false`)
+2. If it's `true` → does nothing (test continues)
+3. If it's `false` → calls `panic!` automatically (test fails)
+
+So this:
+```rust
+assert!(result == 4);
+```
+
+Is exactly the same as this:
+```rust
+if !(result == 4) {
+    panic!("assertion failed: result == 4");
+}
+```
+
+But shorter and cleaner!
+
+### More Examples of `assert!`
+
+```rust
+#[test]
+fn test_greater_than() {
+    let age = 25;
+    assert!(age > 18);  // Is 25 > 18? Yes (true), so test continues
+}
+
+#[test]
+fn test_string_is_not_empty() {
+    let name = String::from("Meowy");
+    assert!(!name.is_empty());  // Is name NOT empty? Yes (true), so test continues
+}
+
+#[test]
+fn test_contains_word() {
+    let sentence = String::from("I love Rust programming");
+    assert!(sentence.contains("Rust"));  // Does it contain "Rust"? Yes, test passes
+}
+```
+
+### When `assert!` Fails
+
+```rust
+#[test]
+fn this_will_fail() {
+    let result = 2 + 2;
+    assert!(result == 5);  // Is 4 == 5? No (false), so PANIC!
+}
+```
+
+When you run this, you'll see an error message like:
+
+```
+assertion failed: result == 5
+```
+
+---
+
+## Part 5: The `assert_eq!` Macro (For Comparing Two Values)
+
+When you're checking if two things are equal, there's an even better macro: `assert_eq!`
+
+```rust
+#[test]
+fn check_addition() {
+    let result = 2 + 2;
+    assert_eq!(result, 4);
+}
+```
+
+### What's the Difference Between `assert!` and `assert_eq!`?
+
+Let's see what happens when tests **fail**:
+
+Using `assert!`:
+```rust
+#[test]
+fn test_with_assert() {
+    let result = 2 + 3;  // result is 5
+    assert!(result == 10);
+}
+```
+
+Error message you get:
+```
+assertion failed: result == 10
+```
+
+That's not very helpful. We know the assertion failed, but what was `result` actually? We have to guess or add print statements.
+
+Using `assert_eq!`:
+```rust
+#[test]
+fn test_with_assert_eq() {
+    let result = 2 + 3;  // result is 5
+    assert_eq!(result, 10);
+}
+```
+
+Error message you get:
+```
+assertion failed: `(left == right)`
+  left: `5`,
+ right: `10`
+```
+
+Much better! Now we can immediately see:
+- The left value (`result`) was `5`
+- The right value was `10`
+- They're not equal, so it failed
+
+### The Syntax of `assert_eq!`
+
+```rust
+assert_eq!(value1, value2);
+```
+
+- First argument: one value
+- Comma: separates arguments
+- Second argument: another value
+
+It checks: are these two values equal?
+- If yes → nothing happens, test continues
+- If no → panic with a helpful message showing both values
+
+### More Examples
+
+```rust
+#[test]
+fn test_string_length() {
+    let word = String::from("hello");
+    assert_eq!(word.len(), 5);  // length is 5, equals 5, passes!
+}
+
+#[test]
+fn test_multiplication() {
+    let x = 7;
+    let y = 6;
+    let product = x * y;
+    assert_eq!(product, 42);  // 42 equals 42, passes!
+}
+
+#[test]
+fn test_first_character() {
+    let word = String::from("Rust");
+    let first = word.chars().next().unwrap();
+    assert_eq!(first, 'R');  // 'R' equals 'R', passes!
+}
+```
+
+---
+
+## Part 6: The `assert_ne!` Macro (Checking Things Are Different)
+
+Sometimes you want to make sure two things are **not** equal. That's what `assert_ne!` is for. The "ne" stands for "not equal."
+
+```rust
+#[test]
+fn test_values_are_different() {
+    let a = 5;
+    let b = 10;
+    assert_ne!(a, b);  // Is 5 not equal to 10? Yes! So test passes.
+}
+```
+
+### When Would You Use This?
+
+```rust
+#[test]
+fn test_random_numbers_differ() {
+    let random1 = generate_random_number();
+    let random2 = generate_random_number();
+    assert_ne!(random1, random2);  // They should be different
+}
+
+#[test]
+fn test_modified_string() {
+    let original = String::from("hello");
+    let modified = original.to_uppercase();
+    assert_ne!(original, modified);  // "hello" and "HELLO" should be different
+}
+```
+
+---
+
+## Part 7: Where Do Tests Go In Your File?
+
+So far I've shown individual test functions. But where do you actually put them in your code file?
+
+### The Convention: A `tests` Module at the Bottom
+
+```rust
+// src/lib.rs
+
+// Your actual code goes here at the top
+pub fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+pub fn multiply(a: i32, b: i32) -> i32 {
+    a * b
+}
+
+// Your tests go here at the bottom
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_add() {
+        assert_eq!(add(2, 3), 5);
+    }
+
+    #[test]
+    fn test_multiply() {
+        assert_eq!(multiply(4, 5), 20);
+    }
+}
+```
+
+There are three new things here. Let me explain each one slowly:
+
+### New Thing #1: `#[cfg(test)]`
+
+```rust
+#[cfg(test)]
+mod tests {
+```
+
+This attribute goes above the `mod tests`. It means: **"only compile this module when running tests."**
+
+Why do we want this?
+- When you build your final program (`cargo build`), the test code is ignored
+- Tests don't make your final program bigger
+- Test-only dependencies don't get included in production
+
+`cfg` stands for "configuration." It's like saying "only include this code in this configuration."
+
+### New Thing #2: `mod tests`
+
+```rust
+mod tests {
+    // tests go inside here
+}
+```
+
+This creates a **module** named `tests`. You learned about modules in Chapter 7. A module is just a container for organizing code.
+
+The name `tests` is just a convention (a tradition). You could name it anything, but everyone uses `tests` so it's instantly recognizable.
+
+### New Thing #3: `use super::*;`
+
+```rust
+mod tests {
+    use super::*;
+```
+
+Remember from Chapter 7: when you create a module, it has its own scope. Code inside `mod tests` can't automatically see the functions defined outside it.
+
+- `super` means "the parent module" (the module containing this one)
+- `*` means "everything"
+- So `use super::*` means "bring everything from the parent module into scope"
+
+After this line, we can use `add` and `multiply` inside our tests.
+
+### The Complete Picture
+
+```rust
+// Parent module (your main code)
+pub fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+// Child module (tests)
+#[cfg(test)]           // Only compile during testing
+mod tests {            // Create a module called "tests"
+    use super::*;      // Import add() from parent module
+
+    #[test]            // Mark this function as a test
+    fn test_add() {
+        assert_eq!(add(2, 3), 5);  // Call add() and check the result
+    }
+}
+```
+
+---
+
+## Part 8: Running Your Tests
+
+### The Basic Command
+
+```bash
+cargo test
+```
+
+This will:
+1. Compile your code in "test mode"
+2. Find every function marked with `#[test]`
+3. Run each one
+4. Show you the results
+
+### What the Output Looks Like
+
+```
+   Compiling my_project v0.1.0
+    Finished test [unoptimized + debuginfo] target(s) in 0.5s
+     Running unittests src/lib.rs
+
+running 2 tests
+test tests::test_add ... ok
+test tests::test_multiply ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored
+```
+
+Let me explain each part:
+
+- `running 2 tests`: It found 2 test functions
+- `test tests::test_add ... ok`: The test named `test_add` in the `tests` module passed
+- `test result: ok. 2 passed; 0 failed`: Summary: everything passed!
+
+### When a Test Fails
+
+```
+running 2 tests
+test tests::test_add ... ok
+test tests::test_multiply ... FAILED
+
+failures:
+
+---- tests::test_multiply stdout ----
+thread 'tests::test_multiply' panicked at 'assertion failed: `(left == right)`
+  left: `20`,
+ right: `21`'
+
+failures:
+    tests::test_multiply
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored
+```
+
+This tells you:
+- Which test failed (`test_multiply`)
+- What the values were (left was 20, right was 21)
+- The overall result (1 passed, 1 failed)
+
+---
+
+
+## Part 9: Custom Failure Messages
+
+When a test fails, you want to understand *why* quickly. Sometimes the default error messages aren't enough. You can add your own custom messages.
+
+### Adding a Message to `assert!`
+
+The basic `assert!` takes one argument (the condition). But you can add more arguments for a custom message:
+
+```rust
+#[test]
+fn test_age() {
+    let user_age = 16;
+    
+    assert!(user_age >= 18, "User is too young!");
+}
+```
+
+Let me break this down:
+
+```rust
+assert!(user_age >= 18, "User is too young!");
+//      ^^^^^^^^^^^^     ^^^^^^^^^^^^^^^^^^^
+//      first argument   second argument
+//      (the condition)  (custom message)
+```
+
+- First argument: the condition to check (`user_age >= 18`)
+- Comma: separates arguments
+- Second argument: a string that will appear if the test fails
+
+When this test fails, you'll see:
+
+```
+assertion failed: User is too young!
+```
+
+Instead of the default:
+
+```
+assertion failed: user_age >= 18
+```
+
+### Adding Variables to Your Message
+
+You can include variable values in your message, just like `println!`:
+
+```rust
+#[test]
+fn test_age() {
+    let user_age = 16;
+    let minimum_age = 18;
+    
+    assert!(
+        user_age >= minimum_age,
+        "User must be at least {} years old, but was {}",
+        minimum_age,
+        user_age
+    );
+}
+```
+
+Let me show the pattern clearly:
+
+```rust
+assert!(
+    condition,
+    "message with {} placeholders {}",
+    value_for_first_placeholder,
+    value_for_second_placeholder
+);
+```
+
+This works exactly like `format!` or `println!`:
+- `{}` is a placeholder
+- Each placeholder gets filled by the next value after the string
+
+When this test fails, you'll see:
+
+```
+assertion failed: User must be at least 18 years old, but was 16
+```
+
+Now you immediately know both values without having to debug!
+
+### Adding a Message to `assert_eq!`
+
+Same pattern, but remember `assert_eq!` already has two arguments (the two values to compare):
+
+```rust
+#[test]
+fn test_calculation() {
+    let price = 100;
+    let tax_rate = 10;
+    let total = calculate_total(price, tax_rate);
+    
+    assert_eq!(
+        total,
+        110,
+        "Price {} with {}% tax should be 110",
+        price,
+        tax_rate
+    );
+}
+```
+
+The structure:
+
+```rust
+assert_eq!(
+    left_value,      // first argument
+    right_value,     // second argument
+    "custom message with {} and {}",  // third argument
+    placeholder_value_1,              // fourth argument
+    placeholder_value_2               // fifth argument
+);
+```
+
+When this fails, you get BOTH the default message (showing left and right values) AND your custom message:
+
+```
+assertion failed: `(left == right)`
+  left: `108`,
+ right: `110`
+Price 100 with 10% tax should be 110
+```
+
+### Adding a Message to `assert_ne!`
+
+Exactly the same pattern:
+
+```rust
+#[test]
+fn test_different_ids() {
+    let id1 = get_user_id("alice");
+    let id2 = get_user_id("bob");
+    
+    assert_ne!(
+        id1,
+        id2,
+        "Alice and Bob should have different IDs"
+    );
+}
+```
+
+---
+
+## Part 10: Testing That Code Should Panic
+
+This is a different kind of test. Sometimes your code is *supposed* to panic. For example:
+
+```rust
+pub struct Percentage {
+    value: u32,
+}
+
+impl Percentage {
+    pub fn new(value: u32) -> Percentage {
+        if value > 100 {
+            panic!("Percentage cannot be greater than 100!");
+        }
+        Percentage { value }
+    }
+}
+```
+
+This code intentionally panics when someone tries to create a percentage over 100. That's correct behavior! But how do we test it?
+
+If we write a normal test:
+
+```rust
+#[test]
+fn test_invalid_percentage() {
+    Percentage::new(150);  // This panics!
+}
+```
+
+This test would **fail** because it panics. But we *want* it to panic! We need a way to say "this test passes IF it panics."
+
+### The `#[should_panic]` Attribute
+
+We add another attribute to our test function:
+
+```rust
+#[test]
+#[should_panic]
+fn test_invalid_percentage() {
+    Percentage::new(150);
+}
+```
+
+Now the rules are reversed:
+- If the code panics → test **passes**
+- If the code does NOT panic → test **fails**
+
+Let me show both attributes together:
+
+```rust
+#[test]          // "This is a test function"
+#[should_panic]  // "This test should panic to pass"
+fn test_invalid_percentage() {
+    Percentage::new(150);
+}
+```
+
+You can put the attributes in either order:
+
+```rust
+#[should_panic]
+#[test]
+fn test_invalid_percentage() {
+    Percentage::new(150);
+}
+```
+
+Both work the same way.
+
+### The Problem: Panicking for the Wrong Reason
+
+Here's a danger. What if your code has a bug that causes a *different* panic?
+
+```rust
+impl Percentage {
+    pub fn new(value: u32) -> Percentage {
+        if value > 100 {
+            panic!("Percentage cannot be greater than 100!");
+        }
+        
+        // Oops! Bug: we accidentally panic here too
+        panic!("Something else went wrong!");
+        
+        Percentage { value }
+    }
+}
+```
+
+Your test would still pass because *something* panicked. But it panicked for the wrong reason! Your test isn't catching the bug.
+
+### The Solution: `expected` Parameter
+
+You can tell Rust what the panic message should contain:
+
+```rust
+#[test]
+#[should_panic(expected = "greater than 100")]
+fn test_invalid_percentage() {
+    Percentage::new(150);
+}
+```
+
+Now the test only passes if:
+1. The code panics, AND
+2. The panic message contains the text "greater than 100"
+
+Let me break down the syntax:
+
+```rust
+#[should_panic(expected = "greater than 100")]
+//            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//            This is a parameter to should_panic
+```
+
+- `expected`: the name of the parameter
+- `=`: assigns a value to it
+- `"greater than 100"`: a substring that must appear in the panic message
+
+If the panic message is "Something else went wrong!", the test fails because that message doesn't contain "greater than 100".
+
+### A Complete Example
+
+```rust
+pub struct Temperature {
+    celsius: f64,
+}
+
+impl Temperature {
+    pub fn new(celsius: f64) -> Temperature {
+        if celsius < -273.15 {
+            panic!("Temperature below absolute zero is impossible");
+        }
+        Temperature { celsius }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_valid_temperature() {
+        let temp = Temperature::new(25.0);
+        // No panic, test passes normally
+    }
+    
+    #[test]
+    #[should_panic(expected = "absolute zero")]
+    fn test_below_absolute_zero() {
+        Temperature::new(-300.0);  // Should panic with message about absolute zero
+    }
+}
+```
+
+---
+
+## Part 11: Using `Result<T, E>` in Tests
+
+So far, we've used panicking to indicate test failure. But there's another way: returning a `Result`.
+
+### The Normal Way (Panicking)
+
+```rust
+#[test]
+fn test_something() {
+    assert_eq!(2 + 2, 4);
+    // If assertion fails → panic → test fails
+    // If assertion passes → function ends → test passes
+}
+```
+
+### The Result Way
+
+```rust
+#[test]
+fn test_something() -> Result<(), String> {
+    if 2 + 2 == 4 {
+        Ok(())
+    } else {
+        Err(String::from("Math is broken"))
+    }
+}
+```
+
+Let me explain the return type:
+
+```rust
+Result<(), String>
+//     ^^  ^^^^^^
+//     |   Error type (what we return if test fails)
+//     Success type (what we return if test passes)
+```
+
+- `()`: the "unit type" (means "nothing"). We don't need to return any value on success.
+- `String`: the error message if the test fails
+
+### How It Works
+
+- Return `Ok(())` → test passes
+- Return `Err(something)` → test fails
+
+```rust
+#[test]
+fn test_division() -> Result<(), String> {
+    let result = 10 / 2;
+    
+    if result == 5 {
+        Ok(())  // Correct! Test passes.
+    } else {
+        Err(String::from("Division didn't work"))  // Wrong! Test fails.
+    }
+}
+```
+
+### Why Would You Use This?
+
+The main benefit is using the `?` operator! Remember from Chapter 9, `?` works with `Result`:
+
+```rust
+#[test]
+fn test_file_operations() -> Result<(), std::io::Error> {
+    let content = std::fs::read_to_string("config.txt")?;
+    //                                                  ^
+    //            If this fails, the error is returned and test fails
+    
+    assert!(content.contains("version"));
+    Ok(())
+}
+```
+
+Without `Result`, you'd have to use `.unwrap()`:
+
+```rust
+#[test]
+fn test_file_operations() {
+    let content = std::fs::read_to_string("config.txt").unwrap();
+    // If this fails, unwrap() panics
+    
+    assert!(content.contains("version"));
+}
+```
+
+Both work, but `Result` with `?` is cleaner when you have many operations that could fail.
+
+### Important: You Can't Mix `should_panic` and `Result`
+
+This does NOT work:
+
+```rust
+#[test]
+#[should_panic]  // ❌ Can't use this with Result return type
+fn test_something() -> Result<(), String> {
+    // ...
+}
+```
+
+They're two different approaches:
+- `should_panic`: test passes if code panics
+- `Result`: test passes if you return `Ok`
+
+Choose one or the other.
+
+---
+
+## Part 12: Controlling How Tests Run
+
+When you run `cargo test`, you can add options to change how tests run.
+
+### The Command Structure
+
+```bash
+cargo test [options for cargo] -- [options for the test program]
+```
+
+The `--` is important! It separates:
+- Options for `cargo` (the build tool)
+- Options for the test binary (the actual test program)
+
+### Running Tests One at a Time
+
+By default, Rust runs tests in parallel (at the same time, on different threads). This is fast, but can cause problems if tests affect each other (like writing to the same file).
+
+To run tests one after another:
+
+```bash
+cargo test -- --test-threads=1
+```
+
+Let me break this down:
+
+```bash
+cargo test -- --test-threads=1
+//         ^^
+//         Separates cargo options from test options
+//
+//            ^^^^^^^^^^^^^^^^^
+//            This option goes to the test program
+```
+
+`--test-threads=1` means "use only 1 thread" (so tests run sequentially).
+
+### Seeing `println!` Output
+
+When you use `println!` in your tests, Rust captures the output and only shows it if the test fails. To see output from passing tests:
+
+```bash
+cargo test -- --show-output
+```
+
+Example:
+
+```rust
+#[test]
+fn test_with_printing() {
+    println!("Starting the test...");
+    let result = 2 + 2;
+    println!("Result is: {}", result);
+    assert_eq!(result, 4);
+}
+```
+
+With normal `cargo test`, you won't see those println messages (because the test passes).
+With `cargo test -- --show-output`, you'll see them.
+
+### Running Specific Tests
+
+If you have many tests, you might want to run just one:
+
+```rust
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_addition() { }
+    
+    #[test]
+    fn test_subtraction() { }
+    
+    #[test]
+    fn test_multiplication() { }
+    
+    #[test]
+    fn check_division() { }
+}
+```
+
+To run just one test:
+
+```bash
+cargo test test_addition
+```
+
+This runs any test whose name **contains** "test_addition".
+
+To run multiple tests that share a pattern:
+
+```bash
+cargo test test_
+```
+
+This runs `test_addition`, `test_subtraction`, and `test_multiplication` (all contain "test_"), but NOT `check_division`.
+
+### Running by Module Name
+
+You can also filter by module:
+
+```bash
+cargo test tests::
+```
+
+This runs all tests in the `tests` module.
+
+---
+
+## Part 13: Ignoring Tests
+
+Sometimes you have a test that:
+- Takes a very long time to run
+- Requires special setup
+- Is temporarily broken
+
+You can mark it to be skipped:
+
+```rust
+#[test]
+#[ignore]
+fn slow_test() {
+    // This takes 10 minutes to run
+    // We don't want to run it every time
+}
+```
+
+Now when you run `cargo test`, this test is skipped:
+
+```
+running 3 tests
+test tests::test_addition ... ok
+test tests::test_subtraction ... ok
+test tests::slow_test ... ignored
+
+test result: ok. 2 passed; 0 failed; 1 ignored
+```
+
+### Running ONLY Ignored Tests
+
+When you specifically want to run the slow tests:
+
+```bash
+cargo test -- --ignored
+```
+
+This runs ONLY the tests marked with `#[ignore]`.
+
+### Running ALL Tests (Including Ignored)
+
+```bash
+cargo test -- --include-ignored
+```
+
+This runs everything, normal tests AND ignored tests.
+
+---
+
+## Part 14: Unit Tests vs Integration Tests
+
+Rust has two kinds of tests:
+
+| Unit Tests | Integration Tests |
+|------------|-------------------|
+| Test small pieces of code | Test how pieces work together |
+| Live in the same file as the code | Live in a separate `tests/` folder |
+| Can test private functions | Can only test public functions |
+| Fast and focused | Test from an outside perspective |
+
+### Unit Tests (What We've Been Doing)
+
+Unit tests go in the same file as your code:
+
+```rust
+// src/lib.rs
+
+pub fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+// Private function (no pub)
+fn helper(x: i32) -> i32 {
+    x * 2
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_add() {
+        assert_eq!(add(2, 3), 5);
+    }
+    
+    #[test]
+    fn test_helper() {
+        // We CAN test private functions in unit tests!
+        assert_eq!(helper(5), 10);
+    }
+}
+```
+
+Notice: `helper` is private (no `pub` keyword), but we can still test it! That's because the `tests` module is a child of the main module, and children can see their parent's private items.
+
+### Integration Tests (Testing From Outside)
+
+Integration tests pretend to be an outside user of your library. They:
+- Live in a `tests/` directory at the project root
+- Can only use your `pub` (public) functions
+- Treat your library as a dependency
+
+Project structure:
+
+```
+my_project/
+├── Cargo.toml
+├── src/
+│   └── lib.rs
+└── tests/
+    └── integration_test.rs
+```
+
+The integration test file:
+
+```rust
+// tests/integration_test.rs
+
+use my_project;  // Import the library like an outside user would
+
+#[test]
+fn test_from_outside() {
+    let result = my_project::add(10, 20);
+    assert_eq!(result, 30);
+}
+```
+
+Notice the differences:
+- No `#[cfg(test)]`: files in `tests/` are only for testing anyway
+- No `mod tests { }` wrapper: the whole file is tests
+- We `use my_project`: treating it like an external library
+- We call `my_project::add()`: using the full path
+
+### Why Have Both Types?
+
+**Unit tests** answer: "Does this individual piece work correctly?"
+
+**Integration tests** answer: "Do all the pieces work correctly together?"
+
+Think of building a car:
+- Unit test: "Does this individual brake pad work?"
+- Integration test: "When I press the brake pedal, does the car stop?"
+
+---
+
+## Part 15: Creating Integration Tests Step by Step
+
+Let's walk through creating an integration test from scratch.
+
+### Step 1: Make Sure You Have a Library
+
+Integration tests only work with libraries (code in `src/lib.rs`). If you only have `src/main.rs`, you need to reorganize.
+
+```rust
+// src/lib.rs
+
+pub fn greet(name: &str) -> String {
+    format!("Hello, {}!", name)
+}
+
+pub fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+```
+
+### Step 2: Create the `tests` Directory
+
+Create a folder called `tests` at the same level as `src`:
+
+```
+my_project/
+├── Cargo.toml
+├── src/
+│   └── lib.rs
+└── tests/          <-- Create this folder
+```
+
+### Step 3: Create a Test File
+
+Create a `.rs` file inside `tests/`:
+
+```
+my_project/
+├── Cargo.toml
+├── src/
+│   └── lib.rs
+└── tests/
+    └── greeting_tests.rs    <-- Create this file
+```
+
+### Step 4: Write the Test
+
+```rust
+// tests/greeting_tests.rs
+
+use my_project;
+
+#[test]
+fn test_greet_with_name() {
+    let result = my_project::greet("Meowy");
+    assert_eq!(result, "Hello, Meowy!");
+}
+
+#[test]
+fn test_greet_with_different_name() {
+    let result = my_project::greet("Rust");
+    assert!(result.contains("Rust"));
+}
+```
+
+### Step 5: Run the Tests
+
+```bash
+cargo test
+```
+
+Output will show both unit tests and integration tests:
+
+```
+running 2 tests                          <-- Unit tests from src/lib.rs
+test tests::test_add ... ok
+test tests::test_greet ... ok
+
+running 2 tests                          <-- Integration tests from tests/
+test test_greet_with_name ... ok
+test test_greet_with_different_name ... ok
+```
+
+### Running Only Integration Tests
+
+To run just the tests in one integration test file:
+
+```bash
+cargo test --test greeting_tests
+```
+
+The `--test` flag (note: this is a cargo flag, no `--` before it) specifies which integration test file to run.
+
+---
+
+## Part 16: Sharing Code Between Integration Tests
+
+What if you have multiple integration test files that need the same helper code?
+
+```
+tests/
+├── test_greetings.rs
+├── test_math.rs
+└── test_combined.rs
+```
+
+You might want a `setup()` function that all tests use. But if you put it in a file like `tests/helpers.rs`, Rust treats it as its own test file!
+
+### The Solution: Use a Subdirectory
+
+Rust doesn't treat files in subdirectories of `tests/` as test files:
+
+```
+tests/
+├── common/
+│   └── mod.rs       <-- Shared code goes here (NOT treated as tests)
+├── test_greetings.rs
+└── test_math.rs
+```
+
+The shared code:
+
+```rust
+// tests/common/mod.rs
+
+pub fn setup() {
+    println!("Setting up for test...");
+}
+
+pub fn create_test_data() -> Vec<i32> {
+    vec![1, 2, 3, 4, 5]
+}
+```
+
+Using it in a test file:
+
+```rust
+// tests/test_math.rs
+
+use my_project;
+
+mod common;  // This imports tests/common/mod.rs
+
+#[test]
+fn test_with_setup() {
+    common::setup();
+    let data = common::create_test_data();
+    
+    let sum: i32 = data.iter().sum();
+    assert_eq!(sum, 15);
+}
+```
+
+The key points:
+- `mod common;` imports the `common` module
+- Files in subdirectories aren't treated as test crates
+- This is a convention many Rust projects follow
+
+---
+
+## Part 17: A Note About Binary Crates
+
+If your project only has `src/main.rs` (a binary, a program you run) and no `src/lib.rs` (a library), you **cannot** write integration tests.
+
+Why? Integration tests need to `use your_project;`, they need to import your code. Only libraries can be imported. Binary crates can be *run*, but not *imported*.
+
+### The Solution
+
+The common pattern is:
+1. Put most of your logic in `src/lib.rs`
+2. Have `src/main.rs` be a thin wrapper that calls into the library
+
+```rust
+// src/lib.rs
+pub fn run() {
+    // All your actual logic here
+}
+
+// src/main.rs
+use my_project;
+
+fn main() {
+    my_project::run();
+}
+```
+
+Now you can write integration tests for the library functions!
+
+---
+
+## Summary: The Complete Testing Picture
+
+Here's everything we covered:
+
+### Test Basics
+- `#[test]` marks a function as a test
+- Tests pass if they don't panic, fail if they do
+- `cargo test` runs all tests
+
+### Assert Macros
+- `assert!(condition)`: panics if false
+- `assert_eq!(a, b)`: panics if not equal, shows both values
+- `assert_ne!(a, b)`: panics if equal
+
+### Custom Messages
+- Add strings after the condition: `assert!(x > 5, "x was {}", x)`
+
+### Testing Panics
+- `#[should_panic]`: test passes if it panics
+- `#[should_panic(expected = "message")]`: must panic with specific message
+
+### Result in Tests
+- Return `Result<(), ErrorType>` instead of panicking
+- `Ok(())` means pass, `Err(...)` means fail
+- Allows using `?` operator
+
+### Controlling Test Runs
+- `cargo test -- --test-threads=1`: run one at a time
+- `cargo test -- --show-output`: see println output
+- `cargo test name_pattern`: run matching tests
+
+### Ignoring Tests
+- `#[ignore]`: skip by default
+- `cargo test -- --ignored`: run only ignored
+- `cargo test -- --include-ignored`: run all
+
+### Test Organization
+- Unit tests: in `src/lib.rs` inside `#[cfg(test)] mod tests { }`
+- Integration tests: in `tests/` directory
+- Shared code: in `tests/common/mod.rs`
+
+---
+
+Looking at your exercise format, I'll create progressive exercises that match your style — concise descriptions, step-by-step tasks, and practical scenarios.
+
+---
+
+## Exercises for Chapter 11: Writing Tests in Rust
+
+---
+
+### Exercise 1: Your First Test
+
+Create a new library project with `cargo new testing_practice --lib`.
+
+In `src/lib.rs`:
+
+1. Write a function `add(a: i32, b: i32) -> i32` that adds two numbers
+2. Below it, create the test module structure with `#[cfg(test)]` and `mod tests`
+3. Inside the module, write a test called `test_add_positive_numbers` that checks if `add(2, 3)` equals `5`
+4. Run `cargo test` and confirm it passes
+
+---
+
+### Exercise 2: Using All Three Assert Macros
+
+Add these functions to your `src/lib.rs`:
+
+```rust
+pub fn is_adult(age: u32) -> bool {
+    age >= 18
+}
+
+pub fn multiply(a: i32, b: i32) -> i32 {
+    a * b
+}
+
+pub fn get_greeting(name: &str) -> String {
+    format!("Hello, {}!", name)
+}
+```
+
+Write three tests:
+
+1. `test_is_adult`: Use `assert!` to check that `is_adult(25)` returns true
+2. `test_multiply`: Use `assert_eq!` to check that `multiply(6, 7)` equals `42`
+3. `test_different_greetings`: Use `assert_ne!` to check that `get_greeting("Alice")` and `get_greeting("Bob")` return different strings
+
+---
+
+### Exercise 3: Custom Failure Messages
+
+Add this function:
+
+```rust
+pub fn calculate_discount(price: u32, percent: u32) -> u32 {
+    price - (price * percent / 100)
+}
+```
+
+Write a test called `test_discount_calculation` that:
+
+1. Tests if a 20% discount on 100 gives 80
+2. Includes a custom message that shows the original price, discount percent, expected result, and actual result if the test fails
+
+Hint: Use `assert_eq!` with additional arguments for the message.
+
+---
+
+### Exercise 4: Testing Panics
+
+Add this struct and implementation:
+
+```rust
+pub struct Percentage {
+    value: u32,
+}
+
+impl Percentage {
+    pub fn new(value: u32) -> Percentage {
+        if value > 100 {
+            panic!("Percentage must be between 0 and 100, got {}", value);
+        }
+        Percentage { value }
+    }
+    
+    pub fn value(&self) -> u32 {
+        self.value
+    }
+}
+```
+
+Write two tests:
+
+1. `test_valid_percentage`: Create a `Percentage` with value `50`, use `assert_eq!` to check the value is `50`
+2. `test_percentage_over_100_panics`: Use `#[should_panic]` with `expected` to test that creating `Percentage::new(150)` panics with a message containing "between 0 and 100"
+
+---
+
+### Exercise 5: Using Result in Tests
+
+Add this function:
+
+```rust
+pub fn divide(a: i32, b: i32) -> Result<i32, String> {
+    if b == 0 {
+        Err(String::from("Cannot divide by zero"))
+    } else {
+        Ok(a / b)
+    }
+}
+```
+
+Write two tests that return `Result<(), String>`:
+
+1. `test_divide_success`: Check that `divide(10, 2)` returns `Ok(5)`. Use the `?` operator and return `Ok(())` at the end.
+2. `test_divide_by_zero`: Check that `divide(10, 0)` returns an `Err`. Use `match` or `if let` to verify it's an error, return `Err` if the function unexpectedly succeeds.
+
+---
+
+### Exercise 6: Ignoring Tests
+
+Add a test called `test_slow_operation` that:
+
+1. Has the `#[ignore]` attribute
+2. Contains a simple assertion (anything that passes)
+3. Has a comment explaining why it's ignored (pretend it takes a long time)
+
+Then practice running:
+- `cargo test` (should show 1 ignored)
+- `cargo test -- --ignored` (should run only the ignored test)
+
+---
+
+### Exercise 7: Testing Private Functions
+
+Add a private helper function (no `pub`):
+
+```rust
+fn double(x: i32) -> i32 {
+    x * 2
+}
+
+pub fn quadruple(x: i32) -> i32 {
+    double(double(x))
+}
+```
+
+Write two tests:
+
+1. `test_double`: Test that `double(5)` equals `10` (testing the private function directly)
+2. `test_quadruple`: Test that `quadruple(3)` equals `12`
+
+This demonstrates that unit tests can access private functions in the same file.
+
+---
+
+### Exercise 8: Integration Tests
+
+Create the integration test structure:
+
+1. Create a `tests` folder at the project root (same level as `src`)
+2. Create a file `tests/integration_tests.rs`
+3. In this file, write a test that:
+   - Imports your library with `use testing_practice;`
+   - Tests the public `add` function
+   - Tests the public `is_adult` function
+
+4. Try to test the private `double` function and observe the error
+
+Run `cargo test` and notice how it shows unit tests and integration tests separately.
+
+---
+
+### Exercise 9: Filtering Tests by Name
+
+By now you should have many tests. Practice running specific tests:
+
+1. Run only tests with "add" in the name
+2. Run only tests with "percentage" in the name
+3. Run only the integration tests file with `--test`
+
+Write down the commands you used.
+
+---
+
+### Exercise 10: Complete Testing Challenge
+
+Create a new module for a `Temperature` converter. Add this to `src/lib.rs`:
+
+```rust
+pub struct Temperature {
+    celsius: f64,
+}
+
+impl Temperature {
+    pub fn new(celsius: f64) -> Temperature {
+        if celsius < -273.15 {
+            panic!("Temperature cannot be below absolute zero (-273.15°C)");
+        }
+        Temperature { celsius }
+    }
+    
+    pub fn celsius(&self) -> f64 {
+        self.celsius
+    }
+    
+    pub fn fahrenheit(&self) -> f64 {
+        (self.celsius * 9.0 / 5.0) + 32.0
+    }
+    
+    pub fn kelvin(&self) -> f64 {
+        self.celsius + 273.15
+    }
+}
+```
+
+Write a comprehensive test suite with at least 6 tests covering:
+
+1. Creating a valid temperature and checking celsius value
+2. Checking fahrenheit conversion (0°C = 32°F, 100°C = 212°F)
+3. Checking kelvin conversion (0°C = 273.15K)
+4. Testing that absolute zero (-273.15°C) is valid (edge case)
+5. Testing that below absolute zero panics (use `should_panic` with `expected`)
+6. One test with a custom failure message
+
+Bonus: Create an integration test in `tests/temperature_tests.rs` that tests the public API.
+
+---
+

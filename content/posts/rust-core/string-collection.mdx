@@ -1,0 +1,655 @@
+---
+title: Common Collections in Rust Part 2 - Strings
+date: 2025-12-16
+category: rust-core
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+This is part 2 of the Common Collections series. If you haven't already, check out the previous topic:
+
+- [Vector](https://www.meowy.xyz/vector.html)
+
+And continue to the next topic:
+
+- [Hash Maps](https://www.meowy.xyz/hashmap.html)
+
+## Why Are Strings Different From Everything Else?
+
+In most programming languages, strings are simple. You create them, access characters by index, concatenate them, done. Rust makes strings harder, and that frustrates many beginners.
+
+But Rust isn't being difficult for no reason. Rust is being **honest** about something other languages hide from you: **text is genuinely complicated**.
+
+Here's the core issue: computers store everything as numbers (bytes). But human text isn't just bytes, it's characters from hundreds of languages, emojis, accents, and special symbols. The system that handles this is called **UTF-8**, and it has a crucial property:
+
+**Different characters take different amounts of space.**
+
+- The letter `a` = 1 byte
+- The letter `ñ` = 2 bytes
+- The character `中` = 3 bytes
+- The emoji `🦀` = 4 bytes
+
+This single fact breaks assumptions that work fine for vectors. With a vector, "give me item 3" is instant, just jump to position 3. With a UTF-8 string, "give me character 3" requires scanning from the beginning, counting characters of varying sizes.
+
+Rust makes you deal with this complexity explicitly rather than hiding it.
+
+---
+
+## Two String Types: `String` vs `&str`
+
+This is the first thing that confuses people. Rust has two main string types, and you need to understand both.
+
+### `String`: The Owned, Growable String
+
+```rust
+let mut greeting = String::from("hello");
+greeting.push_str(" world");
+```
+
+A `String` is:
+- **Owned**: it owns its data and is responsible for cleaning it up
+- **Heap-allocated**: the actual characters live on the heap
+- **Growable**: you can add more text to it
+- **Mutable** (if declared with `mut`): you can change its contents
+
+Think of `String` like `Vec<u8>` under the hood, it's essentially a vector of bytes that are guaranteed to be valid UTF-8.
+
+### `&str`: The String Slice (Borrowed View)
+
+```rust
+let greeting: &str = "hello";
+```
+
+A `&str` (pronounced "string slice") is:
+- **Borrowed**: it doesn't own the data, just points to it
+- **A view**: it's a window into string data that exists somewhere else
+- **Immutable**: you cannot modify the contents through a `&str`
+- **Fixed-size view**: the slice itself can't grow (though it can point to different data)
+
+### The Relationship Between Them
+
+Here's an analogy that might help:
+
+Imagine a `String` is like **owning a whiteboard with text written on it**. You own the whiteboard, you can erase and rewrite, you can buy a bigger whiteboard if you need more space.
+
+A `&str` is like **someone pointing at a section of any whiteboard and saying "look at this part."** They don't own the whiteboard. They can't change what's written. They're just referencing text that exists somewhere.
+
+```rust
+let owned: String = String::from("hello world");  // You own this whiteboard
+let slice: &str = &owned[0..5];                   // "Look at the first 5 bytes"
+```
+
+### Where Does `&str` Data Live?
+
+This is subtle. A `&str` can point to different places:
+
+**1. String literals (hardcoded in your program):**
+
+```rust
+let greeting: &str = "hello";
+```
+
+This `"hello"` is baked into your compiled program. It lives in a special read-only section of memory. The `&str` points there.
+
+**2. A slice of a `String`:**
+
+```rust
+let owned = String::from("hello world");
+let slice: &str = &owned[..];  // Points to the String's heap data
+```
+
+**3. Part of a `String`:**
+
+```rust
+let owned = String::from("hello world");
+let slice: &str = &owned[0..5];  // Points to "hello" portion
+```
+
+### When to Use Which?
+
+**Use `String` when:**
+- You need to own the string data
+- You need to modify or grow the string
+- You're storing strings in structs that need to own their data
+- You're building strings dynamically
+
+**Use `&str` when:**
+- You just need to read/examine a string
+- You're writing functions that accept string input (more flexible)
+- You're working with string literals
+- You don't need ownership
+
+A common pattern: functions take `&str` as parameters (flexible) but return `String` (owned).
+
+```rust
+fn make_greeting(name: &str) -> String {
+    format!("Hello, {}!", name)
+}
+```
+
+---
+
+## Creating Strings
+
+### Creating an Empty String
+
+```rust
+let mut text = String::new();
+```
+
+Just like `Vec::new()`, this creates an empty `String` ready to be filled. You'll usually want it mutable so you can add content.
+
+### From a String Literal
+
+**Method 1: `String::from()`**
+
+```rust
+let greeting = String::from("hello");
+```
+
+This takes a string literal (`&str`) and creates an owned `String` from it. The data gets copied to the heap.
+
+**Method 2: `.to_string()`**
+
+```rust
+let greeting = "hello".to_string();
+```
+
+This does the same thing. It's a method available on any type that implements the `Display` trait (which `&str` does).
+
+Both methods are equivalent. Use whichever reads better in context.
+
+### Why Do We Need to Convert?
+
+Because `"hello"` by itself is a `&str`, not a `String`. It's a reference to data baked into your program. If you need an owned, modifiable string, you must explicitly create a `String`.
+
+```rust
+let literal: &str = "hello";           // Just a reference
+let owned: String = literal.to_string(); // Now it's owned data on the heap
+```
+
+---
+
+## Growing and Modifying Strings
+
+### Adding Text with `push_str`
+
+```rust
+let mut message = String::from("hello");
+message.push_str(" world");
+message.push_str("!");
+// message is now "hello world!"
+```
+
+`push_str` takes a `&str` (a string slice) and appends it to the end of your `String`.
+
+**Why does `push_str` take `&str` and not `String`?**
+
+Because it just needs to *read* the text you're adding, it doesn't need to own it. Taking `&str` is more flexible: you can pass string literals, slices of other strings, or borrowed `String`s.
+
+```rust
+let mut message = String::from("hello");
+
+// All of these work:
+message.push_str(" world");              // string literal (automatically &str)
+
+let other = String::from("!");
+message.push_str(&other);                // borrowed String becomes &str
+
+// 'other' is still usable because we only borrowed it
+println!("{}", other);  // prints "!"
+```
+
+### Adding a Single Character with `push`
+
+```rust
+let mut word = String::from("hell");
+word.push('o');
+// word is now "hello"
+```
+
+Notice the difference:
+- `push_str` takes a string slice (`&str`): double quotes, multiple characters
+- `push` takes a single character (`char`): single quotes, one character only
+
+```rust
+let mut text = String::from("hi");
+
+text.push_str("!!!");  // Adding a string slice
+text.push('?');        // Adding a single character
+
+// text is now "hi!!!?"
+```
+
+---
+
+## String Concatenation (The Tricky Part)
+
+There are two main ways to combine strings, and they behave very differently.
+
+### Method 1: The `+` Operator
+
+```rust
+let hello = String::from("hello");
+let world = String::from(" world");
+let greeting = hello + &world;
+```
+
+This works, but there's something weird: after this line, `hello` is **gone** (moved), but `world` is still usable.
+
+**Why this asymmetry?**
+
+The `+` operator for strings calls a method that looks like this:
+
+```rust
+fn add(self, s: &str) -> String
+```
+
+Breaking this down:
+- `self`: takes ownership of the first string (consumes it)
+- `s: &str`: borrows the second string (just reads it)
+- Returns a new `String`
+
+So when you write `hello + &world`:
+1. `hello` is moved into the `add` function (you lose ownership)
+2. `&world` is borrowed (you keep ownership of `world`)
+3. A new `String` is returned containing the combined text
+
+```rust
+let hello = String::from("hello");
+let world = String::from(" world");
+let greeting = hello + &world;
+
+// println!("{}", hello);  // ERROR: hello was moved
+println!("{}", world);     // Fine: world was only borrowed
+println!("{}", greeting);  // Fine: this is the new combined string
+```
+
+**Why is `&world` needed?**
+
+Because the right side must be a `&str`. A `String` can be borrowed as `&str` by adding `&`.
+
+### Chaining Multiple Strings with `+`
+
+```rust
+let a = String::from("tic");
+let b = String::from("tac");
+let c = String::from("toe");
+
+let result = a + "-" + &b + "-" + &c;
+```
+
+This gets messy. `a` is consumed, then the intermediate result is consumed, and so on. It works, but it's confusing and loses ownership of the first string.
+
+### Method 2: The `format!` Macro (Recommended)
+
+```rust
+let a = String::from("tic");
+let b = String::from("tac");
+let c = String::from("toe");
+
+let result = format!("{}-{}-{}", a, b, c);
+```
+
+`format!` works just like `println!`, but instead of printing to the screen, it returns a `String`.
+
+**The huge advantage:** `format!` doesn't take ownership of anything. It just borrows all its arguments.
+
+```rust
+let a = String::from("tic");
+let b = String::from("tac");
+let c = String::from("toe");
+
+let result = format!("{}-{}-{}", a, b, c);
+
+// All still usable!
+println!("{}", a);  // Fine
+println!("{}", b);  // Fine
+println!("{}", c);  // Fine
+println!("{}", result);  // "tic-tac-toe"
+```
+
+**When to use which:**
+- Use `format!` when you want to keep using the original strings
+- Use `+` when you're done with the first string anyway and want to avoid the `format!` syntax
+
+---
+
+## Why You Cannot Index Into Strings
+
+This is the part that surprises people from other languages.
+
+**This will NOT compile:**
+
+```rust
+let greeting = String::from("hello");
+let first = greeting[0];  // ERROR!
+```
+
+In Python or JavaScript, you can do `greeting[0]` to get `'h'`. Rust refuses. Why?
+
+### The UTF-8 Problem
+
+Remember: different characters take different numbers of bytes.
+
+```rust
+let english = String::from("hello");  // 5 characters, 5 bytes
+let russian = String::from("Здравствуйте");  // 12 characters, 24 bytes
+let emoji = String::from("🦀🦀🦀");  // 3 characters, 12 bytes
+```
+
+If `greeting[0]` returned "the first byte," you'd get:
+- For `"hello"`: byte value 104 (the letter 'h') ✓
+- For `"Здравствуйте"`: byte value 208 (half of the letter 'З') ✗
+- For `"🦀🦀🦀"`: byte value 240 (one quarter of the crab emoji) ✗
+
+Returning partial characters is useless and dangerous.
+
+If `greeting[0]` returned "the first character," that would require:
+- Scanning from the start of the string
+- Counting bytes until you find the character boundary
+- This makes indexing O(n) instead of O(1)
+
+Rust believes that `[]` indexing should be instant (O(1)). Since that's impossible with UTF-8 strings, Rust doesn't allow it at all.
+
+### What If You Really Need the First Character?
+
+You can use `.chars()` to iterate and grab what you need:
+
+```rust
+let greeting = String::from("hello");
+let first_char = greeting.chars().next();  // Some('h')
+```
+
+Or collect into a vector:
+
+```rust
+let greeting = String::from("hello");
+let chars: Vec<char> = greeting.chars().collect();
+let first = chars[0];  // 'h'
+```
+
+But Rust makes you be explicit about it. You're acknowledging that this isn't a simple operation.
+
+---
+
+## Three Ways to See String Data
+
+A string can be viewed in three different ways, and they can give different results.
+
+### 1. As Bytes
+
+```rust
+let word = String::from("hello");
+
+for byte in word.bytes() {
+    print!("{} ", byte);
+}
+// Output: 104 101 108 108 111
+```
+
+This gives you the raw numbers, the actual data stored in memory.
+
+### 2. As Scalar Values (Chars)
+
+```rust
+let word = String::from("hello");
+
+for c in word.chars() {
+    print!("{} ", c);
+}
+// Output: h e l l o
+```
+
+This gives you Unicode scalar values, what Rust calls `char`. Each `char` is a valid Unicode code point.
+
+### 3. As Grapheme Clusters (What Humans See)
+
+This is what humans typically think of as "characters." But it's complicated enough that it's not in the standard library, you need an external crate called `unicode-segmentation`.
+
+**Why the distinction matters:**
+
+Consider the Korean word "한글":
+
+```rust
+let word = String::from("한글");
+
+// As bytes: 6 bytes
+println!("{} bytes", word.len());
+
+// As chars: 2 Unicode scalar values
+println!("{} chars", word.chars().count());
+
+// As grapheme clusters: 2 visible "characters"
+```
+
+The combining marks (like the accent marks that modify base characters) are separate Unicode scalar values, but humans see them as part of a single letter.
+
+For most English text, bytes ≈ chars ≈ grapheme clusters. But for international text, they can differ significantly.
+
+---
+
+## Slicing Strings (Proceed With Caution)
+
+You *can* get a slice of a string using range syntax:
+
+```rust
+let greeting = String::from("hello world");
+let hello = &greeting[0..5];  // "hello"
+```
+
+This returns a `&str`, a slice pointing to that portion of the original string.
+
+### The Danger
+
+You must slice at valid UTF-8 character boundaries. If you slice in the middle of a multi-byte character, Rust panics:
+
+```rust
+let russian = String::from("Здравствуйте");
+
+// Each Cyrillic letter is 2 bytes
+let slice = &russian[0..2];  // "З": OK, this is exactly one character
+let slice = &russian[0..4];  // "Зд": OK, this is exactly two characters
+
+let slice = &russian[0..1];  // PANIC! Sliced in the middle of 'З'
+```
+
+Rust panics because returning half a character would be meaningless garbage.
+
+### When Is Slicing Safe?
+
+- When you're working with ASCII-only text (each character is 1 byte)
+- When you've calculated the exact byte positions of character boundaries
+- When you're working with data you control and know the structure of
+
+For arbitrary user input with international characters, slicing by byte index is risky.
+
+---
+
+## Iterating Over Strings
+
+Since indexing doesn't work, iteration is how you access individual parts of strings.
+
+### Iterating Over Characters
+
+```rust
+let word = String::from("hello");
+
+for c in word.chars() {
+    println!("{}", c);
+}
+```
+
+This gives you each `char` (Unicode scalar value) one at a time.
+
+### Iterating Over Bytes
+
+```rust
+let word = String::from("hello");
+
+for b in word.bytes() {
+    println!("{}", b);
+}
+```
+
+This gives you each byte as a `u8` number.
+
+### Getting Characters with Their Indices
+
+```rust
+let word = String::from("hello");
+
+for (index, c) in word.char_indices() {
+    println!("Byte {} has char '{}'", index, c);
+}
+// Output:
+// Byte 0 has char 'h'
+// Byte 1 has char 'e'
+// Byte 2 has char 'l'
+// Byte 3 has char 'l'
+// Byte 4 has char 'o'
+```
+
+`char_indices()` gives you the **byte position** where each character starts. For multi-byte characters, these indices won't be consecutive:
+
+```rust
+let word = String::from("🦀hi");
+
+for (index, c) in word.char_indices() {
+    println!("Byte {} has char '{}'", index, c);
+}
+// Output:
+// Byte 0 has char '🦀'
+// Byte 4 has char 'h'
+// Byte 5 has char 'i'
+```
+
+The crab emoji takes 4 bytes, so 'h' starts at byte 4.
+
+---
+
+## Common String Methods for Quick Reference
+
+```rust
+let mut s = String::from("hello");
+
+s.push('!');              // Add a char: "hello!"
+s.push_str(" world");     // Add a str: "hello! world"
+s.len();                  // Byte count: 12
+s.is_empty();             // false
+s.contains("world");      // true
+s.replace("world", "rust"); // Returns new String: "hello! rust"
+s.trim();                 // Remove leading/trailing whitespace
+s.to_uppercase();         // Returns new String: "HELLO! WORLD"
+s.to_lowercase();         // Returns new String: "hello! world"
+
+// Converting
+let s: String = "hello".to_string();    // &str → String
+let slice: &str = &s;                    // String → &str (via borrowing)
+let slice: &str = s.as_str();            // String → &str (explicit)
+```
+
+---
+
+#### Why Strings Are Hard
+
+1. **Two types** (`String` vs `&str`) that you constantly convert between
+2. **UTF-8 encoding** means characters have variable byte sizes
+3. **No indexing** because it can't be done safely and efficiently
+4. **The `+` operator** has weird ownership semantics
+5. **Three views** of the same data (bytes, chars, graphemes)
+
+But once you internalize these concepts, you'll appreciate that Rust is being honest about complexity that other languages just hide from you.
+
+
+## Here are some exercises for Strings:
+
+---
+
+### Exercise 1: Building Strings
+
+Create an empty `String` called `sentence`.
+
+Use `push_str` to add "The quick" to it.
+Then add " brown fox" using `push_str` again.
+Then add a single character `'!'` using `push`.
+
+Print the final sentence.
+
+---
+
+### Exercise 2: Concatenation Showdown
+
+You have these three strings:
+
+```rust
+let city = String::from("Tokyo");
+let country = String::from("Japan");
+let continent = String::from("Asia");
+```
+
+Create the string `"Tokyo, Japan, Asia"` in two different ways:
+1. Using the `+` operator
+2. Using the `format!` macro
+
+After each approach, check: which of the original variables (`city`, `country`, `continent`) can you still use? Why?
+
+---
+
+### Exercise 3: UTF-8 Exploration
+
+Create this string:
+
+```rust
+let greeting = String::from("Hello, 세계!");
+```
+
+1. Print how many **bytes** it has using `.len()`
+2. Print how many **characters** it has using `.chars().count()`
+3. Iterate over it with `.chars()` and print each character on its own line
+4. Iterate over it with `.bytes()` and print each byte
+
+Notice how the Korean characters "세계" affect the byte vs character count.
+
+---
+
+### Exercise 4: Safe Slicing
+
+You're building a preview feature that shows the first few characters of a message.
+
+```rust
+let message = String::from("Hello, world!");
+```
+
+1. Create a slice of the first 5 bytes and print it
+2. Now try this message instead: `"안녕하세요"` (Korean for "hello")
+   - First, figure out how many bytes each Korean character takes (hint: print `.len()` and `.chars().count()`)
+   - Then create a slice that captures exactly the first 2 Korean characters
+
+Why would slicing at `&message[0..3]` panic for the Korean string?
+
+---
+
+### Exercise 5: Username Formatter
+
+Write a function `format_username` that takes a `&str` and returns a `String`.
+
+The function should:
+- Convert the input to lowercase
+- Replace all spaces with underscores `_`
+- Add `@` at the beginning
+
+Example: `"John Doe"` becomes `"@john_doe"`
+
+Test it with:
+```rust
+let display_name = String::from("Alice Smith");
+let username = format_username(&display_name);
+println!("{}", username);  // @alice_smith
+```
+
+Hint: Look up `.to_lowercase()` and `.replace()`, both return new `String`s.
+
+---
+

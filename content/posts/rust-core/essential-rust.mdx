@@ -1,0 +1,290 @@
+---
+title: Getting Started with Rust
+date: 2025-11-29
+category: rust-core
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+
+## Getting Started
+
+Let's get started with rust. It's not something easy to get started with, you have to get used to the different syntax, different format and all that.
+
+Let's start with a simple program inside a file called `main.rs` . 
+
+```rust
+fn main () {
+    println!("Hello World");
+}
+
+```
+That's Hello world program. To compile we just do `rustc main.rs` that would compile it to the binary executable. There's also few other things like `rustfmt main.rs` to format so it will just format the code.
+
+When you install rust, there's another utility that came along with it and it's called `cargo` . Cargo is going to be in charge of grouping all the files together.
+
+Let's try to rust `cargo new hello_example` so what it will do is, it will create a   directory like we did before but now it actually created it as like a package and these packages are referred as crates. If you head over to `crates.io`, you'll find whole bunch of crates that you might want to use in your projects.
+
+It's also a place where you can publish your own crate. So that's why using cargo is really beneficial here because if you want to share this code in the end then you might want to publish your own crate in the future. 
+
+Let's open the `hello_example` directory, you'll notice the toml file there.
+
+```
+[package]
+name = "hello_example"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+```
+
+The package section is more about information and configuration of the project. And then there's dependencies where you can declare other crates or libraries that you want to use in your project.
+
+We used to run `rustc` so we don't need to use that as `cargo` knows our file structure. Let's run `cargo build` , after running it we'll see a directory called `target`, it will be ignored by our git or version control but one thing to know about it is that, you actually have your executables in there. 
+
+There's also `cargo check`, where compiler runs the check and see if everything satisfied the compilers. 
+
+So instead of building and checking seperately, you can just run `cargo run` , it builds and checks it before executing the program. 
+
+## Programming the Guessting Game
+
+We will be programming a small guessing game as per book and it will help us to get used to a lot of concepts all together.
+
+Let's create the guessing game, by running `cargo new guessing_game`, and head over to this directory. 
+
+Now let's think about this a bit, we want to build a guessing game which means we will need to get user's input instead of just running `cargo run` like before.
+One thing to note is that, to use some of the `println` and some of the construct we already have something on rust called "prelude". These are all the things you get right away in rust. But if we want to use something that's not in prelude. So we'll use something from the standard library so `std::io` for input or output. 
+
+For our guessing game, we will also need to capture the user's input and put it in a variable and to do this we'll write `let mut guess = String::new();` and then `io::` , since it's the one we brought into scope and add standard in or `stdin()`, which will look like something like this `io::stin();` . 
+
+Let's take a look at this:
+
+```rust
+use std::io;
+
+fn main() {
+
+let mut guess = String::new();
+io::stdin()
+    .read_line(&mut guess)
+    .expect("Failed to readline");
+
+}
+```
+
+So what's happening here? well, we created a brand new string, and now we're reading standard input in the command line. 
+
+One thing to note, here `mut` means mutable means you can change it later. If it's immutable or no `mut` then you can't change it later.
+
+Another thing about String is that it's a struct, which we will talk about later. So over here `new()` is an associated method of string and just creates a new instance of string. So with `io::stdin` , there's actually something gets returned by this and it's actually known as results. And results is a generic way of saying if something is okay or if it had an error. 
+
+now let's add this line, `println!("Guess is {}", guess)` so all together it will be like this:
+
+```rust
+use std::io;
+
+fn main() {
+
+let mut guess = String::new();
+io::stdin()
+    .read_line(&mut guess)
+    .expect("Failed to readline");
+println!("Guess is {}", guess)
+}
+
+```
+
+Now if we look at `&mut guess`, it's a reference, more like a mutable reference. Because we want to mutate or change or modify this value and print it out later with the `println`.
+
+
+Now if we run the program by doing `cargo run` , it will wait for us to put an input and whatever number we put it, it will print it out as guess number.
+
+
+```shell
+> cargo run
+   Compiling guessing_game v0.1.0 (/rust-examples/guessing_game)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running `target/debug/guessing_game`
+7
+Guess is 7
+
+```
+
+We'll see something like this on our terminal. 
+
+Let's make it more fun, we will actually generate a secret number and this is the number we'll try to guess. 
+
+To do that, we'll have to head over to `Cargo.toml` and put `rand = "0.9.2"`under [dependancies] . So it will look like this:
+
+```rust
+[package]
+name = "guessing_game"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rand = "0.9.2"
+
+```
+
+The way dependancies work is, the next time you build or the next time you run it will download it. So let's do it now by running `cargo build` . We'll see it resolved all the dependancies that "rand" actually depends on and then brought them into our project. And in this way we actually build and run, it can link the two together and so we'll be able to use them in our project.
+
+Now that we have `rand` installed, we'll also need to bring this library `rand` into scope in our `main.rs` file. 
+
+```rust
+use std::io;
+use rand::Rng;
+use std::cmp::Ordering;
+
+fn main() {
+
+let mut guess = String::new();
+io::stdin()
+    .read_line(&mut guess)
+    .expect("Failed to readline");
+println!("Guess is {}", guess)
+let secret_number: u32 = rand::rng().random_range(1..=100);
+
+}
+
+```
+
+
+To do that we'll write `use rand::Rng;`.
+Next we'll also write the secret number so `let secret_number: u32 = rand::rng().random_range(1..=100);`. 
+
+Over here we are declaring a range. When we see this `random_range(1..101)`, it means include every number from 1 to 100 but not 101. Or we can write is `(1..=100)`, it means inclusive which is include 100 so all numbers from 1 to 100. 
+
+To build this game, we need to consider the logic for the game. As secret number gets generated, we'll need to compare what our guess is to the secret number. It's important to have this comparison as it tells us wheather the user had won or guessed too big or too small from the secret number. 
+
+To do this comparison, we'll need to bring something to the scope again, so we'll write `use std::cmp::Ordering;` , here `cmp` is short of compare. 
+
+Now let's write the next part:
+
+```rust
+match guess.cmp(&secret_number) {
+    Ordering::Less => println!("Too small"),
+    Ordering::Greater => println!("Too big"),
+    Ordering::Equal => println!("You win!"),
+}
+
+```
+Over here we're using match statement and saying compare guess with secret number. 
+So we're trying to identify these cases, by using Ordering which can also be called arm, so we have less, greater or equal. 
+So if any case found to be true then it prints the following.
+so all together it will be something like this:
+
+```rust
+use std::io;
+use rand::Rng;
+use std::cmp::Ordering;
+
+fn main() {
+
+let mut guess = String::new();
+io::stdin()
+    .read_line(&mut guess)
+    .expect("Failed to readline");
+println!("Guess is {}", guess)
+let secret_number: u32 = rand::rng().random_range(1..=100);
+match guess.cmp(&secret_number) {
+    Ordering::Less => println!("Too small"),
+    Ordering::Greater => println!("Too big"),
+    Ordering::Equal => println!("You win!"),
+}
+
+}
+
+```
+
+now if we run all of these together we'll get error for String so we'll need to declare `secret_number` as unsigned integer. 
+So we'll go ahead and change this by declaring `u32` , and it's `let secret_number: u32 = rand::thread_rng().gen_range(1..=100);`. This is the first step here.
+
+But there's one more problem, `guess` value is a string and secret number is a different type. Then how can we compare these two numbers. 
+
+To do that we'll need to move the `guess` value from string to a number and the way we do that is by parsing or casting. We're not moving as rust moving value, it's just casting or parsing.
+
+
+It will shadow what guess was first declared as and that way we won't get guess as string again. 
+
+```rust
+let guess: u32 = guess.trim().parse().expect("Please type a number"!)
+
+```
+
+Here `trim()` will take any blank space beginning or end of the string and will remove them. Then we will `parse()`, we already mentioned parse type as u32. and with `expect()`, if something goes wrong and we can't get a number we'll ask to type a number again. 
+But if that happens then it will be the end of the program and we can't run anymore. 
+
+Now if we run `cargo run`, it will prompt to user to give a number and depending on what the secret number t could be too small, too big or you win.
+
+Let's add it in a way so that we know what the secret number is, so we'll do `println!("secret number {}", secret_number);`.  so all together it will be this:
+
+```rust
+use rand::Rng;
+use std::cmp::Ordering;
+use std::io;
+
+fn main() {
+    let mut guess = String::new();
+
+    io::stdin()
+        .read_line(&mut guess)
+        .expect("Failed to readline");
+    println!("Guess is {}", guess);
+let secret_number: u32 = rand::rng().random_range(1..=100);
+    println!("Secret number is {}", secret_number);
+    let guess: u32 = guess.trim().parse().expect("Please type a number!");
+    match guess.cmp(&secret_number) {
+        Ordering::Less => println!("Too small"),
+        Ordering::Greater => println!("Too big"),
+        Ordering::Equal => println!("You win!"),
+    }
+}
+
+```
+
+Note: the `rand` crate underwent major redesign, so names have changed. Rather than `let secret_number: u32 = rand::thread_rng().gen_range(1..=100);` it will be `let secret_number: u32 = rand::rng().random_range(1..=100);`. It might look a bit diffrenet than the rust book, that's why I'm mentioning it here. Old code will still work but we'll get some warnings. 
+
+Now let's redesign this so that users can enter multiple inputs. 
+
+
+```rust
+use rand::Rng;
+use std::cmp::Ordering;
+use std::io;
+
+fn main() {
+    let secret_number: u32 = rand::rng().random_range(1..=100);
+
+    loop {
+        let mut guess = String::new(); //guess gets mutated so kept it inside loop
+
+        println!("Enter your guess");
+
+        io::stdin()
+            .read_line(&mut guess)
+            .expect("Failed to readline");
+        println!("Guess is {}", guess);
+        println!("Secret number is {}", secret_number);
+        let guess: u32 = match guess.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue, /if error then it gets started again
+        };
+
+        match guess.cmp(&secret_number) {
+            Ordering::Less => println!("Too small"),
+            Ordering::Greater => println!("Too big"),
+            Ordering::Equal => {
+                println!("You win!");
+                break; //loop break
+            }
+        }
+    }
+}
+
+
+```
+
+Now we're using loop to do multiple guesses, if we win, we'll break the loop. I also adjusted few smaller things here. You can `cargo run` and play the guessing game. 

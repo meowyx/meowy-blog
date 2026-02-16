@@ -1,0 +1,1802 @@
+---
+title: Packages, Crates, Modules & Some Real World Conventions in Rust
+date: 2025-12-14
+category: rust-advanced
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+
+## Step 1: Crate
+
+A **crate** is the smallest unit of code that Rust compiles at once.
+
+Think of it like this: when you run `cargo build`, Rust takes a crate and turns it into either a program you can run or a library others can use.
+
+### Two Types of Crates
+
+**Binary crate**: 
+- Compiles into an executable program
+- Must have a `main()` function (the starting point)
+- Example: A command-line tool, a web server, a game
+
+**Library crate**:
+- Compiles into code that other programs can use
+- No `main()` function
+- Example: A database driver, a JSON parser, a math library
+
+### When You Create a Project
+
+```bash
+cargo new online_store
+```
+
+You get:
+
+```
+online_store/
+├── Cargo.toml
+└── src/
+    └── main.rs   ← this file is your binary crate
+```
+
+The `main.rs` file **is** the crate. Everything starts here.
+
+```rust
+// src/main.rs
+fn main() {
+    println!("Welcome to our store!");
+}
+```
+
+When you run `cargo run`, Rust compiles this crate into a program and runs it.
+
+
+
+## Step 2: Package
+
+A **package** is a folder that contains:
+- A `Cargo.toml` file (this is what makes it a package)
+- One or more crates
+
+```
+online_store/           ← this whole folder is the PACKAGE
+├── Cargo.toml          ← this file defines the package
+└── src/
+    └── main.rs         ← this is a CRATE inside the package
+```
+
+### Why the Distinction?
+
+A package can contain multiple crates. For example:
+
+```
+online_store/
+├── Cargo.toml
+└── src/
+    ├── main.rs         ← binary crate (the runnable program)
+    └── lib.rs          ← library crate (reusable code)
+```
+
+Now you have two crates in one package:
+- The binary crate runs your store
+- The library crate contains code that could be shared with other projects
+
+### The Rules
+
+- A package **must** have at least one crate
+- A package can have **many** binary crates
+- A package can have **only one** library crate
+
+For now, just know: one `Cargo.toml` = one package, and inside you have crates.
+
+
+
+## Step 3: Module
+
+A **module** is how you organize code *inside* a crate.
+
+As your code grows, you need to group related things together. Modules do this.
+
+### The Problem Without Modules
+
+Imagine your online store code:
+
+```rust
+// src/main.rs - everything in one place, getting messy
+
+fn main() {
+    // ...
+}
+
+// Product stuff
+fn create_product() { }
+fn get_product_price() { }
+fn update_product_stock() { }
+
+// User stuff
+fn create_user() { }
+fn verify_user_email() { }
+fn reset_user_password() { }
+
+// Order stuff
+fn place_order() { }
+fn cancel_order() { }
+fn calculate_order_total() { }
+
+// ... 50 more functions all mixed together
+```
+
+Where does one thing end and another begin? It's chaos.
+
+### The Solution: Modules
+
+Group related code together:
+
+```rust
+// src/main.rs
+
+mod product {
+    fn create() { }
+    fn get_price() { }
+    fn update_stock() { }
+}
+
+mod user {
+    fn create() { }
+    fn verify_email() { }
+    fn reset_password() { }
+}
+
+mod order {
+    fn place() { }
+    fn cancel() { }
+    fn calculate_total() { }
+}
+
+fn main() {
+    // now everything is organized
+}
+```
+
+Each `mod` creates a container. Related code stays together.
+
+
+
+## Step 4: Privacy
+
+This is one of the most important concepts.
+
+**Everything inside a module is private by default.**
+
+This means code outside the module cannot see or use it.
+
+### Why?
+
+Because you want to control what others can use. Some code is internal, implementation details that might change. Other code is your public interface, the stuff you promise will work.
+
+### Example
+
+```rust
+mod product {
+    fn calculate_discount() {
+        // internal helper - nobody outside should call this directly
+    }
+    
+    fn get_final_price() {
+        // uses calculate_discount internally
+    }
+}
+
+fn main() {
+    product::get_final_price();  // ERROR! get_final_price is private
+}
+```
+
+Both functions are private. `main()` can't use either of them.
+
+### Making Things Public with `pub`
+
+Add `pub` to make something accessible from outside:
+
+```rust
+mod product {
+    fn calculate_discount() {
+        // still private - internal implementation detail
+    }
+    
+    pub fn get_final_price() {
+        // now public - others can call this
+        calculate_discount();  // we can still use private stuff internally
+    }
+}
+
+fn main() {
+    product::get_final_price();  // works now!
+    // product::calculate_discount();  // still ERROR - private
+}
+```
+
+Now `get_final_price` is your **public interface**. The `calculate_discount` function is hidden, you could change it, rename it, delete it, and code outside the module wouldn't break.
+
+### This is Powerful
+
+You expose what you want. You hide what you want. You control the boundaries.
+
+
+
+## Step 5: Paths
+
+A **path** is the address of something in your module structure.
+
+Just like files on your computer have paths (`/home/user/documents/file.txt`), items in Rust modules have paths.
+
+### Using `::` to Navigate
+
+```rust
+mod store {
+    pub mod product {
+        pub fn get_details() {
+            println!("Product: Laptop, Price: $999");
+        }
+    }
+    
+    pub mod order {
+        pub fn checkout() {
+            println!("Processing checkout...");
+        }
+    }
+}
+
+fn main() {
+    store::product::get_details();  // path: store -> product -> get_details
+    store::order::checkout();       // path: store -> order -> checkout
+}
+```
+
+Read it like: "go into `store`, then into `product`, then call `get_details`"
+
+### Absolute vs Relative Paths
+
+**Absolute path**: starts from the crate root using `crate::`:
+
+```rust
+fn main() {
+    crate::store::product::get_details();
+}
+```
+
+This is like using a full file path: `/home/user/documents/file.txt`
+
+**Relative path**: starts from where you currently are:
+
+```rust
+fn main() {
+    store::product::get_details();
+}
+```
+
+This is like using a relative file path: `documents/file.txt`
+
+Both work. Use whichever is clearer in context.
+
+### The `super` Keyword
+
+`super` means "go up one level to the parent module."
+
+Real-world scenario: You're inside the `order` module and need to access something from `product`:
+
+```rust
+mod store {
+    pub mod product {
+        pub fn get_price() -> u32 {
+            999
+        }
+    }
+    
+    pub mod order {
+        pub fn calculate_total() {
+            // I'm inside "order" module
+            // I need to get to "product" module
+            // Step 1: go up to parent (store) with super
+            // Step 2: go into product
+            // Step 3: call get_price
+            
+            let price = super::product::get_price();
+            println!("Total: ${}", price);
+        }
+    }
+}
+```
+
+Think of it like this:
+- You're in `/store/order/`
+- You want to reach `/store/product/get_price`
+- `super` takes you up to `/store/`
+- Then you go down into `product`
+
+
+
+## Step 6: The `use` Keyword
+
+Typing full paths everywhere is tedious.
+
+```rust
+fn main() {
+    store::product::get_details();
+    store::product::get_details();
+    store::product::get_details();
+    store::order::checkout();
+    store::order::checkout();
+}
+```
+
+`use` creates a shortcut so you don't have to type the full path every time.
+
+### Bringing a Module into Scope
+
+```rust
+use store::product;
+use store::order;
+
+fn main() {
+    product::get_details();  // shorter!
+    product::get_details();
+    order::checkout();
+    order::checkout();
+}
+```
+
+### Bringing a Function Directly into Scope
+
+```rust
+use store::product::get_details;
+use store::order::checkout;
+
+fn main() {
+    get_details();  // even shorter!
+    checkout();
+}
+```
+
+### Which Style to Use?
+
+**For functions**: Bring the module, not the function.
+
+```rust
+// PREFERRED
+use store::product;
+product::get_details();  // clear where it comes from
+
+// LESS CLEAR
+use store::product::get_details;
+get_details();  // where is this from? harder to tell
+```
+
+**For structs and enums**: Bring the item directly.
+
+```rust
+use store::product::Product;  // this is fine
+
+fn main() {
+    let p = Product::new();
+}
+```
+
+### Handling Name Conflicts with `as`
+
+What if two modules have things with the same name?
+
+```rust
+mod database {
+    pub fn connect() {
+        println!("Connecting to database...");
+    }
+}
+
+mod network {
+    pub fn connect() {
+        println!("Connecting to network...");
+    }
+}
+
+// Problem: both have "connect"!
+
+// Solution: rename with "as"
+use database::connect as db_connect;
+use network::connect as net_connect;
+
+fn main() {
+    db_connect();   // clear!
+    net_connect();  // clear!
+}
+```
+
+### Importing Multiple Things
+
+Use curly braces to import several items from the same place:
+
+```rust
+// Instead of:
+use store::product::Product;
+use store::product::Category;
+use store::product::get_details;
+
+// Do this:
+use store::product::{Product, Category, get_details};
+```
+
+
+
+## Step 7: Structs and Enums in Modules
+
+### Structs: You Control Each Field
+
+When you make a struct `pub`, the struct name becomes public. But **each field is still private by default**.
+
+Real example: a User struct where some info is public, some is hidden:
+
+```rust
+mod user {
+    pub struct User {
+        pub username: String,      // public - anyone can see
+        pub email: String,         // public - anyone can see
+        password_hash: String,     // PRIVATE - hidden from outside
+        failed_login_attempts: u32, // PRIVATE - internal tracking
+    }
+    
+    impl User {
+        // We MUST provide a constructor
+        // Because outside code can't set the private fields directly
+        pub fn new(username: String, email: String, password: String) -> User {
+            User {
+                username,
+                email,
+                password_hash: hash_password(&password),
+                failed_login_attempts: 0,
+            }
+        }
+        
+        pub fn check_password(&self, attempt: &str) -> bool {
+            // can access private fields inside the module
+            hash_password(attempt) == self.password_hash
+        }
+    }
+    
+    fn hash_password(password: &str) -> String {
+        // private function - internal implementation
+        format!("hashed_{}", password)
+    }
+}
+
+fn main() {
+    let u = user::User::new(
+        String::from("alice"),
+        String::from("alice@email.com"),
+        String::from("secret123")
+    );
+    
+    println!("Username: {}", u.username);  // OK - public field
+    println!("Email: {}", u.email);        // OK - public field
+    // println!("{}", u.password_hash);    // ERROR - private field
+    
+    let valid = u.check_password("secret123");
+    println!("Password correct: {}", valid);
+}
+```
+
+This is **encapsulation**. You hide the implementation details (how passwords are stored) and expose a clean interface (create user, check password).
+
+### Enums: All or Nothing
+
+Enums work differently. If the enum is `pub`, **all variants are automatically public**.
+
+```rust
+mod order {
+    pub enum OrderStatus {
+        Pending,
+        Confirmed,
+        Shipped,
+        Delivered,
+        Cancelled,
+    }
+}
+
+fn main() {
+    let status = order::OrderStatus::Shipped;  // all variants accessible
+    
+    match status {
+        order::OrderStatus::Pending => println!("Waiting..."),
+        order::OrderStatus::Shipped => println!("On the way!"),
+        _ => println!("Other status"),
+    }
+}
+```
+
+Why? Because enums are meant to be matched. You need to see all variants to handle them properly.
+
+
+## Step 8: Splitting Into Files
+
+Now the practical part. As your project grows, you don't want thousands of lines in one file.
+
+### Starting Point: Everything in main.rs
+
+```rust
+// src/main.rs
+
+mod product {
+    pub struct Product {
+        pub name: String,
+        pub price: u32,
+    }
+    
+    impl Product {
+        pub fn new(name: String, price: u32) -> Product {
+            Product { name, price }
+        }
+    }
+}
+
+mod order {
+    pub struct Order {
+        pub id: u32,
+        pub total: u32,
+    }
+    
+    impl Order {
+        pub fn new(id: u32) -> Order {
+            Order { id, total: 0 }
+        }
+    }
+}
+
+fn main() {
+    let laptop = product::Product::new(String::from("Laptop"), 999);
+    let order = order::Order::new(1);
+    println!("Product: {}, Price: ${}", laptop.name, laptop.price);
+}
+```
+
+This works, but imagine 20 modules with hundreds of lines each. One file becomes unmanageable.
+
+### Moving to Separate Files
+
+**Step 1**: Create new files
+
+```
+src/
+├── main.rs
+├── product.rs   ← new file
+└── order.rs     ← new file
+```
+
+**Step 2**: Move the code (notice: no `mod` wrapper needed in the file)
+
+```rust
+// src/product.rs
+
+pub struct Product {
+    pub name: String,
+    pub price: u32,
+}
+
+impl Product {
+    pub fn new(name: String, price: u32) -> Product {
+        Product { name, price }
+    }
+}
+```
+
+```rust
+// src/order.rs
+
+pub struct Order {
+    pub id: u32,
+    pub total: u32,
+}
+
+impl Order {
+    pub fn new(id: u32) -> Order {
+        Order { id, total: 0 }
+    }
+}
+```
+
+**Step 3**: Declare the modules in main.rs
+
+```rust
+// src/main.rs
+
+mod product;  // tells Rust: load src/product.rs
+mod order;    // tells Rust: load src/order.rs
+
+fn main() {
+    let laptop = product::Product::new(String::from("Laptop"), 999);
+    let order = order::Order::new(1);
+    println!("Product: {}, Price: ${}", laptop.name, laptop.price);
+}
+```
+
+### The Key Difference
+
+- `mod product { ... }`: define module inline with curly braces
+- `mod product;`: load module from a file (semicolon, no braces)
+
+When Rust sees `mod product;`, it looks for `src/product.rs`.
+
+
+
+## Step 9: Nested Modules in Folders
+
+What if you want deeper organization?
+
+```
+store
+├── product
+│   ├── inventory
+│   └── pricing
+└── order
+    ├── checkout
+    └── shipping
+```
+
+### File Structure
+
+```
+src/
+├── main.rs
+├── product/
+│   ├── mod.rs        ← this IS the product module
+│   ├── inventory.rs
+│   └── pricing.rs
+└── order/
+    ├── mod.rs        ← this IS the order module
+    ├── checkout.rs
+    └── shipping.rs
+```
+
+### The Code
+
+```rust
+// src/main.rs
+mod product;
+mod order;
+
+fn main() {
+    product::inventory::check_stock();
+    product::pricing::get_price();
+    order::checkout::process();
+    order::shipping::ship();
+}
+```
+
+```rust
+// src/product/mod.rs
+pub mod inventory;  // loads src/product/inventory.rs
+pub mod pricing;    // loads src/product/pricing.rs
+```
+
+```rust
+// src/product/inventory.rs
+pub fn check_stock() {
+    println!("Checking inventory...");
+}
+```
+
+```rust
+// src/product/pricing.rs
+pub fn get_price() {
+    println!("Getting price...");
+}
+```
+
+```rust
+// src/order/mod.rs
+pub mod checkout;
+pub mod shipping;
+```
+
+```rust
+// src/order/checkout.rs
+pub fn process() {
+    println!("Processing checkout...");
+}
+```
+
+```rust
+// src/order/shipping.rs
+pub fn ship() {
+    println!("Shipping order...");
+}
+```
+
+### The Rule (Memorize This)
+
+When Rust sees `mod something;` it looks for:
+
+1. `something.rs`: a file next to the current file
+2. `something/mod.rs`: a folder with mod.rs inside
+
+That's the entire rule.
+
+
+
+## Step 10: Re-exporting with `pub use`
+
+Sometimes your internal structure is deep but you want a simpler public interface.
+
+```rust
+// src/product/mod.rs
+
+mod inventory;
+mod pricing;
+
+// Re-export at a convenient level
+pub use inventory::check_stock;
+pub use pricing::get_price;
+```
+
+Now instead of:
+
+```rust
+product::inventory::check_stock();
+product::pricing::get_price();
+```
+
+Users can do:
+
+```rust
+product::check_stock();
+product::get_price();
+```
+
+You hide your internal structure. Users get a clean API. You can reorganize internally without breaking their code.
+
+
+## The TLDR;
+
+| Concept | What It Is | Example |
+|---------|-----------|---------|
+| Package | Folder with Cargo.toml | `my_project/` |
+| Crate | Compilation unit | `main.rs` or `lib.rs` |
+| Module | Code organization | `mod product { }` |
+| `pub` | Makes something public | `pub fn create()` |
+| Path | Address of an item | `store::product::create()` |
+| `use` | Creates a shortcut | `use store::product;` |
+| `super` | Go up one level | `super::other_module::func()` |
+| `crate` | Start from root | `crate::store::product` |
+
+| File Pattern | Meaning |
+|--------------|---------|
+| `mod name { }` | Module defined inline |
+| `mod name;` | Module loaded from `name.rs` or `name/mod.rs` |
+
+---
+
+
+## Bonus Content: Real-World Project Conventions
+
+Everything above is from Chapter 7. But when you read real Rust codebases, you'll see certain patterns that aren't taught in the book. These are **community conventions**, best practices developers have agreed upon over time.
+
+Let's build up to them gradually.
+
+---
+
+## The Problem We're Solving
+
+Imagine your online store is growing:
+
+```rust
+// src/main.rs - getting messy
+
+struct User { id: u64, name: String, email: String }
+struct Product { id: u64, name: String, price: u32 }
+struct Order { id: u64, user_id: u64, total: u32 }
+
+enum AppError { NotFound, InvalidInput, DatabaseError }
+
+const MAX_CART_ITEMS: usize = 100;
+const TAX_RATE: f64 = 0.08;
+
+fn generate_id() -> u64 { /* ... */ }
+fn format_price(cents: u32) -> String { /* ... */ }
+
+fn create_user() { /* ... */ }
+fn get_user() { /* ... */ }
+fn create_product() { /* ... */ }
+fn get_product() { /* ... */ }
+fn create_order() { /* ... */ }
+fn process_payment() { /* ... */ }
+
+fn main() {
+    // ...
+}
+```
+
+Where do you put things? Let's organize.
+
+---
+
+## Convention 1: `types.rs`: Shared Type Definitions
+
+### The Problem
+
+Your `User` struct is used everywhere:
+- The `user` module needs it
+- The `order` module needs it (orders have a user)
+- The `payment` module needs it (payments are tied to users)
+- The `email` module needs it (send emails to users)
+
+If you put `User` in `user.rs`, everyone has to do:
+
+```rust
+use crate::user::User;
+```
+
+And what if `User` isn't really about user *operations*? It's just a data shape.
+
+### The Solution
+
+Put **shared data types** in one place:
+
+```rust
+// src/types.rs
+
+// Type aliases - give meaningful names to primitive types
+pub type UserId = u64;
+pub type ProductId = u64;
+pub type OrderId = u64;
+pub type Money = u32;  // store money as cents to avoid float issues
+
+// Shared structs - used by multiple modules
+pub struct User {
+    pub id: UserId,
+    pub name: String,
+    pub email: String,
+}
+
+pub struct Product {
+    pub id: ProductId,
+    pub name: String,
+    pub price: Money,
+}
+
+pub struct Order {
+    pub id: OrderId,
+    pub user_id: UserId,
+    pub items: Vec<OrderItem>,
+    pub total: Money,
+}
+
+pub struct OrderItem {
+    pub product_id: ProductId,
+    pub quantity: u32,
+}
+```
+
+### Why This Helps
+
+1. **Single source of truth**: change `User` in one place, not ten
+2. **Clear purpose**: this file is just data definitions, no logic
+3. **Easy imports**: `use crate::types::{User, Product, Order};`
+
+### When to Use
+
+Put a type in `types.rs` when:
+- Multiple modules need it
+- It's a data structure, not tied to specific operations
+
+Keep a type in its own module when:
+- Only that module uses it
+- It has lots of associated methods specific to that domain
+
+---
+
+## Convention 2: `error.rs`: Custom Error Types
+
+### The Problem
+
+Your functions can fail in different ways:
+
+```rust
+fn get_user(id: u64) -> ??? {
+    // might fail because: user not found
+    // might fail because: database connection error
+    // might fail because: invalid id format
+}
+```
+
+You need a way to represent these errors. And you'll have errors across your whole app.
+
+### The Solution
+
+Create a central error type:
+
+```rust
+// src/error.rs
+
+pub enum AppError {
+    // User-related errors
+    UserNotFound,
+    InvalidEmail,
+    
+    // Product-related errors
+    ProductNotFound,
+    OutOfStock,
+    
+    // Order-related errors
+    EmptyCart,
+    PaymentFailed,
+    
+    // General errors
+    DatabaseError(String),    // includes error message
+    InvalidInput(String),     // includes what was wrong
+    Unauthorized,
+}
+```
+
+Now every function can use this:
+
+```rust
+use crate::error::AppError;
+use crate::types::User;
+
+pub fn get_user(id: u64) -> Result<User, AppError> {
+    // if user not found:
+    // return Err(AppError::UserNotFound);
+    
+    // if database fails:
+    // return Err(AppError::DatabaseError("connection timeout".to_string()));
+    
+    // if success:
+    // return Ok(user);
+}
+```
+
+### Why This Helps
+
+1. **Consistent error handling**: all errors have the same type
+2. **Easy to match on**: you can handle each error case specifically
+3. **Informative**: errors tell you what went wrong
+
+### Note
+
+You'll learn more about `Result` and error handling in **Chapter 9**. For now, just understand that `error.rs` is where you put your error definitions.
+
+---
+
+## Convention 3: `constants.rs`: App-Wide Constants
+
+### The Problem
+
+You have magic numbers and strings scattered everywhere:
+
+```rust
+fn validate_cart(items: &[Item]) -> bool {
+    if items.len() > 100 {  // what is 100? why 100?
+        return false;
+    }
+    // ...
+}
+
+fn calculate_tax(amount: u32) -> u32 {
+    (amount as f64 * 0.08) as u32  // what is 0.08?
+}
+```
+
+### The Solution
+
+Give these values names and put them in one place:
+
+```rust
+// src/constants.rs
+
+// Cart limits
+pub const MAX_CART_ITEMS: usize = 100;
+pub const MIN_ORDER_AMOUNT: u32 = 500;  // $5.00 in cents
+
+// Tax and pricing
+pub const TAX_RATE: f64 = 0.08;  // 8%
+pub const FREE_SHIPPING_THRESHOLD: u32 = 5000;  // $50.00
+
+// API settings
+pub const API_VERSION: &str = "v1";
+pub const REQUEST_TIMEOUT_SECONDS: u64 = 30;
+
+// Pagination
+pub const DEFAULT_PAGE_SIZE: usize = 20;
+pub const MAX_PAGE_SIZE: usize = 100;
+```
+
+Now your code is readable:
+
+```rust
+use crate::constants::{MAX_CART_ITEMS, TAX_RATE};
+
+fn validate_cart(items: &[Item]) -> bool {
+    if items.len() > MAX_CART_ITEMS {
+        return false;
+    }
+    // ...
+}
+
+fn calculate_tax(amount: u32) -> u32 {
+    (amount as f64 * TAX_RATE) as u32
+}
+```
+
+### Why This Helps
+
+1. **Self-documenting**: `MAX_CART_ITEMS` explains itself, `100` doesn't
+2. **Easy to change**: update one place, changes everywhere
+3. **Prevents typos**: compiler catches `MAX_CART_ITEM` (missing S)
+
+---
+
+## Convention 4: `utils.rs`: Helper Functions
+
+### The Problem
+
+Some functions don't belong to any specific domain:
+
+```rust
+// This isn't about users, products, or orders
+// It's just... a helper
+fn generate_unique_id() -> u64 {
+    // ...
+}
+
+fn format_price_for_display(cents: u32) -> String {
+    format!("${}.{:02}", cents / 100, cents % 100)
+}
+
+fn slugify(text: &str) -> String {
+    // "Hello World!" -> "hello-world"
+}
+```
+
+Where do these go?
+
+### The Solution
+
+Put generic utilities in `utils.rs`:
+
+```rust
+// src/utils.rs
+
+use std::time::{SystemTime, UNIX_EPOCH};
+
+pub fn generate_id() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos() as u64
+}
+
+pub fn format_price(cents: u32) -> String {
+    format!("${}.{:02}", cents / 100, cents % 100)
+}
+
+pub fn slugify(text: &str) -> String {
+    text.to_lowercase()
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '-' })
+        .collect()
+}
+```
+
+Use them anywhere:
+
+```rust
+use crate::utils::{generate_id, format_price};
+
+let id = generate_id();
+let display = format_price(1999);  // "$19.99"
+```
+
+### Why This Helps
+
+1. **Reusable**: any module can use these
+2. **Testable**: easy to write unit tests for pure utility functions
+3. **Keeps other modules focused**: `user.rs` is about users, not string formatting
+
+---
+
+## Convention 5: `lib.rs`: The Library Root
+
+### The Problem
+
+You have `main.rs` as your entry point. But what if:
+- You want to write tests for your code?
+- You want to use this code in another project?
+- You want a clean public API?
+
+### The Solution
+
+Split into `lib.rs` (your library) and `main.rs` (your binary):
+
+```
+src/
+├── main.rs    ← just the entry point, very minimal
+├── lib.rs     ← all your actual code lives here
+├── types.rs
+├── error.rs
+└── ...
+```
+
+**src/lib.rs**: declares modules and public API:
+
+```rust
+// src/lib.rs
+
+// Declare all modules
+pub mod types;
+pub mod error;
+pub mod constants;
+pub mod utils;
+pub mod user;
+pub mod product;
+pub mod order;
+
+// Re-export important items at the top level
+// This creates a nice public API
+pub use types::{User, Product, Order};
+pub use error::AppError;
+```
+
+**src/main.rs**: minimal, just starts the app:
+
+```rust
+// src/main.rs
+
+// Import from your own library crate
+use online_store::{User, Product, AppError};
+use online_store::user;
+use online_store::order;
+
+fn main() {
+    println!("Starting online store...");
+    
+    // Your app logic here
+}
+```
+
+### Why This Helps
+
+1. **Testable**: you can write tests against your library
+2. **Reusable**: other projects can use your library
+3. **Clean API**: users see `online_store::User` not `online_store::types::User`
+4. **Separation**: library logic vs application entry point
+
+### The Re-export Trick Explained
+
+Without re-exports:
+
+```rust
+use online_store::types::User;
+use online_store::error::AppError;
+use online_store::constants::MAX_CART_ITEMS;
+```
+
+With re-exports in lib.rs:
+
+```rust
+// In lib.rs:
+pub use types::User;
+pub use error::AppError;
+
+// Now users can do:
+use online_store::User;
+use online_store::AppError;
+```
+
+You hide your internal structure. Users get a simpler API.
+
+---
+
+## Convention 6: `prelude.rs`: Common Imports Bundle
+
+### The Problem
+
+In every file, you write the same imports:
+
+```rust
+// src/user.rs
+use crate::types::{User, UserId};
+use crate::error::AppError;
+use crate::constants::MAX_USERS;
+
+// src/order.rs
+use crate::types::{User, Order, OrderId};
+use crate::error::AppError;
+use crate::constants::MAX_CART_ITEMS;
+
+// src/product.rs
+use crate::types::{Product, ProductId};
+use crate::error::AppError;
+// ... same thing, over and over
+```
+
+### The Solution
+
+Bundle common imports into a prelude:
+
+```rust
+// src/prelude.rs
+
+// Re-export everything commonly needed
+pub use crate::types::*;          // all types
+pub use crate::error::AppError;   // main error type
+pub use crate::constants::*;      // all constants
+pub use crate::utils::*;          // all utilities
+```
+
+Now in every file:
+
+```rust
+// src/user.rs
+use crate::prelude::*;
+
+// That's it! You have User, Product, Order, AppError, 
+// MAX_CART_ITEMS, generate_id, etc. all available
+```
+
+### Why This Helps
+
+1. **Less boilerplate**: one line instead of ten
+2. **Consistency**: everyone has the same stuff available
+3. **Easy onboarding**: new code files just need one import
+
+### When to Use
+
+- Great for internal code within your project
+- Big libraries like `bevy` and `tokio` use this pattern
+- Don't overdo it, only put truly common items in prelude
+
+---
+
+## Putting It All Together
+
+Here's a complete project structure:
+
+```
+online_store/
+├── Cargo.toml
+└── src/
+    ├── main.rs           ← entry point (minimal)
+    ├── lib.rs            ← module declarations + public API
+    ├── prelude.rs        ← common imports bundled
+    ├── types.rs          ← shared data types
+    ├── error.rs          ← error definitions
+    ├── constants.rs      ← app-wide constants
+    ├── utils.rs          ← helper functions
+    ├── user/
+    │   ├── mod.rs        ← user module root
+    │   ├── auth.rs       ← authentication logic
+    │   └── profile.rs    ← profile management
+    ├── product/
+    │   ├── mod.rs
+    │   ├── inventory.rs
+    │   └── search.rs
+    └── order/
+        ├── mod.rs
+        ├── cart.rs
+        ├── checkout.rs
+        └── payment.rs
+```
+
+### The Files
+
+**src/lib.rs:**
+
+```rust
+// Module declarations
+pub mod types;
+pub mod error;
+pub mod constants;
+pub mod utils;
+pub mod prelude;
+
+pub mod user;
+pub mod product;
+pub mod order;
+
+// Public API - what external users see
+pub use types::{User, Product, Order};
+pub use error::AppError;
+```
+
+**src/prelude.rs:**
+
+```rust
+pub use crate::types::*;
+pub use crate::error::AppError;
+pub use crate::constants::*;
+```
+
+**src/types.rs:**
+
+```rust
+pub type UserId = u64;
+pub type ProductId = u64;
+pub type OrderId = u64;
+pub type Money = u32;
+
+pub struct User {
+    pub id: UserId,
+    pub name: String,
+    pub email: String,
+}
+
+pub struct Product {
+    pub id: ProductId,
+    pub name: String,
+    pub price: Money,
+}
+
+pub struct Order {
+    pub id: OrderId,
+    pub user_id: UserId,
+    pub total: Money,
+}
+```
+
+**src/error.rs:**
+
+```rust
+pub enum AppError {
+    NotFound,
+    InvalidInput(String),
+    Unauthorized,
+    DatabaseError(String),
+}
+```
+
+**src/constants.rs:**
+
+```rust
+pub const MAX_CART_ITEMS: usize = 100;
+pub const TAX_RATE: f64 = 0.08;
+pub const FREE_SHIPPING_THRESHOLD: u32 = 5000;
+```
+
+**src/utils.rs:**
+
+```rust
+pub fn generate_id() -> u64 {
+    // simplified - real code would be better
+    42
+}
+
+pub fn format_price(cents: u32) -> String {
+    format!("${}.{:02}", cents / 100, cents % 100)
+}
+```
+
+**src/user/mod.rs:**
+
+```rust
+mod auth;
+mod profile;
+
+pub use auth::login;
+pub use auth::logout;
+pub use profile::update_profile;
+```
+
+**src/user/auth.rs:**
+
+```rust
+use crate::prelude::*;
+
+pub fn login(email: &str, password: &str) -> Result<User, AppError> {
+    // login logic
+    todo!()
+}
+
+pub fn logout(user_id: UserId) -> Result<(), AppError> {
+    // logout logic
+    todo!()
+}
+```
+
+**src/main.rs:**
+
+```rust
+use online_store::{User, AppError};
+use online_store::user;
+use online_store::order;
+
+fn main() {
+    println!("Welcome to the Online Store!");
+    
+    // Your app starts here
+}
+```
+
+Just putting these code here if you wanna explore and understand more.
+
+---
+
+## Quick TLDR;
+
+| File | What Goes There | When to Use |
+|------|-----------------|-------------|
+| `types.rs` | Shared structs, enums, type aliases | Types used by multiple modules |
+| `error.rs` | Custom error types | App-wide error definitions |
+| `constants.rs` | `const` values | Magic numbers, config values |
+| `utils.rs` | Helper functions | Generic functions not tied to a domain |
+| `lib.rs` | Module declarations, re-exports | Always, for library crate root |
+| `prelude.rs` | Common re-exports | When you have many common imports |
+| `main.rs` | Entry point | Always, for binary crates |
+| `mod.rs` | Submodule declarations | When a module has its own folder |
+
+
+
+## The Mental Model
+
+Think of it like organizing a physical store:
+
+| Code Concept | Physical Store Equivalent |
+|--------------|---------------------------|
+| `types.rs` | Standard forms everyone uses |
+| `error.rs` | List of things that can go wrong |
+| `constants.rs` | Store policies posted on the wall |
+| `utils.rs` | Shared tools in the break room |
+| `lib.rs` | The store's public entrance |
+| `prelude.rs` | Employee starter kit |
+| `main.rs` | The "Open" sign that starts the day |
+| Feature folders | Different departments |
+
+
+
+The key insight is: **these are just conventions for organizing code logically**. There's nothing magical about `types.rs` or `error.rs`, they're just regular modules with agreed-upon purposes.
+
+---
+
+# Module Exercises
+
+---
+
+## Exercise 1: Basic Module and Privacy
+
+Create a module called `math` with two functions:
+- `add(a: i32, b: i32) -> i32`: make this **public**
+- `secret_formula(x: i32) -> i32`: keep this **private**, returns `x * 42`
+
+In `main`:
+
+```rust
+fn main() {
+    let result = math::add(5, 3);
+    println!("5 + 3 = {}", result);
+}
+```
+
+Expected output:
+```
+5 + 3 = 8
+```
+
+After it works, try adding this line:
+```rust
+let secret = math::secret_formula(2);
+```
+
+What error do you get? Why?
+
+---
+
+## Exercise 2: Nested Modules and Paths
+
+Create this module structure:
+
+```
+school
+├── student
+│   └── get_name()
+└── teacher
+    └── get_name()
+```
+
+- `school::student::get_name()` returns `"Alice"`
+- `school::teacher::get_name()` returns `"Mr. Smith"`
+
+All modules and functions should be public.
+
+In `main`:
+
+```rust
+fn main() {
+    let student = school::student::get_name();
+    let teacher = school::teacher::get_name();
+    
+    println!("Student: {}", student);
+    println!("Teacher: {}", teacher);
+}
+```
+
+Expected output:
+```
+Student: Alice
+Teacher: Mr. Smith
+```
+
+---
+
+## Exercise 3: Using `super`
+
+Create a module `kitchen` with:
+- A **private** function `get_secret_ingredient()` that returns `String::from("love")`
+- A **public** submodule `chef`
+- Inside `chef`, a **public** function `cook()`
+
+The `cook()` function should:
+1. Use `super::get_secret_ingredient()` to get the ingredient
+2. Print the message shown below
+
+Structure:
+```
+kitchen
+├── get_secret_ingredient()  [private]
+└── chef
+    └── cook()  [public]
+```
+
+In `main`:
+
+```rust
+fn main() {
+    kitchen::chef::cook();
+}
+```
+
+Expected output:
+```
+Cooking with secret ingredient: love
+```
+
+---
+
+## Exercise 4: The `use` Keyword
+
+Start with these modules:
+
+```rust
+mod japanese {
+    pub fn greet() {
+        println!("Konnichiwa!");
+    }
+    
+    pub fn goodbye() {
+        println!("Sayonara!");
+    }
+}
+
+mod spanish {
+    pub fn greet() {
+        println!("Hola!");
+    }
+    
+    pub fn goodbye() {
+        println!("Adios!");
+    }
+}
+```
+
+Your task: add `use` statements to:
+1. Bring `japanese::greet` into scope as `greet_jp`
+2. Bring `spanish::greet` into scope as `greet_es`
+3. Bring both `goodbye` functions using nested imports with `{}`
+
+In `main`:
+
+```rust
+fn main() {
+    greet_jp();
+    greet_es();
+    japanese::goodbye();
+    spanish::goodbye();
+}
+```
+
+Expected output:
+```
+Konnichiwa!
+Hola!
+Sayonara!
+Adios!
+```
+
+---
+
+## Exercise 5: Struct Privacy
+
+Create a module `wallet` with a struct and methods:
+
+**Struct `Wallet`:**
+- `owner: String`: **public** field
+- `balance: u32`: **private** field
+
+**Methods (all public):**
+- `new(owner: String, initial: u32) -> Wallet`: creates a wallet
+- `deposit(&mut self, amount: u32)`: adds amount to balance
+- `get_balance(&self) -> u32`: returns the balance
+
+In `main`:
+
+```rust
+fn main() {
+    let mut w = wallet::Wallet::new(String::from("Alice"), 100);
+    println!("Owner: {}", w.owner);
+    
+    w.deposit(50);
+    println!("Balance: {}", w.get_balance());
+}
+```
+
+Expected output:
+```
+Owner: Alice
+Balance: 150
+```
+
+After it works, try adding this line:
+```rust
+println!("{}", w.balance);
+```
+
+What error do you get? Why can you access `w.owner` but not `w.balance`?
+
+---
+
+## Exercise 6: Enum in Modules
+
+Create a module `traffic` with:
+
+**Enum `Light`:**
+- `Red`
+- `Yellow`
+- `Green`
+
+**Function `action(light: Light)`** that prints:
+- Red → `"Stop"`
+- Yellow → `"Slow down"`
+- Green → `"Go"`
+
+Both the enum and function should be public.
+
+In `main`:
+
+```rust
+fn main() {
+    let red = traffic::Light::Red;
+    let yellow = traffic::Light::Yellow;
+    let green = traffic::Light::Green;
+    
+    traffic::action(red);
+    traffic::action(yellow);
+    traffic::action(green);
+}
+```
+
+Expected output:
+```
+Stop
+Slow down
+Go
+```
+
+---
+
+## Exercise 7: Re-exporting with `pub use`
+
+Create this deeply nested structure:
+
+```
+audio
+└── effects
+    └── reverb
+        └── apply()  [prints "Reverb applied!"]
+```
+
+All modules and the function should be public.
+
+**Without re-exporting**, you call it like:
+```rust
+audio::effects::reverb::apply();  // long!
+```
+
+**Your task**: Inside the `audio` module, add this line:
+```rust
+pub use self::effects::reverb::apply;
+```
+
+This re-exports `apply` at the `audio` level.
+
+In `main`, test that BOTH paths work:
+
+```rust
+fn main() {
+    // Long path (original)
+    audio::effects::reverb::apply();
+    
+    // Short path (via re-export)
+    audio::apply();
+}
+```
+
+Expected output:
+```
+Reverb applied!
+Reverb applied!
+```
+
+---
+
+## Bonus Exercise: Split Into Files
+
+Take this single-file code and split it into multiple files:
+
+```rust
+// Everything in main.rs right now
+
+mod game {
+    pub mod player {
+        pub struct Player {
+            pub name: String,
+            health: u32,
+        }
+        
+        impl Player {
+            pub fn new(name: String) -> Player {
+                Player { name, health: 100 }
+            }
+            
+            pub fn get_health(&self) -> u32 {
+                self.health
+            }
+        }
+    }
+    
+    pub mod enemy {
+        pub fn spawn() {
+            println!("Enemy spawned!");
+        }
+    }
+}
+
+fn main() {
+    let p = game::player::Player::new(String::from("Hero"));
+    println!("{} has {} health", p.name, p.get_health());
+    game::enemy::spawn();
+}
+```
+
+Create this file structure:
+
+```
+src/
+├── main.rs
+└── game/
+    ├── mod.rs
+    ├── player.rs
+    └── enemy.rs
+```
+
+**Hints:**
+- `main.rs` just needs `mod game;` and the `main` function
+- `game/mod.rs` declares the submodules with `pub mod player;` and `pub mod enemy;`
+- `player.rs` contains the `Player` struct and its `impl` block
+- `enemy.rs` contains the `spawn` function
+- Don't wrap code in `mod { }` inside the individual files
+
+Expected output (same as before):
+```
+Hero has 100 health
+Enemy spawned!
+```
+
+---

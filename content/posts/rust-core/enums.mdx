@@ -1,0 +1,669 @@
+---
+title: Enums in Rust
+date: 2025-12-12
+category: rust-core
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+## Part 1: What Is An Enum?
+
+An enum is a **custom type** where you list out **all the possible values** it can ever be.
+
+That's it. You're creating a type and saying "here are the only options."
+
+
+### Real Life Example: A Coin Flip
+
+When you flip a coin, what are the possible outcomes?
+
+- Heads
+- Tails
+
+That's it. Only two possibilities. It can never be "Sideways" or "Purple" or "42". Just Heads or Tails.
+
+In Rust:
+
+```rust
+enum CoinFlip {
+    Heads,
+    Tails,
+}
+```
+
+You just created a new type called `CoinFlip`. A variable of this type can only ever be `Heads` or `Tails`. Nothing else.
+
+
+### Real Life Example: T-Shirt Size
+
+What sizes does a t-shirt come in?
+
+- Small
+- Medium
+- Large
+
+In Rust:
+
+```rust
+enum ShirtSize {
+    Small,
+    Medium,
+    Large,
+}
+```
+
+A `ShirtSize` can only be `Small`, `Medium`, or `Large`. If someone tries to use `ShirtSize::ExtraHuge`, the compiler says "that doesn't exist" and refuses to run your code.
+
+
+### How To Create A Value
+
+You use the enum name, then `::`, then the variant name:
+
+```rust
+let my_size = ShirtSize::Medium;
+let coin_result = CoinFlip::Heads;
+```
+
+Think of `::` as meaning "the ___ kind of ___"
+
+- `ShirtSize::Medium` = "the Medium kind of ShirtSize"
+- `CoinFlip::Heads` = "the Heads kind of CoinFlip"
+
+
+## Part 2: Why Not Just Use Strings?
+
+You might think: "Why not just use strings?"
+
+```rust
+let my_size = "Medium";  // why not this?
+```
+
+Here's the problem. What if someone writes:
+
+```rust
+let my_size = "medium";   // lowercase m
+let my_size = "Med";      // abbreviated  
+let my_size = "Medimu";   // typo
+```
+
+Rust won't catch these mistakes. They're all valid strings. Your program might break later in confusing ways.
+
+With an enum:
+
+```rust
+let my_size = ShirtSize::Medimu;  // COMPILER ERROR! No such variant.
+```
+
+The compiler catches the mistake immediately. Before your program even runs.
+
+**Enums give you safety. The compiler protects you from invalid values.**
+
+
+
+## Part 3: Enums vs Structs 
+
+This confuses many people. Here's the clearest way to think about it:
+
+### Struct = "AND" (This thing has ALL of these)
+
+A struct says: "This thing has field A **and** field B **and** field C."
+
+```rust
+struct Person {
+    name: String,
+    age: u32,
+    email: String,
+}
+```
+
+A `Person` always has a name AND an age AND an email. All three. Every time. No exceptions.
+
+When you create a person:
+
+```rust
+let bob = Person {
+    name: String::from("Bob"),
+    age: 30,
+    email: String::from("bob@example.com"),
+};
+```
+
+Bob has all three fields. You can access `bob.name`, `bob.age`, `bob.email`. They all exist.
+
+***
+
+### Enum = "OR" (This thing is ONE of these)
+
+An enum says: "This thing is variant A **or** variant B **or** variant C."
+
+```rust
+enum PaymentMethod {
+    Cash,
+    Crypto,
+    BankTransfer,
+}
+```
+
+A `PaymentMethod` is Cash OR CreditCard OR BankTransfer. **Only one. Never two at once. Never something else.**
+
+When you create a payment method:
+
+```rust
+let how_i_paid = PaymentMethod::Cash;
+```
+
+This is Cash. It's not also CreditCard. It's just Cash.
+
+***
+
+Ask yourself this question about the thing you're modeling:
+
+**"Does this thing HAVE multiple pieces of information?"** → Use a **struct**
+
+**"Is this thing ONE OF several possibilities?"** → Use an **enum**
+
+***
+
+
+## Part 4: Checking Which Variant You Have
+
+You have an enum value. How do you check which variant it is?
+
+Use `match`:
+
+```rust
+let size = ShirtSize::Medium;
+
+match size {
+    ShirtSize::Small => println!("This is small"),
+    ShirtSize::Medium => println!("This is medium"),
+    ShirtSize::Large => println!("This is large"),
+}
+```
+
+`match` looks at the value and runs the code for whichever variant matches.
+
+
+### You Must Handle ALL Variants
+
+This is a rule. Rust forces you to handle every possibility:
+
+```rust
+match size {
+    ShirtSize::Small => println!("Small"),
+    ShirtSize::Medium => println!("Medium"),
+    // Forgot Large? COMPILER ERROR!
+}
+```
+
+Rust says: "What if it's Large? You didn't tell me what to do."
+
+This prevents bugs. You can't forget a case.
+
+
+### The Catch-All: `_`
+
+Sometimes you want to handle some cases and ignore the rest. let's explore about it a little bit more with examples.
+
+When you use `match`, Rust demands you handle **every single variant**. No exceptions.
+
+```rust
+enum ShirtSize {
+    Small,
+    Medium,
+    Large,
+}
+
+let size = ShirtSize::Medium;
+
+match size {
+    ShirtSize::Small => println!("Small"),
+    ShirtSize::Medium => println!("Medium"),
+    // Missing Large? COMPILER ERROR!
+}
+```
+
+Rust says: "What if `size` is `Large`? You didn't tell me what to do!"
+But Sometimes You Don't Care About All Of Them.
+
+Imagine you only care about `Small`. You want to do something special for `Small`, but `Medium` and `Large` should do the same thing.
+
+**The long way:**
+
+```rust
+match size {
+    ShirtSize::Small => println!("This might be too tight"),
+    ShirtSize::Medium => println!("This should fit fine"),
+    ShirtSize::Large => println!("This should fit fine"),  // same as Medium!
+}
+```
+
+This works, but we repeated ourselves. What if there were 10 variants? 20? You'd have to write the same line over and over.
+
+**The short way with `_`:**
+
+```rust
+match size {
+    ShirtSize::Small => println!("This might be too tight"),
+    _ => println!("This should fit fine"),
+}
+```
+
+The `_` means **"anything else I didn't already mention."**
+
+So this reads as:
+
+- If it's `Small` → print "This might be too tight"
+- If it's **anything else** (Medium or Large) → print "This should fit fine"
+
+
+## Part 5: Enums Can Carry Data
+
+Here's where Rust enums become special compared to other languages.
+
+Each variant can carry data inside it.
+
+
+### Example: A Simple Message System
+
+Imagine you're building a chat app. A message could be:
+- Text (needs the actual text)
+- Image (needs the file name)
+- Deleted (needs nothing, it's just deleted)
+
+```rust
+enum ChatMessage {
+    Text(String),           // carries a String inside
+    Image(String),          // carries a String (filename) inside
+    Deleted,                // carries nothing
+}
+```
+
+Creating these:
+
+```rust
+let msg1 = ChatMessage::Text(String::from("Hello!"));
+let msg2 = ChatMessage::Image(String::from("photo.jpg"));
+let msg3 = ChatMessage::Deleted;
+```
+
+All three are type `ChatMessage`. But they carry different data.
+
+
+### Getting The Data Out With `match`
+
+```rust
+fn display_message(msg: ChatMessage) {
+    match msg {
+        ChatMessage::Text(content) => {
+            println!("Text message: {}", content);
+        }
+        ChatMessage::Image(filename) => {
+            println!("Image: {}", filename);
+        }
+        ChatMessage::Deleted => {
+            println!("[This message was deleted]");
+        }
+    }
+}
+```
+
+In the pattern `ChatMessage::Text(content)`, the word `content` is a variable name YOU choose. Rust takes whatever String is inside and lets you use it as `content`.
+
+Same with `filename`, you could call it anything: `f`, `file`, `banana`. It's just a name you're giving to the data inside.
+
+
+### Variants Can Hold Multiple Pieces
+
+```rust
+enum Shape {
+    Circle(f64),                      // just radius
+    Rectangle(f64, f64),        // tuple - width and height
+    Point,                            // nothing
+}
+```
+
+Using it:
+
+```rust
+let c = Shape::Circle(5.0);
+let r = Shape::Rectangle(10.0, 20.0);
+let p = Shape::Point;
+
+match c {
+    Shape::Circle(radius) => {
+        println!("Circle with radius {}", radius);
+    }
+    Shape::Rectangle(w, h) => {
+        println!("Rectangle {}x{}", w, h);
+    }
+    Shape::Point => {
+        println!("Just a point");
+    }
+}
+```
+
+
+## Part 6: The `Option` Enum
+
+This is built into Rust. You'll use it constantly.
+
+### The Problem It Solves
+
+In many languages, any variable might be "null" (empty, no value). This causes crashes when you forget to check.
+
+```javascript
+// JavaScript example of the problem
+let user = findUser(123);  // might return null
+console.log(user.name);    // CRASH if user is null!
+```
+
+### Rust's Solution
+
+Rust has no null. Instead, when something MIGHT not have a value, you use `Option`:
+
+```rust
+enum Option<T> {
+    Some(T),   // There IS a value, here it is
+    None,      // There is NO value
+}
+```
+
+Ignore the `<T>` for now. Just know:
+- `Some(...)` means "I have a value"
+- `None` means "I have nothing"
+
+
+### Example: Finding A User
+
+```rust
+fn find_user(id: u32) -> Option<String> {
+    if id == 1 {
+        Some(String::from("Alice"))   // found her
+    } else if id == 2 {
+        Some(String::from("Bob"))     // found him
+    } else {
+        None                           // nobody with that id
+    }
+}
+```
+
+Using it:
+
+```rust
+let result = find_user(1);   // result is Some("Alice")
+let result = find_user(99);  // result is None
+```
+
+
+### You MUST Handle The None Case
+
+This is the key. You can't just use an `Option<String>` as if it were a `String`:
+
+```rust
+let maybe_user = find_user(1);
+
+// This does NOT compile:
+println!("Hello, {}", maybe_user);  // ERROR!
+```
+
+Rust says: "That might be `None`. What do you want me to print then?"
+
+You must use `match`:
+
+```rust
+let maybe_user = find_user(1);
+
+match maybe_user {
+    Some(name) => println!("Hello, {}", name),
+    None => println!("User not found"),
+}
+```
+
+Now Rust is happy. You've handled both cases.
+
+**This prevents an entire category of bugs.** You literally cannot forget to handle "no value."
+
+
+## Part 7: `if let`: A Shortcut
+
+Sometimes you only care about one variant:
+
+```rust
+let maybe_user = find_user(1);
+
+match maybe_user {
+    Some(name) => println!("Found: {}", name),
+    None => {}   // do nothing, but we have to write this
+}
+```
+
+`if let` is shorter:
+
+```rust
+if let Some(name) = maybe_user {
+    println!("Found: {}", name);
+}
+```
+
+Read it as: "IF `maybe_user` IS `Some`, THEN call the inner value `name` and run this code."
+
+If it's `None`, nothing happens.
+
+You can add `else`:
+
+```rust
+if let Some(name) = maybe_user {
+    println!("Found: {}", name);
+} else {
+    println!("Not found");
+}
+```
+
+---
+
+## The TLDR;
+
+1. **Enum = a type where you list all possible values**
+   ```rust
+   enum Direction { North, South, East, West }
+   ```
+
+2. **Use `::` to create a value**
+   ```rust
+   let dir = Direction::North;
+   ```
+
+3. **Use `match` to check which variant**
+   ```rust
+   match dir {
+       Direction::North => println!("Going up"),
+       Direction::South => println!("Going down"),
+       Direction::East => println!("Going right"),
+       Direction::West => println!("Going left"),
+   }
+   ```
+
+4. **Variants can carry data**
+   ```rust
+   enum Status {
+       Active,
+       Away(String),  // carries a reason
+   }
+   ```
+
+5. **`Option` handles "might not exist"**
+   ```rust
+   let x: Option<i32> = Some(5);
+   let y: Option<i32> = None;
+   ```
+
+6. **`if let` is a shortcut for one pattern**
+   ```rust
+   if let Some(value) = x {
+       println!("{}", value);
+   }
+   ```
+
+---
+
+Now time for some exercises:
+
+# Enum Exercises 
+
+---
+
+## Exercise 1: Basic Enum
+
+Create an enum `Direction` with four variants: `North`, `South`, `East`, `West`.
+
+Create a variable for each direction and print one of them using `{:?}` (you'll need to add `#[derive(Debug)]` above your enum).
+
+---
+
+## Exercise 2: Match Basics
+
+Using your `Direction` enum, write a function `describe(dir: Direction) -> String` that returns:
+- "Going up" for North
+- "Going down" for South
+- "Going right" for East
+- "Going left" for West
+
+Test it with at least two directions.
+
+---
+
+## Exercise 3: The Catch-All Pattern
+
+Create an enum `Day` with all seven days of the week.
+
+Write a function `is_weekend(day: Day) -> bool` that returns `true` for Saturday and Sunday, and `false` for everything else.
+
+Use the `_` catch-all pattern instead of listing all five weekdays.
+
+---
+
+## Exercise 4: Enum With Data 
+
+Create an enum `Event` with these variants:
+- `Click` that holds two `i32` values (x and y coordinates)
+- `KeyPress` that holds a `char` (the key that was pressed)
+- `Quit` that holds nothing
+
+Create one of each variant and print them using `{:?}`.
+
+---
+
+## Exercise 5: Extracting Data With Match (Revised)
+
+Using your `Event` enum from Exercise 4, write a function `handle_event(event: Event)` that:
+- For `Click`: prints "Mouse clicked at ({x}, {y})"
+- For `KeyPress`: prints "Key pressed: {key}"
+- For `Quit`: prints "Quit event received"
+
+Test with all three variants.
+
+
+---
+
+## Exercise 6: Option Basics
+
+Write a function `divide(a: i32, b: i32) -> Option<i32>` that:
+- Returns `Some(result)` if `b` is not zero
+- Returns `None` if `b` is zero (can't divide by zero)
+
+Test with:
+- `divide(10, 2)` → should be `Some(5)`
+- `divide(10, 0)` → should be `None`
+
+Use `match` to print results properly.
+
+---
+
+## Exercise 7: Option In A Struct
+
+Create a struct `Person` with:
+- `name: String`
+- `nickname: Option<String>`
+
+Create two people: one with a nickname (`Some("...")`), one without (`None`).
+
+Write a function `print_greeting(person: &Person)` that prints:
+- "Hi, {nickname}!" if they have a nickname
+- "Hi, {name}!" if they don't
+
+---
+
+## Exercise 8: if let (Revised)
+
+Create an enum `TaskStatus` with:
+- `Todo`
+- `InProgress`
+- `Blocked(String)`: holds the reason why it's blocked
+
+Write a function `check_task(status: TaskStatus)` that ONLY prints something if the task is blocked. Use `if let` instead of `match`.
+
+It should print: "Task is blocked: {reason}"
+
+Test with all three variants, only `Blocked` should print anything.
+
+
+---
+
+## Exercise 9: Combining Enums and Structs
+
+Create these types:
+
+```rust
+enum OrderStatus {
+    Pending,
+    Shipped(String),    // tracking number
+    Delivered,
+    Cancelled(String),  // reason
+}
+
+struct Order {
+    id: u32,
+    item: String,
+    status: OrderStatus,
+}
+```
+
+Write a function `describe_order(order: &Order)` that prints different messages based on status:
+- Pending: "Order #{id}: {item} - Waiting to ship"
+- Shipped: "Order #{id}: {item} - On the way! Tracking: {tracking}"
+- Delivered: "Order #{id}: {item} - Delivered!"
+- Cancelled: "Order #{id}: {item} - Cancelled: {reason}"
+
+Create orders with different statuses and call `describe_order()` on each.
+
+---
+
+## Bonus Exercise: Calculator
+
+Create this enum:
+
+```rust
+enum Operation {
+    Add(f64, f64),
+    Subtract(f64, f64),
+    Multiply(f64, f64),
+    Divide(f64, f64),
+}
+```
+
+Write a function `calculate(op: Operation) -> Option<f64>` that:
+- Returns `Some(result)` for Add, Subtract, Multiply
+- Returns `Some(result)` for Divide IF the second number is not zero
+- Returns `None` for Divide if the second number IS zero
+
+Test with:
+- `Add(10.0, 5.0)` → should be `Some(15.0)`
+- `Divide(10.0, 2.0)` → should be `Some(5.0)`
+- `Divide(10.0, 0.0)` → should be `None`
+
+Use `match` to handle both `Some` and `None` when printing.
+
+---
+

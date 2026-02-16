@@ -1,0 +1,555 @@
+---
+title: Common Collections in Rust Part 3 - Hash Maps
+date: 2025-12-16
+category: rust-core
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+This is part 3 of the Common Collections series. If you haven't already, check out the previous two topics:
+
+- [Vectors](https://www.meowy.xyz/vector.html)
+- [Strings](https://www.meowy.xyz/string-collection.html)
+
+## What Is a Hash Map?
+
+A hash map is a collection that stores **key-value pairs**. Instead of accessing data by position (like vectors), you access data by a **key**.
+
+Think of it like a real-world dictionary:
+- The **key** is the word you look up
+- The **value** is the definition you get back
+
+Or like a phone book:
+- The **key** is the person's name
+- The **value** is their phone number
+
+```rust
+// Conceptually:
+// "apple" → 3
+// "banana" → 5
+// "orange" → 2
+```
+
+You ask "what's the value for 'apple'?" and the hash map gives you `3`.
+
+### Why "Hash" Map?
+
+The "hash" part refers to how it works internally. When you give it a key like `"apple"`, it runs that key through a **hash function**, a mathematical formula that converts the key into a number. That number tells the hash map where to store (or find) the value.
+
+This is why hash maps are fast: instead of searching through every item, they calculate exactly where to look.
+
+You don't need to understand the hashing algorithm to use hash maps. Just know that it enables fast lookups.
+
+### The Type: `HashMap<K, V>`
+
+Just like `Vec<T>` holds items of type `T`, a `HashMap<K, V>` holds:
+- Keys of type `K`
+- Values of type `V`
+
+So `HashMap<String, i32>` means "keys are strings, values are integers."
+
+---
+
+## Creating Hash Maps
+
+First, you need to bring `HashMap` into scope. Unlike `Vec` and `String`, it's not automatically available:
+
+```rust
+use std::collections::HashMap;
+```
+
+### Creating an Empty Hash Map
+
+```rust
+use std::collections::HashMap;
+
+let mut scores: HashMap<String, i32> = HashMap::new();
+```
+
+Breaking this down:
+- `let mut`: mutable because we'll add items
+- `scores`: the variable name
+- `HashMap<String, i32>`: keys are `String`, values are `i32`
+- `HashMap::new()`: creates an empty hash map
+
+### Type Inference with Hash Maps
+
+Just like vectors, Rust can often infer the types:
+
+```rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+scores.insert(String::from("Blue"), 10);
+// Rust infers HashMap<String, i32> from the first insert
+```
+
+### Creating from Vectors (Collecting)
+
+You can create a hash map from two vectors, one for keys, one for values:
+
+```rust
+use std::collections::HashMap;
+
+let teams = vec![String::from("Blue"), String::from("Red")];
+let initial_scores = vec![10, 50];
+
+let scores: HashMap<_, _> = teams.into_iter().zip(initial_scores.into_iter()).collect();
+```
+
+This looks complex, so let me break it down:
+
+1. `teams.into_iter()`: turns the teams vector into an iterator (and moves ownership)
+2. `.zip(initial_scores.into_iter())`: pairs up elements: `("Blue", 10)`, `("Red", 50)`
+3. `.collect()`: gathers the pairs into a collection
+
+The `HashMap<_, _>` annotation tells Rust "collect into a HashMap, and figure out the key/value types yourself."
+
+Don't worry if this feels advanced, the most common way to build hash maps is just `insert` in a loop.
+
+---
+
+## Adding Key-Value Pairs
+
+### Using `insert`
+
+```rust
+use std::collections::HashMap;
+
+let mut inventory = HashMap::new();
+
+inventory.insert(String::from("apples"), 30);
+inventory.insert(String::from("bananas"), 15);
+inventory.insert(String::from("oranges"), 20);
+```
+
+Each `insert` adds a key-value pair. If the key already exists, the old value is **overwritten**:
+
+```rust
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Blue"), 25);  // Overwrites!
+
+// "Blue" now maps to 25, not 10
+```
+
+---
+
+## Accessing Values
+
+### Using `get`
+
+```rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Red"), 50);
+
+let team_name = String::from("Blue");
+let score = scores.get(&team_name);
+```
+
+`get` takes a **reference** to the key (`&team_name`) and returns an `Option<&V>`.
+
+Why `Option`? Because the key might not exist:
+
+```rust
+let score = scores.get(&String::from("Blue"));
+// score is Some(&10)
+
+let score = scores.get(&String::from("Green"));
+// score is None (no such key)
+```
+
+### Handling the Option
+
+Just like with vector's `.get()`, you need to handle both cases:
+
+```rust
+// Method 1: match
+match scores.get(&String::from("Blue")) {
+    Some(score) => println!("Score: {}", score),
+    None => println!("Team not found"),
+}
+
+// Method 2: if let
+if let Some(score) = scores.get(&String::from("Blue")) {
+    println!("Score: {}", score);
+}
+
+// Method 3: unwrap_or (provide default)
+let score = scores.get(&String::from("Green")).unwrap_or(&0);
+println!("Score: {}", score);  // prints 0
+```
+
+### Direct Access with `[]`
+
+You can also use bracket notation:
+
+```rust
+let score = scores[&String::from("Blue")];
+```
+
+But beware: if the key doesn't exist, your program **panics**:
+
+```rust
+let score = scores[&String::from("Green")];  // PANIC! Key not found
+```
+
+**Use `get` when:** you're not sure the key exists.
+
+**Use `[]` when:** you're certain the key exists and a missing key would be a bug.
+
+---
+
+## Iterating Over Hash Maps
+
+### Iterating Over Key-Value Pairs
+
+```rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Red"), 50);
+
+for (key, value) in &scores {
+    println!("{}: {}", key, value);
+}
+```
+
+Notice `&scores`, we're borrowing the hash map, so we can still use it after the loop.
+
+Each iteration gives you a tuple `(key, value)`, which we destructure into two variables.
+
+### Important: Order Is Not Guaranteed
+
+Unlike vectors, hash maps don't have a defined order. The items might print in any order:
+
+```rust
+// Could print:
+// Blue: 10
+// Red: 50
+
+// Or could print:
+// Red: 50
+// Blue: 10
+```
+
+If you need ordered keys, hash map isn't the right choice.
+
+---
+
+## Ownership and Hash Maps
+
+This is where Rust's ownership rules come into play.
+
+### Types That Implement `Copy`
+
+For types like `i32` that implement the `Copy` trait, values are copied into the hash map:
+
+```rust
+use std::collections::HashMap;
+
+let mut map = HashMap::new();
+
+let x = 10;
+let y = 20;
+
+map.insert(x, y);
+
+// x and y are still usable, they were copied
+println!("x = {}, y = {}", x, y);
+```
+
+### Types That Don't Implement `Copy`
+
+For owned types like `String`, the hash map **takes ownership**:
+
+```rust
+use std::collections::HashMap;
+
+let mut map = HashMap::new();
+
+let key = String::from("favorite color");
+let value = String::from("blue");
+
+map.insert(key, value);
+
+// key and value are GONE, moved into the map
+// println!("{}", key);   // ERROR: key was moved
+// println!("{}", value); // ERROR: value was moved
+```
+
+After `insert`, the hash map owns both the key and the value. You can't use `key` or `value` anymore.
+
+### Using References
+
+If you insert references, the hash map doesn't own the data:
+
+```rust
+use std::collections::HashMap;
+
+let mut map = HashMap::new();
+
+let key = String::from("favorite color");
+let value = String::from("blue");
+
+map.insert(&key, &value);
+
+// key and value are still usable
+println!("{}: {}", key, value);
+```
+
+But there's a catch: the data that the references point to must live at least as long as the hash map. This involves **lifetimes**, which you'll learn about in Chapter 10.
+
+For now, the simple rule: if you need to keep using the originals, clone them:
+
+```rust
+map.insert(key.clone(), value.clone());
+// Now both the map and your variables have their own copies
+```
+
+---
+
+## Updating Values
+
+Hash maps have several patterns for updating values.
+
+### Overwriting a Value
+
+We saw this already, `insert` replaces the old value:
+
+```rust
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Blue"), 25);  // Replaces 10 with 25
+```
+
+### Only Insert If Key Doesn't Exist
+
+Sometimes you want to add a key only if it's not already there. Use `entry` and `or_insert`:
+
+```rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+scores.insert(String::from("Blue"), 10);
+
+scores.entry(String::from("Blue")).or_insert(50);  // Does nothing, Blue exists
+scores.entry(String::from("Yellow")).or_insert(50); // Inserts Yellow → 50
+
+// scores: {"Blue": 10, "Yellow": 50}
+```
+
+Let me break down `entry` and `or_insert`:
+
+**`entry`** returns an `Entry` enum that represents a slot in the hash map, either occupied or vacant.
+
+**`or_insert`** says "if the entry is vacant, insert this value and return a mutable reference to it. If it's occupied, just return a mutable reference to the existing value."
+
+### Updating Based on the Old Value
+
+A common pattern is updating a value based on what's already there. The classic example is counting words:
+
+```rust
+use std::collections::HashMap;
+
+let text = "hello world wonderful world";
+
+let mut word_count = HashMap::new();
+
+for word in text.split_whitespace() {
+    let count = word_count.entry(word).or_insert(0);
+    *count += 1;
+}
+
+// word_count: {"hello": 1, "world": 2, "wonderful": 1}
+```
+
+Let me walk through this step by step:
+
+1. `text.split_whitespace()`: splits the string into words
+2. `word_count.entry(word)`: gets the entry for this word
+3. `.or_insert(0)`: if the word isn't in the map, insert it with count 0; either way, return a mutable reference to the count
+4. `*count += 1`: dereference and increment the count
+
+The first time we see "world":
+- `entry("world")` → vacant
+- `or_insert(0)` → inserts 0, returns `&mut 0`
+- `*count += 1` → value becomes 1
+
+The second time we see "world":
+- `entry("world")` → occupied with value 1
+- `or_insert(0)` → does nothing, returns `&mut 1`
+- `*count += 1` → value becomes 2
+
+This pattern is extremely useful for counting, grouping, and accumulating.
+
+---
+
+## Common Hash Map Methods (Quick Reference)
+
+```rust
+use std::collections::HashMap;
+
+let mut map: HashMap<String, i32> = HashMap::new();
+
+// Adding
+map.insert(String::from("key"), 10);
+
+// Accessing
+map.get(&String::from("key"));        // Returns Option<&V>
+map[&String::from("key")];            // Returns V (panics if missing)
+
+// Checking
+map.contains_key(&String::from("key")); // Returns bool
+map.is_empty();                         // Returns bool
+map.len();                              // Number of key-value pairs
+
+// Removing
+map.remove(&String::from("key"));     // Removes and returns Option<V>
+map.clear();                          // Removes all entries
+
+// Updating
+map.entry(String::from("key")).or_insert(0);  // Insert if missing
+
+// Iterating
+for (k, v) in &map { }      // Iterate over (&K, &V) pairs
+for k in map.keys() { }     // Iterate over keys only
+for v in map.values() { }   // Iterate over values only
+```
+
+---
+
+## When to Use Hash Maps
+
+**Use a hash map when:**
+- You need to look up values by a key (not by position)
+- You need fast lookups, insertions, and deletions
+- Order doesn't matter
+- You're counting occurrences of things
+- You're grouping data by some attribute
+
+**Don't use a hash map when:**
+- You need to maintain insertion order
+- You're accessing elements by numeric index
+- You need the data sorted
+
+---
+
+## The Three Collections from chapter 8 of Rust Book
+
+Now you've seen all three collections from Chapter 8:
+
+| Collection | What It Stores | Access By | Grows? |
+|------------|---------------|-----------|--------|
+| `Vec<T>` | Items of type T | Numeric index | Yes |
+| `String` | UTF-8 text | Iteration (no indexing) | Yes |
+| `HashMap<K,V>` | Key-value pairs | Key | Yes |
+
+All three store data on the heap and can grow at runtime. Each serves a different purpose:
+- Need a list of things? → Vector
+- Need to work with text? → String
+- Need to associate keys with values? → Hash Map
+
+
+## Here are some exercises for Hash Maps:
+
+---
+
+### Exercise 1: Basic Inventory
+
+Create a hash map representing a fruit shop's inventory:
+- "apples" → 50
+- "bananas" → 30
+- "oranges" → 45
+
+Print the entire inventory using a `for` loop.
+
+Then check how many bananas are in stock using `.get()` and print: `"Bananas in stock: 30"`
+
+---
+
+### Exercise 2: Safe Access
+
+You have this inventory:
+
+```rust
+let mut stock: HashMap<String, u32> = HashMap::new();
+stock.insert(String::from("notebooks"), 25);
+stock.insert(String::from("pens"), 100);
+stock.insert(String::from("erasers"), 40);
+```
+
+Write code that:
+1. Uses `.get()` to look up "pens" and prints the count
+2. Uses `.get()` to look up "pencils" (which doesn't exist), handle the `None` case by printing "Item not found"
+3. Uses `.unwrap_or()` to look up "markers" with a default of `0`
+
+---
+
+### Exercise 3: Ownership Detective
+
+This code has a problem:
+
+```rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+let team = String::from("Red");
+let score = 50;
+
+scores.insert(team, score);
+
+println!("Team: {}", team);
+println!("Score: {}", score);
+```
+
+1. Predict which `println!` will fail and explain why
+2. Fix the code so both print statements work
+
+---
+
+### Exercise 4: Word Counter
+
+Write a program that counts how many times each word appears in this sentence:
+
+```rust
+let text = "the quick brown fox jumps over the lazy dog the fox";
+```
+
+Use a hash map where keys are words and values are counts.
+
+Print the results. The output should show that "the" appears 3 times and "fox" appears 2 times.
+
+Hint: Use `.split_whitespace()`, `.entry()`, and `.or_insert()`.
+
+---
+
+### Exercise 5: Grade Book
+
+You're building a grade tracker for students.
+
+Create a `HashMap<String, Vec<u32>>` where:
+- Keys are student names
+- Values are vectors of their test scores
+
+1. Add these scores:
+   - "Alice": 85, 90, 78
+   - "Bob": 70, 88
+   - "Alice": 92 (another score for Alice)
+
+2. Write code that adds a score to a student, if the student doesn't exist yet, create them with an empty vector first, then push the score.
+
+3. Print each student's name and all their scores.
+
+Hint: `.entry().or_insert(Vec::new())` returns a mutable reference to the vector.
+
+---
+

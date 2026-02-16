@@ -1,0 +1,988 @@
+---
+title: Error Handling in Rust
+date: 2025-12-20
+category: rust-advanced
+type: notes
+tags: [rust, notes, rust-book]
+fav: false
+---
+
+
+Let's dive deep into how Rust thinks about errors. This is one of Rust's most elegant features, and understanding it will fundamentally change how you think about writing reliable code.
+
+Before we look at any code, let's understand Rust's perspective on errors.
+
+Rust divides errors into two categories based on a simple question: **Can your program reasonably recover from this?**
+
+**Recoverable errors** are problems you expect might happen and can handle gracefully. A file not existing, a network timeout, invalid user input, these are normal situations your program should handle.
+
+**Unrecoverable errors** are symptoms of bugs, things that should never happen if your code is correct. Accessing an index beyond an array's bounds, dividing by zero when your logic guaranteed the divisor wouldn't be zero, these indicate programmer mistakes.
+
+Rust gives you different tools for each category:
+
+| Error Type | Tool | What It Means |
+|------------|------|---------------|
+| Recoverable | `Result<T, E>` | "This might fail, handle it" |
+| Unrecoverable | `panic!` | "Something's deeply wrong, abort mission" |
+
+---
+
+## Part 1: Unrecoverable Errors with `panic!`
+
+### What Happens When You Panic
+
+When your program panics, it:
+1. Prints an error message
+2. **Unwinds** the stack (cleans up data from each function it's leaving)
+3. Exits the program
+
+Think of it like an emergency evacuation. The building is on fire, you're not going to carefully organize your desk, but you also don't want to leave the stove on.
+
+### Calling `panic!` Directly
+
+```rust
+fn main() {
+    panic!("Something went terribly wrong!");
+}
+```
+
+When you run this, you'll see something like:
+
+```
+thread 'main' panicked at 'Something went terribly wrong!', src/main.rs:2:5
+```
+
+This tells you exactly where the panic happened.
+
+### When Rust Panics For You
+
+Rust will panic automatically in certain situations:
+
+```rust
+fn main() {
+    let numbers = [10, 20, 30];
+    let item = numbers[99]; // This will panic!
+}
+```
+
+You'll get:
+
+```
+thread 'main' panicked at 'index out of bounds: the len is 3 but the index is 99'
+```
+
+This is Rust protecting you. In languages like C, accessing invalid memory just gives you garbage data (or worse, a security vulnerability). Rust refuses to continue with invalid operations.
+
+### Unwinding vs. Aborting: Two Ways to Handle Panic
+
+When I said "panic cleans up and exits," I was describing **unwinding**, but Rust actually gives you a choice.
+
+**Unwinding (The Default)**
+
+Imagine a stack of function calls like a stack of plates:
+
+```
+main() called →
+    process_order() called →
+        validate_payment() called →
+            panic!("Invalid card!")
+```
+
+Unwinding means Rust walks back through each function, cleaning up as it goes:
+
+1. Clean up `validate_payment`'s data
+2. Clean up `process_order`'s data  
+3. Clean up `main`'s data
+4. Exit the program
+
+This cleanup is important! It runs destructors, closes file handles, releases memory properly. It's like leaving a house, you turn off the lights, close the windows, lock the doors.
+
+**Aborting (The Alternative)**
+
+Sometimes you don't want cleanup. Maybe you need a smaller binary, or you're in an embedded system with limited resources. You can tell Rust: "On panic, just stop immediately. Don't clean up. Let the operating system deal with it."
+
+This is like a power outage, everything just stops instantly.
+
+To enable this, add to your `Cargo.toml`:
+
+```toml
+[profile.release]
+panic = 'abort'
+```
+
+Now in release builds, panics will abort immediately instead of unwinding.
+
+**Why Would You Choose Abort?**
+
+1. **Smaller binary size**: The unwinding machinery adds code to your executable
+2. **Faster panics**: Not that you want panics, but aborting is quicker
+3. **Embedded systems**: Some environments can't support unwinding
+
+For most applications, the default unwinding is what you want. It's safer and cleaner.
+
+### Reading Backtraces
+
+When a panic happens deep in your code, you need to trace back through the function calls to find where things went wrong.
+
+```rust
+fn step_one() {
+    step_two();
+}
+
+fn step_two() {
+    step_three();
+}
+
+fn step_three() {
+    panic!("Oops!");
+}
+
+fn main() {
+    step_one();
+}
+```
+
+Run with `RUST_BACKTRACE=1`:
+
+```bash
+RUST_BACKTRACE=1 cargo run
+```
+
+You'll see a full stack trace showing the chain of function calls that led to the panic. This is invaluable for debugging, it shows you exactly how your program got to the crash point.
+
+---
+
+## Part 2: Recoverable Errors with `Result`
+
+Here's where Rust really shines. Most errors are recoverable, and Rust has a beautiful type for handling them.
+
+### The `Result` Enum
+
+```rust
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
+
+This is similar to `Option`, but instead of representing "something or nothing," it represents "success with a value, or failure with an error."
+
+- `T` is the type of the success value
+- `E` is the type of the error
+
+Think of it as a box that contains either a present or a note explaining why there's no present.
+
+### A Practical Example
+
+Let's say we're building a function that divides two numbers:
+
+```rust
+fn divide(numerator: f64, denominator: f64) -> Result<f64, String> {
+    if denominator == 0.0 {
+        Err(String::from("Cannot divide by zero"))
+    } else {
+        Ok(numerator / denominator)
+    }
+}
+```
+
+Notice:
+- The return type explicitly tells callers "this might fail"
+- We return `Ok(value)` on success
+- We return `Err(error_info)` on failure
+
+### Handling `Result` with `match`
+
+```rust
+fn main() {
+    let result = divide(10.0, 2.0);
+    
+    match result {
+        Ok(answer) => println!("The answer is {}", answer),
+        Err(message) => println!("Error: {}", message),
+    }
+}
+```
+
+The compiler **forces** you to handle both cases. You can't accidentally ignore an error.
+
+### Handling `Result` from Standard Library Functions
+
+Many standard library functions return `Result`. Let's look at reading a file:
+
+```rust
+use std::fs::File;
+
+fn main() {
+    let file_result = File::open("diary.txt");
+    
+    match file_result {
+        Ok(file) => println!("File opened successfully!"),
+        Err(error) => println!("Failed to open file: {}", error),
+    }
+}
+```
+
+### Handling Different Error Types
+
+Sometimes you want to react differently based on *what* went wrong:
+
+```rust
+use std::fs::File;
+use std::io::ErrorKind;
+
+fn main() {
+    let file_result = File::open("diary.txt");
+    
+    match file_result {
+        Ok(file) => println!("Opened existing file"),
+        Err(error) => match error.kind() {
+            ErrorKind::NotFound => println!("File doesn't exist, maybe create it?"),
+            ErrorKind::PermissionDenied => println!("You don't have permission to open this"),
+            other_error => println!("Some other problem: {:?}", other_error),
+        },
+    }
+}
+```
+
+This nested matching lets you handle each error case appropriately, maybe create the file if it doesn't exist, show a permission error to the user, or log unexpected errors.
+
+### Shortcuts: `unwrap` and `expect`
+
+Writing `match` everywhere gets verbose. Rust provides shortcuts for when you want to panic on error:
+
+**`unwrap()`**: Give me the value, or panic with a generic message:
+
+```rust
+let file = File::open("config.txt").unwrap();
+```
+
+If the file doesn't exist, you get:
+
+```
+thread 'main' panicked at 'called `Result::unwrap()` on an `Err` value: ...'
+```
+
+**`expect()`**: Give me the value, or panic with MY message:
+
+```rust
+let file = File::open("config.txt").expect("Config file must exist!");
+```
+
+Now you get:
+
+```
+thread 'main' panicked at 'Config file must exist!: ...'
+```
+
+`expect` is preferred over `unwrap` because it tells future readers (including yourself) *why* this value is expected to exist.
+
+---
+
+## Part 3: Propagating Errors
+
+Often, when an error occurs in a function, you don't want to handle it there, you want to pass it back to the calling code so *they* can decide what to do.
+
+### The Verbose Way
+
+```rust
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let file_result = File::open("username.txt");
+    
+    let mut file = match file_result {
+        Ok(f) => f,
+        Err(e) => return Err(e),
+    };
+    
+    let mut username = String::new();
+    
+    match file.read_to_string(&mut username) {
+        Ok(_) => Ok(username),
+        Err(e) => Err(e),
+    }
+}
+```
+
+This pattern of "if error, return error; otherwise, continue" is so common that Rust provides a shortcut.
+
+### The `?` Operator
+
+The `?` operator does exactly what the verbose code above does:
+
+```rust
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut file = File::open("username.txt")?;
+    let mut username = String::new();
+    file.read_to_string(&mut username)?;
+    Ok(username)
+}
+```
+
+When you put `?` after a `Result`:
+- If it's `Ok(value)`, the value is extracted and execution continues
+- If it's `Err(e)`, the error is immediately returned from the function
+
+### Chaining with `?`
+
+You can make this even more concise:
+
+```rust
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut username = String::new();
+    File::open("username.txt")?.read_to_string(&mut username)?;
+    Ok(username)
+}
+```
+
+### The `?` Operator Works with `Option` Too!
+
+I showed you `?` with `Result`, but it works with `Option` too! The logic is similar:
+
+- With `Result`: If `Err`, return the error early
+- With `Option`: If `None`, return `None` early
+
+**Example: Finding a User's Country**
+
+Imagine a chain of lookups where any step might fail to find data:
+
+```rust
+struct User {
+    profile: Option<Profile>,
+}
+
+struct Profile {
+    address: Option<Address>,
+}
+
+struct Address {
+    country: Option<String>,
+}
+
+fn get_user_country(user: &User) -> Option<String> {
+    let profile = user.profile.as_ref()?;
+    let address = profile.address.as_ref()?;
+    let country = address.country.clone()?;
+    Some(country)
+}
+```
+
+Each `?` says: "If this is `None`, stop here and return `None` from the whole function. Otherwise, unwrap the value and continue."
+
+**The Verbose Equivalent**
+
+Without `?`, you'd write:
+
+```rust
+fn get_user_country(user: &User) -> Option<String> {
+    match &user.profile {
+        Some(profile) => {
+            match &profile.address {
+                Some(address) => {
+                    match &address.country {
+                        Some(country) => Some(country.clone()),
+                        None => None,
+                    }
+                }
+                None => None,
+            }
+        }
+        None => None,
+    }
+}
+```
+
+Yikes! The `?` version is so much cleaner.
+
+**Another Example: Parsing a Middle Initial**
+
+```rust
+fn get_middle_initial(full_name: &str) -> Option<char> {
+    let parts: Vec<&str> = full_name.split_whitespace().collect();
+    
+    // Get the middle name (second element), might not exist
+    let middle_name = parts.get(1)?;
+    
+    // Get the first character, might not exist (empty string edge case)
+    let initial = middle_name.chars().next()?;
+    
+    Some(initial)
+}
+
+fn main() {
+    println!("{:?}", get_middle_initial("Alice Beth Cooper")); // Some('B')
+    println!("{:?}", get_middle_initial("Alice"));              // None
+    println!("{:?}", get_middle_initial(""));                   // None
+}
+```
+
+### Important Rule About `?`
+
+You can only use `?` in functions that return `Result` (or `Option`). This won't compile:
+
+```rust
+fn main() {
+    let file = File::open("hello.txt")?; // ERROR!
+}
+```
+
+The error message will tell you that `main` returns `()` but `?` requires `Result`.
+
+You can fix this by having `main` return a `Result`:
+
+```rust
+use std::fs::File;
+use std::error::Error;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let file = File::open("hello.txt")?;
+    Ok(())
+}
+```
+
+Don't worry too much about `Box<dyn Error>` for now, just know that it's a way of saying "any kind of error."
+
+### Can You Mix `Result` and `Option` with `?`?
+
+Not directly in the same function. If your function returns `Result`, you can't use `?` on an `Option` (and vice versa).
+
+But you can convert between them:
+
+```rust
+fn find_user(id: u32) -> Result<User, String> {
+    let users = get_database();
+    
+    // .ok_or() converts Option to Result
+    let user = users.get(&id).ok_or("User not found")?;
+    
+    Ok(user.clone())
+}
+```
+
+Useful conversions:
+- `option.ok_or(error)`: Converts `Option` to `Result` (`None` becomes `Err(error)`)
+- `result.ok()`: Converts `Result` to `Option` (`Err` becomes `None`)
+
+### Automatic Error Type Conversion with `?`
+
+Here's something subtle but powerful. The `?` operator doesn't just propagate errors, it can **convert** them automatically.
+
+**The Problem**
+
+Imagine a function that might fail in two different ways:
+
+```rust
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_and_parse_number(filename: &str) -> Result<i32, ???> {
+    let mut file = File::open(filename)?;        // Could fail with io::Error
+    
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;         // Could fail with io::Error
+    
+    let number: i32 = contents.trim().parse()?;  // Could fail with ParseIntError!
+    
+    Ok(number)
+}
+```
+
+We have two different error types: `io::Error` and `ParseIntError`. What should our return type be?
+
+**Solution 1: Use a Trait Object**
+
+The simplest solution is `Box<dyn Error>`, which can hold any error type:
+
+```rust
+use std::error::Error;
+use std::fs::File;
+use std::io::Read;
+
+fn read_and_parse_number(filename: &str) -> Result<i32, Box<dyn Error>> {
+    let mut file = File::open(filename)?;
+    
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+    
+    let number: i32 = contents.trim().parse()?;
+    
+    Ok(number)
+}
+```
+
+The `?` operator automatically converts each error into a `Box<dyn Error>`. This works because both `io::Error` and `ParseIntError` implement the `Error` trait.
+
+**Solution 2: Create Your Own Error Type**
+
+For more control, you can define your own error enum:
+
+```rust
+use std::io;
+use std::num::ParseIntError;
+
+enum ReadNumberError {
+    IoError(io::Error),
+    ParseError(ParseIntError),
+}
+```
+
+**How Automatic Conversion Works: The `From` Trait**
+
+The magic behind `?` conversion is the `From` trait. When you write:
+
+```rust
+let file = File::open(filename)?;
+```
+
+And your function returns `Result<T, MyError>`, Rust does this behind the scenes:
+
+```rust
+let file = match File::open(filename) {
+    Ok(f) => f,
+    Err(e) => return Err(MyError::from(e)),  // Converts using From trait
+};
+```
+
+So if you implement `From` for your error type:
+
+```rust
+impl From<io::Error> for ReadNumberError {
+    fn from(error: io::Error) -> Self {
+        ReadNumberError::IoError(error)
+    }
+}
+
+impl From<ParseIntError> for ReadNumberError {
+    fn from(error: ParseIntError) -> Self {
+        ReadNumberError::ParseError(error)
+    }
+}
+```
+
+Now `?` will automatically convert both error types to your custom type:
+
+```rust
+fn read_and_parse_number(filename: &str) -> Result<i32, ReadNumberError> {
+    let mut file = File::open(filename)?;        // io::Error -> ReadNumberError
+    
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;         // io::Error -> ReadNumberError
+    
+    let number: i32 = contents.trim().parse()?;  // ParseIntError -> ReadNumberError
+    
+    Ok(number)
+}
+```
+
+**Why This Matters**
+
+This pattern lets you:
+1. Have a single, unified error type for your function
+2. Preserve information about what went wrong
+3. Let callers handle different error cases differently
+
+```rust
+fn main() {
+    match read_and_parse_number("count.txt") {
+        Ok(n) => println!("The number is {}", n),
+        Err(ReadNumberError::IoError(e)) => println!("File problem: {}", e),
+        Err(ReadNumberError::ParseError(e)) => println!("Not a valid number: {}", e),
+    }
+}
+```
+
+---
+
+## Part 4: When to Use What
+
+This is the wisdom part: knowing when to panic versus when to return a `Result`.
+
+### Use `panic!` When:
+
+**1. You're writing examples or prototypes**
+
+When you're exploring an idea, using `unwrap()` keeps the code simple:
+
+```rust
+fn main() {
+    let data = fetch_data().unwrap();
+    process(data);
+}
+```
+
+You can add proper error handling later.
+
+**2. You have more information than the compiler**
+
+Sometimes *you* know something can't fail, but the compiler doesn't:
+
+```rust
+let home: IpAddr = "127.0.0.1".parse().unwrap();
+```
+
+We know this is a valid IP address, it's hardcoded. If this panics, it's a bug in the standard library, not our code.
+
+**3. A bug has been detected**
+
+If your code reaches a state that should be impossible based on your logic, panic:
+
+```rust
+fn calculate_average(numbers: &[i32]) -> i32 {
+    if numbers.is_empty() {
+        panic!("Cannot calculate average of empty slice!");
+    }
+    // ... rest of calculation
+}
+```
+
+**4. Continuing would be dangerous or corrupt data**
+
+If bad input could cause data corruption or security issues, panic rather than proceeding with invalid data.
+
+### Use `Result` When:
+
+**1. Failure is expected and recoverable**
+
+Files might not exist. Networks might be down. Users might input garbage. Use `Result`:
+
+```rust
+fn load_config(path: &str) -> Result<Config, ConfigError> {
+    // ...
+}
+```
+
+**2. The calling code should decide what to do**
+
+Library functions should almost always return `Result`. Let the application decide whether a failure is fatal:
+
+```rust
+fn parse_temperature(input: &str) -> Result<f64, ParseError> {
+    // ...
+}
+```
+
+**3. You want to provide error context**
+
+`Result` lets you include information about *what* went wrong:
+
+```rust
+enum DatabaseError {
+    ConnectionFailed(String),
+    QueryTimeout { query: String, timeout_seconds: u32 },
+    RecordNotFound { id: u64 },
+}
+```
+
+---
+
+## Part 5: Creating Custom Types for Validation
+
+This is one of the most elegant patterns in Rust. Instead of checking for valid values every time you use them, you create a type that **guarantees validity by construction**.
+
+### The Problem: Repeated Validation
+
+Let's say you're building a game where players guess a number between 1 and 100:
+
+```rust
+fn process_guess(guess: i32) {
+    if guess < 1 || guess > 100 {
+        println!("Invalid guess!");
+        return;
+    }
+    // ... use the guess
+}
+
+fn compare_guess(guess: i32, secret: i32) {
+    if guess < 1 || guess > 100 {
+        println!("Invalid guess!");
+        return;
+    }
+    // ... compare
+}
+
+fn log_guess(guess: i32) {
+    if guess < 1 || guess > 100 {
+        println!("Invalid guess!");
+        return;
+    }
+    // ... log it
+}
+```
+
+See the problem? We're checking the same condition everywhere. It's:
+- **Repetitive**: Same code copy-pasted
+- **Error-prone**: Easy to forget a check
+- **Noisy**: Validation obscures the real logic
+
+### The Solution: A Validated Type
+
+Create a type that can only hold valid values:
+
+```rust
+pub struct Guess {
+    value: i32,  // Private! Nobody can set this directly
+}
+
+impl Guess {
+    pub fn new(value: i32) -> Result<Guess, String> {
+        if value < 1 || value > 100 {
+            Err(format!("Guess must be between 1 and 100, got {}", value))
+        } else {
+            Ok(Guess { value })
+        }
+    }
+    
+    pub fn value(&self) -> i32 {
+        self.value
+    }
+}
+```
+
+Key design points:
+
+1. **The `value` field is private**: No one outside can write `Guess { value: 999 }`
+2. **`new()` is the only way to create a `Guess`**: And it validates!
+3. **`new()` returns `Result`**: Invalid input gives an error, not a panic
+4. **`value()` provides read access**: Once created, you can use the value
+
+### Using the Validated Type
+
+Now your functions become simpler:
+
+```rust
+fn process_guess(guess: &Guess) {
+    // No validation needed! If we have a Guess, it's valid.
+    println!("Processing guess: {}", guess.value());
+}
+
+fn compare_guess(guess: &Guess, secret: i32) -> Ordering {
+    // Just use it confidently
+    guess.value().cmp(&secret)
+}
+
+fn log_guess(guess: &Guess) {
+    // Clean and simple
+    println!("Player guessed: {}", guess.value());
+}
+```
+
+The type system now guarantees validity. You've moved validation from "every function that uses the value" to "the single point of creation."
+
+### Where Does Validation Happen Now?
+
+At the boundary: where data enters your program:
+
+```rust
+fn main() {
+    println!("Enter your guess (1-100):");
+    
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read");
+    
+    let number: i32 = match input.trim().parse() {
+        Ok(n) => n,
+        Err(_) => {
+            println!("Please enter a number!");
+            return;
+        }
+    };
+    
+    // Validation happens once, here
+    let guess = match Guess::new(number) {
+        Ok(g) => g,
+        Err(msg) => {
+            println!("{}", msg);
+            return;
+        }
+    };
+    
+    // From here on, we work with a valid Guess
+    process_guess(&guess);
+    compare_guess(&guess, 42);
+    log_guess(&guess);
+}
+```
+
+
+### Another Example: Non-Empty Vectors
+
+```rust
+pub struct NonEmptyVec<T> {
+    items: Vec<T>,
+}
+
+impl<T> NonEmptyVec<T> {
+    pub fn new(items: Vec<T>) -> Result<NonEmptyVec<T>, String> {
+        if items.is_empty() {
+            Err(String::from("Vector cannot be empty"))
+        } else {
+            Ok(NonEmptyVec { items })
+        }
+    }
+    
+    // This can never fail because we know there's at least one item
+    pub fn first(&self) -> &T {
+        &self.items[0]  // Safe! We guaranteed non-empty
+    }
+    
+    pub fn items(&self) -> &[T] {
+        &self.items
+    }
+}
+```
+
+Notice `first()` returns `&T`, not `Option<&T>`. It returns the value directly because the type guarantees there's always at least one element.
+
+### The Philosophy
+
+This pattern embodies a powerful idea:
+
+> **Make invalid states unrepresentable.**
+
+Instead of having data that *might* be valid and checking everywhere, have data that *is* valid by construction. Validate once at the boundary, then let the type system enforce correctness throughout your program.
+
+---
+
+## Summary
+
+| Situation | Tool | Analogy |
+|-----------|------|---------|
+| Bug in my code | `panic!` | Fire alarm, evacuate immediately |
+| Expected failure | `Result` | Try-again or alternative route |
+| Prototyping | `unwrap()`/`expect()` | Temporary scaffolding |
+| Library code | `Result` | Let the customer decide |
+| Enforce validity | Custom types | Bouncer at the door |
+
+---
+
+## Quick Reference
+
+| What You Want | How To Do It |
+|---------------|--------------|
+| Crash immediately | `panic!("message")` |
+| Crash on error | `.unwrap()` or `.expect("why")` |
+| Handle success/failure | `match` on `Result` |
+| Propagate errors | `?` operator |
+| Multiple error types | `Box<dyn Error>` or custom enum |
+| Guarantee valid data | Custom validated types |
+| Convert Option → Result | `.ok_or(error)` |
+| Convert Result → Option | `.ok()` |
+
+---
+
+These 5 exercises cover: basic `Result`, the `?` operator with `Result`, the `?` operator with `Option`, validated types, and combining multiple error handling techniques. 
+---
+
+## Exercise 1: Basic Result
+
+Create a function `divide(a: f64, b: f64) -> Result<f64, String>` that:
+- Returns `Err` with a message if `b` is zero
+- Returns `Ok` with the result otherwise
+
+In `main`:
+- Call it with valid inputs and print the result
+- Call it with zero as divisor and print the error
+- Use `match` to handle both cases
+
+---
+
+## Exercise 2: Propagating Errors with `?`
+
+Create a function `parse_and_double(input: &str) -> Result<i32, ParseIntError>` that:
+- Parses the string to an `i32`
+- Doubles the value
+- Uses `?` to propagate the parsing error
+
+In `main`:
+- Test with `"21"` (should return 42)
+- Test with `"hello"` (should return error)
+- Handle both cases
+
+Hint: `input.trim().parse::<i32>()?`
+
+---
+
+## Exercise 3: Chaining with `?` on Option
+
+Create these structs:
+
+```rust
+struct Library {
+    book: Option<Book>,
+}
+
+struct Book {
+    chapter: Option<Chapter>,
+}
+
+struct Chapter {
+    title: String,
+}
+```
+
+Create a function `get_chapter_title(library: &Library) -> Option<String>` that:
+- Uses `?` to navigate through each `Option`
+- Returns the chapter title if everything exists
+- Returns `None` if any level is missing
+
+Test with:
+- A complete library (has book, has chapter)
+- A library with no book
+- A library with book but no chapter
+
+---
+
+## Exercise 4: Validated Type
+
+Create a `Percentage` struct that guarantees a value between 0 and 100:
+- Private field `value: u8`
+- `new(value: u8) -> Result<Percentage, String>`: validates the range
+- `value(&self) -> u8`: returns the value
+
+Then create a function `apply_discount(price: f64, discount: &Percentage) -> f64` that:
+- Takes a guaranteed-valid percentage
+- No validation needed inside the function!
+
+Test:
+- Create valid percentages (0, 50, 100)
+- Try to create invalid ones (101, 255)
+- Apply a discount to a price
+
+---
+
+## Exercise 5: Putting It Together
+
+Create a simple score tracker for a game:
+
+```rust
+struct Score {
+    value: u32,  // Private, must be 0-1000
+}
+```
+
+Add these:
+- `new(value: u32) -> Result<Score, String>`: rejects values over 1000
+- `value(&self) -> u32`
+- `add(&mut self, points: u32) -> Result<(), String>`: adds points but errors if it would exceed 1000
+- `from_str(input: &str) -> Result<Score, String>`: parses string to score, handles both parse errors and range errors
+
+Test:
+1. Create a score of 900
+2. Add 50 points (should work)
+3. Try to add 100 more (should error, would exceed 1000)
+4. Parse `"500"` into a score (should work)
+5. Parse `"banana"` into a score (should error)
+6. Parse `"9999"` into a score (should error, valid number but out of range)
+
+Hint for `from_str`: You'll need to handle two different error types. Either convert them to `String` errors, or use `Box<dyn Error>`.
+
+
+
