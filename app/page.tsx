@@ -135,7 +135,10 @@ export default function HomePage() {
               </LinkPreview>
               , blockchain developer nanodegree
             </li>
-            <li>educational consultant at chainlink labs</li>
+            <li>
+                educational consultant at{" "}
+                <LinkPreview href="https://dev.chain.link/certification">chainlink labs</LinkPreview>
+              </li>
           </ul>
         </section>
       </FadeIn>
