@@ -137,7 +137,7 @@ export default function HomePage() {
             </li>
             <li>
                 educational consultant at{" "}
-                <LinkPreview href="https://dev.chain.link/certification">chainlink labs</LinkPreview>
+                <LinkPreview href="https://dev.chain.link/certification" className="underline underline-offset-2">chainlink labs</LinkPreview>
               </li>
           </ul>
         </section>
