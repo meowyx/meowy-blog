@@ -10,9 +10,7 @@ import { format } from "date-fns"
 import Link from "next/link"
 
 export function generateStaticParams() {
-  return getAllSlugs().map((slug) => ({
-    slug: slug.split("/"),
-  }))
+  return getAllSlugs().map((slug) => ({ slug }))
 }
 
 export const dynamicParams = false
@@ -20,11 +18,10 @@ export const dynamicParams = false
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string[] }>
+  params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const slugStr = slug.join("/")
-  const post = getPostBySlug(slugStr)
+  const post = getPostBySlug(slug)
   if (!post) return { title: "Post Not Found" }
 
   return {
@@ -36,11 +33,10 @@ export async function generateMetadata({
 export default async function BlogPostPage({
   params,
 }: {
-  params: Promise<{ slug: string[] }>
+  params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const slugStr = slug.join("/")
-  const post = getPostBySlug(slugStr)
+  const post = getPostBySlug(slug)
   if (!post) notFound()
 
   return (

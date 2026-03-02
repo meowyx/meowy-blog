@@ -18,33 +18,13 @@ export interface Post extends PostMeta {
 
 const POSTS_DIR = path.join(process.cwd(), "content", "posts")
 
-function findMdxFiles(dir: string): string[] {
-  if (!fs.existsSync(dir)) return []
-  const entries = fs.readdirSync(dir, { withFileTypes: true })
-  const files: string[] = []
+export function getAllPosts(): PostMeta[] {
+  if (!fs.existsSync(POSTS_DIR)) return []
+  const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith(".mdx"))
 
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name)
-    if (entry.isDirectory()) {
-      files.push(...findMdxFiles(fullPath))
-    } else if (entry.name.endsWith(".mdx")) {
-      files.push(fullPath)
-    }
-  }
-  return files
-}
-
-function filePathToSlug(filePath: string): string {
-  const relative = path.relative(POSTS_DIR, filePath)
-  return relative.replace(/\.mdx$/, "").replace(/\\/g, "/")
-}
-
-export function getAllPosts(filterType?: string): PostMeta[] {
-  const files = findMdxFiles(POSTS_DIR)
-
-  const posts = files.map((filePath) => {
-    const slug = filePathToSlug(filePath)
-    const fileContent = fs.readFileSync(filePath, "utf-8")
+  const posts = files.map((file) => {
+    const slug = file.replace(/\.mdx$/, "")
+    const fileContent = fs.readFileSync(path.join(POSTS_DIR, file), "utf-8")
     const { data } = matter(fileContent)
 
     return {
@@ -58,11 +38,7 @@ export function getAllPosts(filterType?: string): PostMeta[] {
     } as PostMeta
   })
 
-  const filtered = filterType
-    ? posts.filter((p) => p.type === filterType)
-    : posts
-
-  return filtered.sort(
+  return posts.sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   )
 }
@@ -87,6 +63,9 @@ export function getPostBySlug(slug: string): Post | undefined {
 }
 
 export function getAllSlugs(): string[] {
-  const files = findMdxFiles(POSTS_DIR)
-  return files.map((f) => filePathToSlug(f))
+  if (!fs.existsSync(POSTS_DIR)) return []
+  return fs
+    .readdirSync(POSTS_DIR)
+    .filter((f) => f.endsWith(".mdx"))
+    .map((f) => f.replace(/\.mdx$/, ""))
 }

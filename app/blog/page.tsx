@@ -3,28 +3,18 @@ import Link from "next/link"
 import { getAllPosts } from "@/lib/posts"
 import { format } from "date-fns"
 import { FadeIn } from "@/components/fade-in"
-import { BookOpen } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "Blog",
 }
 
 export default function BlogPage() {
-  const posts = getAllPosts("posts")
+  const posts = getAllPosts()
 
   return (
     <div>
       <FadeIn>
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-xl font-semibold">meowy&apos;s blogs</h1>
-          <Link
-            href="/learning"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            title="Learning mode"
-          >
-            <BookOpen className="size-5" />
-          </Link>
-        </div>
+        <h1 className="text-xl font-semibold mb-8">meowy&apos;s blogs</h1>
       </FadeIn>
 
       <ul className="space-y-3">
@@ -45,6 +35,18 @@ export default function BlogPage() {
             </li>
           </FadeIn>
         ))}
+
+        <FadeIn delay={posts.length * 50}>
+          <li
+            className="group relative text-muted-foreground/40 cursor-default flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3"
+            title="coming soon"
+          >
+            <span>Building a Real-Time Courier Assignment Service in Rust</span>
+            <span className="shrink-0 text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+              coming soon
+            </span>
+          </li>
+        </FadeIn>
       </ul>
     </div>
   )

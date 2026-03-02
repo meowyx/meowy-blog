@@ -6,7 +6,7 @@ import { LinkPreview } from "@/components/link-preview"
 export const metadata: Metadata = {
   title: "Sushmita R. (aka meowy)",
   description:
-    "Frontend engineer and Solana developer, focused on building polished, high-performance interfaces and developer tools.",
+    "Software engineer, focused on building polished, high-performance systems and developer tools.",
 }
 
 export default function HomePage() {
@@ -23,8 +23,8 @@ export default function HomePage() {
           <h2 className="text-sm text-muted-foreground mb-3">me</h2>
           <ul className="list-disc pl-5 space-y-2 leading-relaxed">
             <li>
-              frontend engineer and solana developer, focused on building
-              polished, high-performance interfaces and developer tools
+              software engineer, focused on building polished,
+              high-performance systems and developer tools
             </li>
             <li>deep focus in ux and visual craft</li>
             <li>
@@ -45,7 +45,7 @@ export default function HomePage() {
               published sdk author, former devrel engineer at consensys
             </li>
             <li>
-              building with next.js, react native, rust, typescript, anchor,
+              building with rust, typescript, next.js, react native, anchor,
               and @solana/kit
             </li>
           </ul>
@@ -88,10 +88,57 @@ export default function HomePage() {
               </LinkPreview>
             </li>
             <li>
-              open to collaborating with anyone building or educating about
-              solana
+              open to collaborating with anyone building or educating about rust, solana, and web3
             </li>
           </ul>
+
+          <div className="-mx-6 mt-6 flex gap-4 overflow-x-auto px-6 pb-4 scrollbar-hide">
+            <a
+              href="https://github.com/meowyx/dispatch-router"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-none w-72 border border-border rounded-lg p-4 hover:border-foreground/20 transition-colors"
+            >
+              <h3 className="font-medium text-sm">dispatch-router</h3>
+              <p className="text-sm text-muted-foreground mt-1.5 line-clamp-3">
+                real-time delivery assignment service with task-to-worker matching
+                with scoring algorithms, gRPC, and axum
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-3">
+                rust · tokio · axum · tonic · dashmap · prometheus
+              </p>
+            </a>
+            <a
+              href="https://github.com/meowyx/router-flow"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-none w-72 border border-border rounded-lg p-4 hover:border-foreground/20 transition-colors"
+            >
+              <h3 className="font-medium text-sm">router-flow</h3>
+              <p className="text-sm text-muted-foreground mt-1.5 line-clamp-3">
+                distributed logistics simulator with 4 microservices communicating
+                via gRPC with opentelemetry tracing and prometheus observability
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-3">
+                rust · tonic · tokio · ratatui · postgresql · prometheus
+              </p>
+            </a>
+            <a
+              href="https://github.com/meowyx/solana-contest-platform"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-none w-72 border border-border rounded-lg p-4 hover:border-foreground/20 transition-colors"
+            >
+              <h3 className="font-medium text-sm">solarena</h3>
+              <p className="text-sm text-muted-foreground mt-1.5 line-clamp-3">
+                decentralized contest platform on solana with escrow, multisig
+                judging, and gas-free submissions
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-3">
+                anchor · rust · next.js
+              </p>
+            </a>
+          </div>
         </section>
       </FadeIn>
 
@@ -136,9 +183,9 @@ export default function HomePage() {
               , blockchain developer nanodegree
             </li>
             <li>
-                educational consultant at{" "}
-                <LinkPreview href="https://dev.chain.link/certification" className="underline underline-offset-2">chainlink labs</LinkPreview>
-              </li>
+              educational consultant at{" "}
+              <LinkPreview href="https://dev.chain.link/certification" className="underline underline-offset-2">chainlink labs</LinkPreview>
+            </li>
           </ul>
         </section>
       </FadeIn>
