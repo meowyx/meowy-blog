@@ -105,7 +105,7 @@ export default function HomePage() {
                 with scoring algorithms, gRPC, and axum
               </p>
               <p className="text-xs text-muted-foreground/60 mt-3">
-                rust · tokio · axum · tonic · dashmap · prometheus
+                rust · tokio · axum · tonic
               </p>
             </a>
             <a
@@ -120,7 +120,7 @@ export default function HomePage() {
                 via gRPC with opentelemetry tracing and prometheus observability
               </p>
               <p className="text-xs text-muted-foreground/60 mt-3">
-                rust · tonic · tokio · ratatui · postgresql · prometheus
+                rust · tonic · tokio · ratatui
               </p>
             </a>
             <a
@@ -129,7 +129,7 @@ export default function HomePage() {
               rel="noopener noreferrer"
               className="flex-none w-72 border border-border rounded-lg p-4 hover:border-foreground/20 transition-colors"
             >
-              <h3 className="font-medium text-sm">solarena</h3>
+              <h3 className="font-medium text-sm">sol-arena</h3>
               <p className="text-sm text-muted-foreground mt-1.5 line-clamp-3">
                 decentralized contest platform on solana with escrow, multisig
                 judging, and gas-free submissions
@@ -163,7 +163,7 @@ export default function HomePage() {
               <h3 className="font-medium text-sm">pinocchio-escrow</h3>
               <p className="text-sm text-muted-foreground mt-1.5 line-clamp-3">
                 native solana token escrow program built with pinocchio. no
-                anchor, no borsh — raw account manipulation with minimal compute
+                anchor, no borsh, raw account manipulation with minimal compute
                 overhead for two-party token swaps
               </p>
               <p className="text-xs text-muted-foreground/60 mt-3">
