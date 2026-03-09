@@ -26,7 +26,6 @@ export default function HomePage() {
               software engineer, focused on building polished,
               high-performance systems and developer tools
             </li>
-            <li>deep focus in ux and visual craft</li>
             <li>
               been diving deep into rust, solana internals, pinocchio, and
               low-level systems programming
@@ -57,8 +56,18 @@ export default function HomePage() {
           <h2 className="text-sm text-muted-foreground mb-3">current</h2>
           <ul className="list-disc pl-5 space-y-2 leading-relaxed">
             <li>
-              freelance software engineer, building performance-critical
-              blockchain infrastructure for web3 projects
+              software engineer, building real-time backend services and
+              distributed systems in rust
+            </li>
+            <li>
+              built dispatch-router, a real-time delivery assignment service
+              with weighted scoring, gRPC streaming, and a live websocket
+              dashboard
+            </li>
+            <li>
+              built router-flow, a distributed logistics simulator with 4 rust
+              microservices communicating via gRPC with a terminal-based live
+              dashboard
             </li>
             <li>
               co-founder of{" "}
@@ -88,7 +97,8 @@ export default function HomePage() {
               </LinkPreview>
             </li>
             <li>
-              open to collaborating with anyone building or educating about rust, solana, and web3
+              open to collaborating with anyone building or educating about
+              rust, solana, and web3
             </li>
           </ul>
 
