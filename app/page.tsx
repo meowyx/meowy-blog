@@ -31,17 +31,10 @@ export default function HomePage() {
               low-level systems programming
             </li>
             <li>
-              core contributor to solana foundation open-source projects,
-              second-highest contributor to{" "}
-              <LinkPreview
-                href="https://github.com/solana-foundation/solana-com"
-                className="underline underline-offset-2"
-              >
-                solana-foundation/templates
-              </LinkPreview>
+              contributor to open-source projects
             </li>
             <li>
-              published sdk author, former devrel engineer at consensys
+              published sdk author, former devrel engineer at consensys, gaia and developer dao
             </li>
             <li>
               building with rust, typescript, next.js, react native, anchor,
