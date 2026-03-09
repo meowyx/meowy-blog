@@ -105,7 +105,7 @@ export default function HomePage() {
                 with scoring algorithms, gRPC, and axum
               </p>
               <p className="text-xs text-muted-foreground/60 mt-3">
-                rust · tokio · axum · tonic
+                rust · tokio · axum · tonic · dashmap
               </p>
             </a>
             <a
@@ -120,7 +120,7 @@ export default function HomePage() {
                 via gRPC with opentelemetry tracing and prometheus observability
               </p>
               <p className="text-xs text-muted-foreground/60 mt-3">
-                rust · tonic · tokio · ratatui
+                rust · tonic · tokio · ratatui · dashmap
               </p>
             </a>
             <a
