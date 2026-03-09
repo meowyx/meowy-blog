@@ -138,6 +138,38 @@ export default function HomePage() {
                 anchor · rust · next.js
               </p>
             </a>
+            <a
+              href="https://github.com/meowyx/pinocchio-fundraiser"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-none w-72 border border-border rounded-lg p-4 hover:border-foreground/20 transition-colors"
+            >
+              <h3 className="font-medium text-sm">pinocchio-fundraiser</h3>
+              <p className="text-sm text-muted-foreground mt-1.5 line-clamp-3">
+                native solana fundraiser program built with pinocchio. create
+                fundraisers with targets and deadlines, back with tokens, claim
+                funds or refunds
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-3">
+                rust · solana · pinocchio
+              </p>
+            </a>
+            <a
+              href="https://github.com/meowyx/pinocchio-escrow"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-none w-72 border border-border rounded-lg p-4 hover:border-foreground/20 transition-colors"
+            >
+              <h3 className="font-medium text-sm">pinocchio-escrow</h3>
+              <p className="text-sm text-muted-foreground mt-1.5 line-clamp-3">
+                native solana token escrow program built with pinocchio. no
+                anchor, no borsh — raw account manipulation with minimal compute
+                overhead for two-party token swaps
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-3">
+                rust · solana · pinocchio
+              </p>
+            </a>
           </div>
         </section>
       </FadeIn>
