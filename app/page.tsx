@@ -53,14 +53,13 @@ export default function HomePage() {
               distributed systems in rust
             </li>
             <li>
-              built dispatch-router, a real-time delivery assignment service
-              with weighted scoring, gRPC streaming, and a live websocket
-              dashboard
+              built mewtui, a terminal-based code editor in rust with a live
+              shell, syntax highlighting, and 20 switchable themes
             </li>
             <li>
-              built router-flow, a distributed logistics simulator with 4 rust
-              microservices communicating via gRPC with a terminal-based live
-              dashboard
+              built dispatch-router and router-flow — real-time delivery
+              assignment and distributed logistics simulation services in rust
+              with gRPC, weighted scoring, and live dashboards
             </li>
             <li>
               co-founder of{" "}
@@ -102,7 +101,7 @@ export default function HomePage() {
               rel="noopener noreferrer"
               className="flex-none w-72 border border-border rounded-lg p-4 hover:border-foreground/20 transition-colors"
             >
-              <h3 className="font-medium text-sm">mewtui-editor</h3>
+              <h3 className="font-medium text-sm">mewtui</h3>
               <p className="text-sm text-muted-foreground mt-1.5 line-clamp-3">
                 a three-pane terminal code editor built in rust. shell on the
                 left, code editor in the middle, file tree on the right. runs
