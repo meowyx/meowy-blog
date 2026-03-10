@@ -97,6 +97,22 @@ export default function HomePage() {
 
           <div className="-mx-6 mt-6 flex gap-4 overflow-x-auto px-6 pb-4 scrollbar-hide">
             <a
+              href="https://github.com/meowyx/mewtui-editor"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-none w-72 border border-border rounded-lg p-4 hover:border-foreground/20 transition-colors"
+            >
+              <h3 className="font-medium text-sm">mewtui-editor</h3>
+              <p className="text-sm text-muted-foreground mt-1.5 line-clamp-3">
+                a three-pane terminal code editor built in rust. shell on the
+                left, code editor in the middle, file tree on the right. runs
+                inside your existing terminal
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-3">
+                rust · ratatui · crates.io
+              </p>
+            </a>
+            <a
               href="https://github.com/meowyx/dispatch-router"
               target="_blank"
               rel="noopener noreferrer"
