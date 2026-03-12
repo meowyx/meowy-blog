@@ -80,7 +80,7 @@ export default function MeowPage() {
 
         {/* Scrolling track */}
         <div
-          className="flex animate-film-scroll hover:[animation-play-state:paused]"
+          className="flex w-max animate-film-scroll hover:[animation-play-state:paused]"
           style={{ animationPlayState: paused ? "paused" : undefined }}
         >
           {loopImages.map((image, i) => (
