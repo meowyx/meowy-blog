@@ -57,7 +57,7 @@ export default function MeowPage() {
           <p>
             this is <span className="text-foreground font-medium">piku</span>, short for pikachu.
           </p>
-          <p>born august 27, 2018. very picky eater.</p>
+          <p>born august 27, 2018. very picky eater. loves snacks more than his actual food.</p>
         </motion.div>
       </div>
 
