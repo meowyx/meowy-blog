@@ -6,7 +6,7 @@ import { LinkPreview } from "@/components/link-preview"
 export const metadata: Metadata = {
   title: "Sushmita R. (aka meowy)",
   description:
-    "Software engineer, focused on building polished, high-performance systems and developer tools.",
+    "Backend engineer building high-performance systems and infrastructure in Rust.",
 }
 
 export default function HomePage() {
@@ -23,22 +23,24 @@ export default function HomePage() {
           <h2 className="text-sm text-muted-foreground mb-3">me</h2>
           <ul className="list-disc pl-5 space-y-2 leading-relaxed">
             <li>
-              software engineer, focused on building polished,
-              high-performance systems and developer tools
+              backend engineer building high-performance systems and
+              infrastructure in rust
             </li>
             <li>
-              been diving deep into rust, solana internals, pinocchio, and
-              low-level systems programming
+              focused on distributed systems, real-time services, and
+              observability
             </li>
             <li>
-              contributor to open-source projects
+              4+ years shipping production software, 7+ apps deployed across
+              solana and ethereum
             </li>
             <li>
-              published sdk author, former devrel engineer at consensys, gaia and developer dao
+              open-source contributor, published sdk author, former devrel
+              engineer at consensys, gaia, and developer dao
             </li>
             <li>
-              building with rust, typescript, next.js, react native, anchor,
-              and @solana/kit
+              building with rust, tokio, axum, tonic, grpc, typescript, and
+              next.js
             </li>
           </ul>
         </section>
@@ -49,7 +51,7 @@ export default function HomePage() {
           <h2 className="text-sm text-muted-foreground mb-3">current</h2>
           <ul className="list-disc pl-5 space-y-2 leading-relaxed">
             <li>
-              software engineer, building real-time backend services and
+              building real-time backend services, event pipelines, and
               distributed systems in rust
             </li>
             <li>
@@ -89,8 +91,8 @@ export default function HomePage() {
               </LinkPreview>
             </li>
             <li>
-              open to collaborating with anyone building or educating about
-              rust, solana, and web3
+              open to collaborating on rust infrastructure, systems tooling,
+              and solana/web3 projects
             </li>
           </ul>
 
