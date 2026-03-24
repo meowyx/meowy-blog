@@ -1,0 +1,232 @@
+---
+title: My Second Brain Runs on 21 Slash Commands and a Terminal
+date: 2026-03-24
+category: productivity
+type: posts
+tags: [obsidian, claude-code, productivity, ADHD]
+fav: true
+---
+
+I have ADHD. I'm learning Rust. I'm building a 3-project portfolio to land a backend engineering job. I'm writing blog posts, shipping social content, and trying to keep my life organized while doing all of it.
+
+My Obsidian vault was a mess. Notes everywhere, no structure, no system. I'd open it and feel overwhelmed instead of organized. So I sat down with Claude Code and built something that actually works for my brain.
+
+This is the story of how I went from a chaotic notes folder to a full productivity OS powered by 21 custom slash commands, a mission-centered vault structure, and custom CSS that makes me actually want to open it.
+
+---
+
+## The Problem
+
+I had notes scattered everywhere. A job plan in one folder, project ideas in another, daily notes that were just stream-of-consciousness dumps with no structure. Blog drafts mixed with social post ideas. Learning notes from three different topics all in one flat folder.
+
+Every time I opened Obsidian, I didn't know where to start. For someone with ADHD, that's the death of productivity. If the system doesn't guide you, you just stare at it.
+
+I needed something that would:
+
+1. Tell me what to work on right now
+2. Know what my goals are without me re-explaining every time
+3. Capture my thoughts fast when ideas are flying
+4. Review my day without making me feel guilty about what I didn't do
+5. Look good enough that I actually want to open it
+
+---
+
+## Step 1: The Vault Structure
+
+I went from a flat mess to numbered folders with clear purposes:
+
+| Folder | Purpose |
+|--------|---------|
+| `00 Inbox` | Quick capture, unsorted thoughts |
+| `10 Daily` | Daily notes, reflections |
+| `20 Projects` | Active projects, ideas, archive |
+| `30 Learn` | Rust, systems design, concepts |
+| `40 Reading` | Papers, articles, books |
+| `50 Blog` | Ideas > Drafts > Published |
+| `60 Social` | Ideas > Drafts > Published |
+| `70 Career` | Mission, resume, interview prep |
+| `80 Explore` | Research rabbit holes |
+| `99 Meta` | Templates, system files |
+
+The thing that actually made this work? **Status subdirectories.** Blog posts aren't just in a Blog folder. They flow through Ideas > Drafts > Published. I open the folder and I immediately know what's in progress and what's done. Same for Social posts. No more "wait, did I already publish this?"
+
+Each project gets its own folder with an overview file that has milestones as checkboxes. I can see at a glance how far along I am.
+
+---
+
+## Step 2: The Mission File
+
+Everything I built runs off one file: `_MISSION.md`, it can be totally different for you.
+
+Whatever you're working toward something like, shipping a SaaS, learning a new language, job hunting, building a portfolio - put it in one file. Your goals, your milestones, what your daily routine looks like. All in one place.
+
+Mine lives in my Career folder, named with an underscore so it sorts to the top. It has weekly milestones, a daily routine structure, and content angles tied to what I'm building. Your mission will look completely different. And that's the point.
+
+Every slash command I built reads this file first. `/today` checks what milestone is due this week. `/close-day` compares my day against what the plan said. `/drift` looks at 30-60 days and tells me honestly where I've drifted.
+
+The plan drives everything. Not in a rigid way. In a "here's what you said matters to you, let's check in" way.
+
+**Your mission file could be:**
+- A 12-week SaaS launch plan with weekly shipping goals
+- A learning roadmap for a new stack with daily study blocks
+- A job search plan with portfolio milestones and outreach targets
+- A freelance plan with client work, content, and skill-building blocks
+
+Doesn't matter what format you use. One file, one source of truth, and every tool you build reads it first.
+
+---
+
+## Step 3: The Slash Commands
+
+So Claude Code has this feature where you can build custom slash commands and thats just called "skills." They're just markdown files with instructions that Claude follows. I made 21 of them. They live in `~/.claude/skills/` and work from any directory on my machine. Every single one reads my mission file first and writes straight to my Obsidian vault.
+
+I'm not going to list all 21. I'll show you the ones that changed how I work.
+
+**`/today` - my morning briefing.** I open my terminal, type `/today`, and it tells me what week I'm on, what's due, what I did yesterday, and gives me my top 3 for today. I don't have to think about what to do. It already knows.
+
+**`/brain-dump` - my favorite.** I just talk. Ideas, tasks, random thoughts, whatever's flying around in my head. It captures everything and sorts it into the right vault folders automatically. I don't organize anything myself. It just does it.
+
+**`/brainstorm` - my thinking partner.** This one's different from brain dump. I say `/brainstorm Knowledge Chain` and it reads all the existing project docs first, then has a real conversation with me. It pushes back, asks questions, connects dots. When the thinking lands somewhere, it captures and updates the right docs. Brain dump is fast capture. Brainstorm is deep thinking.
+
+**`/focus` - for when I'm scattered.** It asks my energy level and gives me **one** thing to do. Not three options. Not a list. One thing with a tiny first step. For ADHD, this is everything.
+
+**`/reflect` - just for processing.** No sorting, no coaching, no advice. I talk, it writes my words exactly as I said them. Just: "Written down." Sometimes you don't need a system. You just need to be heard.
+
+**`/ghost` - this one's wild.** It answers questions the way I would, using my vault as source material. I type `/ghost Why do you want to work at this company?` and it builds the answer from my actual notes and experiences. Amazing for interview prep.
+
+The rest cover shipping content, tracking projects, running learning sessions, reviewing my week, and checking my job search progress. Every command reads my mission file first. They're not generic productivity tools. They're **my** tools, built around **my** plan.
+
+<Collapsible title="Full list of all 21 commands">
+
+**Daily Rhythm**
+
+`/context` -Bootstraps any session by reading my mission file, resume, active project, recent daily notes, and content pipeline. Claude gets the full picture of who I am, what week I'm on, and what's in progress. I run this first so I don't have to re-explain myself every time.
+
+`/today` -Morning briefing. Reads the mission plan, checks what milestone is due this week, looks at yesterday's note, and gives me my top 3 priorities with daily time blocks. Frames everything as choices, not obligations.
+
+`/close-day` -End-of-day review. Shows what I actually won today (even tiny things), checks milestone progress against the plan, surfaces action items that carried forward, and seeds tomorrow with one thing to start with. Can update project checkboxes if I completed something.
+
+`/weekly-review` -Compares the whole week against the plan. Shows a Plan vs Reality table, traffic-light status on goals, patterns in my energy and focus, and sets 3 intentions for next week. Saves the review as a note.
+
+**When You're Stuck**
+
+`/focus` -Asks one question: what's your energy level? Then gives me ONE thing to do with a tiny first step. High energy gets a project milestone. Low energy gets inbox processing or note cleanup. No lists, no options, just one thing. This is the most ADHD-friendly command I have.
+
+`/quick-win` -Scans for small tasks under 15 minutes. Unsorted inbox items, drafts missing frontmatter, learning notes to review. Gives me 3-5 options that feel satisfying to complete. Great for building momentum when I can't face the big stuff.
+
+`/brain-dump` -I just talk and it figures out where things go. Has two modes: if I'm listing things ("add this task, save this idea"), it captures fast and sorts into vault folders with proper frontmatter. If I'm thinking out loud ("I wonder if..."), it switches to conversation mode and helps me explore before capturing.
+
+`/inbox-process` -Reads everything in my Inbox folder, builds a suggestion table showing where each item should go (Projects, Learning, Blog, Career, etc.), waits for my confirmation, then moves everything. I never manually sort notes.
+
+**Thinking & Reflection**
+
+`/brainstorm` -My deep thinking partner. Different from brain-dump. I say `/brainstorm Knowledge Chain` and it reads all the existing project docs first, then has a real conversation. It pushes back on gaps, asks hard questions, connects dots to other notes, plays devil's advocate. When the thinking lands somewhere concrete, it offers to capture. It doesn't force-save mid-thought.
+
+`/reflect` -Pure listener. I talk, it writes my exact words to a reflection file. No sorting, no coaching, no "have you considered..." Just captures and says "Written down." Sometimes you don't need a system. You just need to be heard.
+
+`/drift` -The honest mirror. Compares 30-60 days of daily notes against the mission plan and shows where I've drifted. Which daily routine blocks am I skipping? Which projects are behind? What am I avoiding? Frames everything as information, not failure. "Drift is normal. Noticing it is the win."
+
+`/ghost` -Answers questions the way I would by reading my voice file, reflections, resume, blog drafts, and learning notes. I use it for interview prep: `/ghost Why do you want to work at this company?` and it builds an authentic answer from my actual vault. Even rates its confidence that it sounds like me.
+
+`/ideas` -Deep vault scan across all folders from the last 30 days. Finds cross-domain patterns: "You're learning about distributed systems AND building a log pipeline, here's a blog post that covers both." Generates content ideas, project ideas, and unexpected connections. Caps at 5-7 to avoid overwhelm.
+
+**Shipping**
+
+`/ship-article` -Multi-stage writing support. With no argument, lists all articles across Ideas/Drafts/Published with what each one needs next. With an article name, it assesses the current stage and helps me write, structure, or polish. Moves files between folders as status changes.
+
+`/ship-social` -Creates platform-specific content. Twitter threads with hooks and CTAs under 280 chars, LinkedIn posts with story arcs. Scans recent notes and projects to suggest post ideas if I don't have a topic. Keeps drafts in workflow until published.
+
+`/learned` -After learning something, generates three writing formats from the same topic: a tweet/thread, a blog post (800-1200 words), and a deep essay (2000+ words). All grounded in my actual vault notes and project work, not generic explanations.
+
+`/read-note` -Structured capture after reading a paper, article, or book. Fetches the URL, generates a summary with 3 key takeaways, and connects it to my current work. Saves to the right subfolder in Reading with proper frontmatter.
+
+**Strategy**
+
+`/project-status` -Dashboard of all active projects. Shows a table with phase, milestone progress (counts actual checkboxes in overview files), current week's deliverable, and blockers. Also lists parked project ideas. Single-pane view of all portfolio work.
+
+`/job-pulse` -Maps my portfolio against job requirements. Shows where I am in the 16-week plan, what evidence I have for each requirement, and where the gaps are. Frames gaps as opportunities. Always ends with one genuinely impressive thing as a confidence booster.
+
+`/learn-session` -Connects to whatever the mission plan says I should study this week. Offers four session types: recall drills (15-20 min), new concept (30-45 min), apply-it coding exercise (25 min), or systems deep dive (45-60 min). Always ties learning back to the current project.
+
+**Meta**
+
+`/obsidian-commands` -Quick reference card of all 21 commands. Just prints the table, no extra commentary.
+
+</Collapsible>
+
+---
+
+## Step 4: The ADHD Design Philosophy
+
+When I was building these skills I set some ground rules for how they should talk to me.
+
+<DesignPrinciples />
+
+---
+
+## Step 5: The Daily Note
+
+I've worked on bunch of different daily notes template. Headers, checkboxes, HTML comments, habit trackers. Every single one felt like a form I had to fill out. I'd open it and feel pressure instead of clarity.
+
+What finally worked: **breathing room.** My daily note is mostly empty space. A one-line context at the top, a small callout for today's focus, open space to write whatever I want, and three quick wrap-up questions at the end.
+
+That's it. No habit trackers. No weekly grids with empty boxes staring at me. Just today. It feels like a journal, not a spreadsheet.
+
+---
+
+## Step 6: Making It Beautiful
+
+I didn't think this would matter as much as it did. I have ADHD. If something doesn't look good, I won't open it. I would get bored and so on.
+
+I use the Minimal theme with the Flexoki color scheme and a custom CSS snippet that styles everything with a warm amber accent:
+
+- **Headings** in amber with subtle underlines
+- **Bold text** in warm gold
+- **Horizontal rules** that fade at the edges
+- **Callouts** with soft backgrounds
+- **Tags** as warm pills
+- **Checkboxes** that turn amber when checked
+- **Inline code** with a bordered highlight style
+
+For the sidebar, every folder has a unique color with a left border stripe and a subtle tinted background. When you expand a folder, the children have a matching colored line running down the side so you can see what belongs where.
+
+The folder colors aren't random. They're vibrant enough to be energizing but cohesive enough to not feel like a rainbow exploded. Blue for Inbox, amber for Daily, green for Projects, cyan for Learn, purple for Reading, orange for Blog, pink for Social, red for Career, teal for Explore.
+
+I spent way too long tweaking these colors. It was worth it. I open Obsidian now and it feels like **my** space. Not a default app, but my second brain.
+
+---
+
+## Step 7: The Real-World Workflow
+
+How my ideal low-energy day might look like, yours is completely your own. I'm just sharing my experience.
+
+**Morning:** I open Claude Code from wherever I am and type `/today`. It reads my mission, checks what week I'm on, looks at yesterday's note, and gives me a briefing. I pick what feels right and start.
+
+**During the day:** If I have a random idea, I run `/brain-dump` and just talk. It sorts everything. If I feel scattered, `/focus` gives me one thing. If I just read something interesting, `/read-note` captures it with structure.
+
+**For my website:** I pulled my project details, current work, and portfolio data straight from my Obsidian vault to update my personal site. The vault is the source of truth for everything.
+
+**End of day:** I run `/close-day`. It shows me what I won, what's carrying forward, and what to start with tomorrow. No guilt about what didn't happen. Just an honest, warm review.
+
+**Sunday:** `/weekly-review` compares the whole week against the plan. Where am I? Am I on track? What patterns showed up?
+
+**Monthly:** `/drift` is the honest mirror. Am I doing what I said I'd do? Where am I avoiding? It frames everything as information, not failure.
+
+---
+
+## What I'd Tell You
+
+If you have ADHD and you're trying to be productive with Obsidian, stop trying to build the perfect system. Build a system that's perfect for **your** brain.
+
+For me that meant:
+- No empty checkbox grids staring at me
+- Colors that make me want to open the app
+- Slash commands that meet me where I am energetically
+- A mission file that everything revolves around
+- Daily notes that feel like journals, not forms
+
+The whole thing took one afternoon to set up with Claude Code. The slash commands are just markdown files with instructions. The CSS is one file. The vault structure is just folders.
+
+None of this is complicated. I just sat down and thought about what I actually need.
+
+Sometimes I just work through my terminal and even without checking obsidian. Because everything is just available from my terminal.

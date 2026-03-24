@@ -5,7 +5,7 @@ import type { MDXRemoteProps } from "next-mdx-remote/rsc"
 
 export const mdxOptions: MDXRemoteProps["options"] = {
   mdxOptions: {
-    format: "md",
+    format: "mdx",
     remarkPlugins: [remarkGfm],
     rehypePlugins: [
       rehypeSlug,

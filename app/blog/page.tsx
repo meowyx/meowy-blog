@@ -36,17 +36,6 @@ export default function BlogPage() {
           </FadeIn>
         ))}
 
-        <FadeIn delay={posts.length * 50}>
-          <li
-            className="group relative text-muted-foreground/40 cursor-default flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3"
-            title="coming soon"
-          >
-            <span>Building a Real-Time Courier Assignment Service in Rust</span>
-            <span className="shrink-0 text-sm opacity-0 group-hover:opacity-100 transition-opacity">
-              coming soon
-            </span>
-          </li>
-        </FadeIn>
       </ul>
     </div>
   )

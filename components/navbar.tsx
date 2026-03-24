@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 
 const navItems = [
   { href: "/", label: "About" },
-  // { href: "/blog", label: "Blog" },  // hidden until more content is added
+  { href: "/blog", label: "Blog" },
   { href: "/publications", label: "Publications" },
   { href: "/meow", label: "Meow" },
 ]

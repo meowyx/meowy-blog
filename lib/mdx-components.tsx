@@ -1,6 +1,8 @@
 import type { MDXComponents } from "mdx/types"
 import { CopyButton } from "@/components/copy-button"
 import { LinkPreview } from "@/components/link-preview"
+import { Collapsible } from "@/components/collapsible"
+import { DesignPrinciples } from "@/components/design-principles"
 
 export const mdxComponents: MDXComponents = {
   h1: ({ children, ...props }) => (
@@ -119,6 +121,9 @@ export const mdxComponents: MDXComponents = {
       </table>
     </div>
   ),
+  thead: ({ children, ...props }) => <thead {...props}>{children}</thead>,
+  tbody: ({ children, ...props }) => <tbody {...props}>{children}</tbody>,
+  tr: ({ children, ...props }) => <tr {...props}>{children}</tr>,
   th: ({ children, ...props }) => (
     <th
       className="border border-border bg-muted px-4 py-2 text-left font-semibold"
@@ -132,4 +137,6 @@ export const mdxComponents: MDXComponents = {
       {children}
     </td>
   ),
+  Collapsible,
+  DesignPrinciples,
 }
