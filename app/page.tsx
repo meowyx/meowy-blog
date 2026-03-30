@@ -59,7 +59,7 @@ export default function HomePage() {
               shell, syntax highlighting, and 20 switchable themes
             </li>
             <li>
-              built dispatch-router and router-flow — real-time delivery
+              built dispatch-router and router-flow, real-time delivery
               assignment and distributed logistics simulation services in rust
               with gRPC, weighted scoring, and live dashboards
             </li>
