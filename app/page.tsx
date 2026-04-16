@@ -6,7 +6,7 @@ import { LinkPreview } from "@/components/link-preview"
 export const metadata: Metadata = {
   title: "Sushmita R. (aka meowy)",
   description:
-    "Backend engineer building high-performance systems and infrastructure in Rust.",
+    "Backend engineer building real-time systems, observability infrastructure, and agent-facing tools in Rust.",
 }
 
 export default function HomePage() {
@@ -23,8 +23,8 @@ export default function HomePage() {
           <h2 className="text-sm text-muted-foreground mb-3">me</h2>
           <ul className="list-disc pl-5 space-y-2 leading-relaxed">
             <li>
-              backend engineer building high-performance systems and
-              infrastructure in rust
+              backend engineer building real-time systems, observability
+              infrastructure, and agent-facing tools in rust
             </li>
             <li>
               focused on distributed systems, real-time services, and
@@ -39,6 +39,12 @@ export default function HomePage() {
               engineer at consensys, gaia, and developer dao
             </li>
             <li>
+              authored 15+ technical deep-dives on evm internals, tooling, and
+              zk proof systems. developed udacity&apos;s blockchain nanodegree
+              curriculum and designed chainlink&apos;s certification exam
+              framework
+            </li>
+            <li>
               building with rust, tokio, axum, tonic, grpc, typescript, and
               next.js
             </li>
@@ -51,8 +57,56 @@ export default function HomePage() {
           <h2 className="text-sm text-muted-foreground mb-3">current</h2>
           <ul className="list-disc pl-5 space-y-2 leading-relaxed">
             <li>
-              building real-time backend services, event pipelines, and
-              distributed systems in rust
+              building{" "}
+              <LinkPreview
+                href="https://github.com/meowyx/gulfwatch"
+                className="underline underline-offset-2"
+              >
+                gulfwatch
+              </LinkPreview>
+              , a real-time solana program observability platform in rust.
+              bounded-channel backpressure, rolling-window metrics, 9+
+              detection rules including token 2022 extension monitoring
+              (transfer hooks, permanent delegate, fee authority, default
+              frozen) and cross-program signer correlation. 6-tab transaction
+              deep-dive with per-instruction cu attribution and balance diffs.
+              151 workspace tests, zero warnings, mainnet-validated. shipping
+              for the colosseum frontier hackathon.
+            </li>
+            <li>
+              shipped an mcp server in rust (rmcp 1.4) wrapping gulfwatch&apos;s
+              rest surface so claude and other agents can query transaction
+              history, metrics, and recent alerts directly. one binary runs
+              the full stack: ingest, http, websocket, prometheus, tui, and
+              mcp.
+            </li>
+            <li>
+              took on helius&apos;s solana wallet-history latency challenge
+              with a 4-phase parallel fetch pipeline: classify sparse vs busy,
+              density-chunked gap fill, paginated parallel fetch, and full
+              balance curve. busy wallets drop from ~262s to ~80s with
+              lamport-exact pnl. concurrency knee (16 parallel) and chunk
+              sizes derived from measured helius behavior, not guessed.
+              writeup coming.{" "}
+              <LinkPreview
+                href="https://github.com/meowyx/computing-sol-algo"
+                className="underline underline-offset-2"
+              >
+                repo
+              </LinkPreview>
+              .
+            </li>
+            <li>
+              built{" "}
+              <LinkPreview
+                href="https://github.com/meowyx/solana-contest-platform"
+                className="underline underline-offset-2"
+              >
+                solarena
+              </LinkPreview>
+              , a decentralized solana contest platform with anchor escrow,
+              pda-tracked entries, multisig judging, and fee-sponsored
+              transactions so participants enter without holding sol.
             </li>
             <li>
               built mewtui, a terminal-based code editor in rust with a live
@@ -71,8 +125,10 @@ export default function HomePage() {
               >
                 kronos guild
               </LinkPreview>
-              , solana developer community with open source templates and
-              tooling
+              , solana developer community. built open source templates,
+              developed curriculum for the solana campus tour, and host
+              weekly office hours and onboarding workshops for builders and
+              students
             </li>
             <li>
               building{" "}
@@ -91,12 +147,49 @@ export default function HomePage() {
               </LinkPreview>
             </li>
             <li>
+              taking on freelance rust and web3 engineering: contract builds,
+              rust code review, and open source contributions
+            </li>
+            <li>
               open to collaborating on rust infrastructure, systems tooling,
               and solana/web3 projects
             </li>
           </ul>
 
           <div className="-mx-6 mt-6 flex gap-4 overflow-x-auto px-6 pb-4 scrollbar-hide">
+            <a
+              href="https://github.com/meowyx/gulfwatch"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-none w-72 border border-border rounded-lg p-4 hover:border-foreground/20 transition-colors"
+            >
+              <h3 className="font-medium text-sm">gulfwatch</h3>
+              <p className="text-sm text-muted-foreground mt-1.5 line-clamp-3">
+                real-time solana program observability in rust. bounded
+                channels, 9+ detection rules, 6-tab transaction deep-dive, and
+                an mcp server for agents. one binary, five surfaces (tui, web,
+                rest, websocket, mcp)
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-3">
+                rust · tokio · axum · ratatui · rmcp
+              </p>
+            </a>
+            <a
+              href="https://github.com/meowyx/solana-contest-platform"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-none w-72 border border-border rounded-lg p-4 hover:border-foreground/20 transition-colors"
+            >
+              <h3 className="font-medium text-sm">solarena</h3>
+              <p className="text-sm text-muted-foreground mt-1.5 line-clamp-3">
+                decentralized solana contest platform. anchor escrow,
+                pda-tracked entries, multisig judging, and fee-sponsored
+                transactions so participants enter without holding sol
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-3">
+                rust · anchor · next.js
+              </p>
+            </a>
             <a
               href="https://github.com/meowyx/mewtui-editor"
               target="_blank"
@@ -141,21 +234,6 @@ export default function HomePage() {
               </p>
               <p className="text-xs text-muted-foreground/60 mt-3">
                 rust · tonic · tokio · ratatui · dashmap
-              </p>
-            </a>
-            <a
-              href="https://github.com/meowyx/solana-contest-platform"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-none w-72 border border-border rounded-lg p-4 hover:border-foreground/20 transition-colors"
-            >
-              <h3 className="font-medium text-sm">sol-arena</h3>
-              <p className="text-sm text-muted-foreground mt-1.5 line-clamp-3">
-                decentralized contest platform on solana with escrow, multisig
-                judging, and gas-free submissions
-              </p>
-              <p className="text-xs text-muted-foreground/60 mt-3">
-                anchor · rust · next.js
               </p>
             </a>
             <a
