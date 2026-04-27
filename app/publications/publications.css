@@ -1,0 +1,170 @@
+/* Publications page styles (mirror design-resources/publications.html <style>) */
+
+.pub-head {
+  padding: 72px 0 36px;
+  border-bottom: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 48px;
+  align-items: end;
+}
+@media (max-width: 880px) {
+  .pub-head { grid-template-columns: 1fr; gap: 24px; padding: 48px 0 24px; }
+}
+.pub-head h1 {
+  font-size: clamp(40px, 6vw, 76px);
+  line-height: 0.96;
+  letter-spacing: -0.035em;
+  font-weight: 500;
+  margin: 0 0 14px;
+}
+.pub-head p {
+  color: var(--ink-2);
+  margin: 0;
+  max-width: 56ch;
+}
+.pub-head .legend {
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+  padding: 18px 20px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.7;
+}
+.pub-head .legend dt {
+  color: var(--ink-3);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+.pub-head .legend dt:first-child { margin-top: 0; }
+.pub-head .legend dd { margin: 2px 0 0; color: var(--ink); }
+
+.org-filter {
+  margin: 32px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.org-filter button {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all .15s;
+}
+.org-filter button:hover { border-color: var(--ink-3); color: var(--ink); }
+.org-filter button.active {
+  background: var(--ink); border-color: var(--ink); color: var(--paper);
+}
+
+.era {
+  margin-top: 56px;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 48px;
+  padding-top: 28px;
+  border-top: 1px solid var(--rule);
+}
+.era-meta { position: sticky; top: 24px; align-self: start; }
+.era-meta .cat-name {
+  font-size: 36px;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  font-weight: 500;
+  margin: 0 0 10px;
+  text-transform: lowercase;
+}
+.era-meta .where {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  line-height: 1.6;
+}
+.era-meta .where b { color: var(--accent); font-weight: 500; }
+.era-meta .role {
+  font-size: 14px;
+  color: var(--ink-2);
+  margin-top: 14px;
+  line-height: 1.5;
+}
+
+@media (max-width: 880px) {
+  .era { grid-template-columns: 1fr; gap: 16px; }
+  .era-meta { position: static; }
+  .era-meta .cat-name { font-size: 28px; }
+}
+
+.pub-list { display: flex; flex-direction: column; gap: 0; }
+.pub-item {
+  display: grid;
+  grid-template-columns: 1fr 100px;
+  gap: 24px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: start;
+  transition: padding .25s;
+}
+.pub-item:first-child { border-top: 1px solid var(--rule); }
+.pub-item:hover { padding-left: 12px; padding-right: 12px; }
+.pub-item:hover h3 { color: var(--accent); }
+.pub-item h3 {
+  font-size: 17.5px;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  line-height: 1.35;
+  margin: 0 0 6px;
+  color: var(--ink);
+  transition: color .15s;
+  text-wrap: balance;
+}
+.pub-item .meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.pub-item .meta b { color: var(--accent); font-weight: 500; }
+.pub-item .ext {
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+}
+.pub-item .ext .arrow {
+  display: block;
+  font-size: 18px;
+  color: var(--ink-2);
+  margin-top: 4px;
+}
+.pub-item:hover .ext .arrow { color: var(--accent); }
+
+@media (max-width: 600px) {
+  .pub-item { grid-template-columns: 1fr; gap: 8px; }
+  .pub-item .ext { text-align: left; }
+}
+
+.pub-foot {
+  margin-top: 80px;
+  padding: 28px 32px;
+  border: 1px dashed var(--rule);
+  border-radius: 4px;
+  text-align: center;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.pub-foot a { color: var(--accent); }
+.pub-foot a:hover { text-decoration: underline; text-underline-offset: 3px; }

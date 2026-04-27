@@ -1,13 +1,12 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import Link from "next/link"
 import { MDXRemote } from "next-mdx-remote/rsc"
+import { format } from "date-fns"
 import { getAllSlugs, getPostBySlug } from "@/lib/posts"
 import { mdxOptions } from "@/lib/mdx"
 import { mdxComponents } from "@/lib/mdx-components"
-import { Badge } from "@/components/ui/badge"
-import { FadeIn } from "@/components/fade-in"
-import { format } from "date-fns"
-import Link from "next/link"
+import "./post.css"
 
 export function generateStaticParams() {
   return getAllSlugs().map((slug) => ({ slug }))
@@ -23,7 +22,6 @@ export async function generateMetadata({
   const { slug } = await params
   const post = getPostBySlug(slug)
   if (!post) return { title: "Post Not Found" }
-
   return {
     title: post.title,
     description: post.description,
@@ -41,47 +39,32 @@ export default async function BlogPostPage({
 
   return (
     <article>
-      <FadeIn>
-        <nav className="mb-8">
-          <Link
-            href="/blog"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            &larr; Back
-          </Link>
-        </nav>
-
-        <header className="mb-8 space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {post.title}
-          </h1>
-          {post.description && (
-            <p className="text-foreground/60">{post.description}</p>
+      <header className="post-head">
+        <Link href="/blog" className="crumb">
+          ← back to blog
+        </Link>
+        <h1>{post.title}</h1>
+        {post.description && <p className="desc">{post.description}</p>}
+        <div className="meta">
+          {post.date && (
+            <time dateTime={post.date}>
+              {format(new Date(post.date), "MMM d, yyyy")}
+            </time>
           )}
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            {post.date && (
-              <time dateTime={post.date}>
-                {format(new Date(post.date), "MMM d, yyyy")}
-              </time>
-            )}
-            {post.tags.length > 0 && (
-              <div className="flex gap-1.5">
-                {post.tags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="secondary"
-                    className="text-xs font-normal"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-        </header>
-      </FadeIn>
+          {post.tags.length > 0 && (
+            <>
+              <span>·</span>
+              {post.tags.map((tag) => (
+                <span key={tag} className="tag">
+                  {tag}
+                </span>
+              ))}
+            </>
+          )}
+        </div>
+      </header>
 
-      <div>
+      <div className="prose-mdx">
         <MDXRemote
           source={post.content}
           options={mdxOptions}

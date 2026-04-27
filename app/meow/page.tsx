@@ -1,179 +1,100 @@
-"use client"
-
-import { useState, useEffect, useCallback } from "react"
+import type { Metadata } from "next"
 import Image from "next/image"
-import { motion, AnimatePresence } from "motion/react"
+import { Eyebrow } from "@/components/eyebrow"
+import "./meow.css"
 
-const images = [
-  { src: "/media/cat-image1.webp", alt: "Piku among the plants" },
-  { src: "/media/cat-image2.webp", alt: "Piku looking up close-up" },
-  { src: "/media/cat-image3.png", alt: "Piku with yellow collar" },
-  { src: "/media/cat-image4.png", alt: "Sleepy Piku on couch" },
-  { src: "/media/cat-image-5.png", alt: "Piku with pink collar" },
+export const metadata: Metadata = {
+  title: "Meow",
+  description: "This is Piku.",
+}
+
+const PHOTOS = [
+  { src: "/media/cat-image1.webp", cap: "piku.001 · loaf form" },
+  { src: "/media/cat-image2.webp", cap: "piku.002 · sunbeam tax" },
+  { src: "/media/cat-image3.png", cap: "piku.003 · keyboard ops" },
+  { src: "/media/cat-image4.png", cap: "piku.004 · zoomies" },
+  { src: "/media/cat-image-5.png", cap: "piku.005 · concern" },
 ]
 
-const rotations = [-2, 1.5, -1, 2, -1.5]
+const STATS: Array<[string, string, string]> = [
+  ["naps_per_day", "9", "14"],
+  ["treat_acceptance", "0.95", "1.00"],
+  ["food_acceptance", "0.90", "0.42"],
+  ["keyboard_walks_per_pr", "0", "1.7"],
+  ["zoom_event_3am", "false", "true"],
+  ["cuteness", "0.99", "1.00"],
+]
 
-// Duplicate for seamless infinite loop
-const loopImages = [...images, ...images]
+const DOSSIER = `pub struct Piku {
+  name:           String,            // "Piku" (a.k.a. Pikachu)
+  born:           Date,              // 2018-08-27
+  color:          Tabby,             // brown + white, classic
+  favorite_food:  Snack,             // not the actual food, just snacks
+  sleep_hours:    u8,                // 14..=18, depending on weather
+  vocal:          bool,              // true, especially before 7am
+  disposition:    Mood::Regal,
+}
+
+impl Piku {
+  pub fn demand(snack: &str) -> Result<Treat, Yowl> { ... }
+  pub fn walk_across_keyboard(&self) -> Commit { ... }
+}`
 
 export default function MeowPage() {
-  const [paused, setPaused] = useState(false)
-  const [selected, setSelected] = useState<number | null>(null)
-
-  const closeLightbox = useCallback(() => setSelected(null), [])
-
-  useEffect(() => {
-    if (selected === null) return
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeLightbox()
-    }
-    document.body.style.overflow = "hidden"
-    window.addEventListener("keydown", handleKey)
-    return () => {
-      document.body.style.overflow = ""
-      window.removeEventListener("keydown", handleKey)
-    }
-  }, [selected, closeLightbox])
-
   return (
-    <div className="space-y-12">
-      <div>
-        <motion.h1
-          className="text-xl font-semibold mb-4"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          meow
-        </motion.h1>
+    <>
+      <section className="meow-head">
+        <Eyebrow withDot style={{ marginBottom: 18 }}>cat dossier</Eyebrow>
+        <h1>This is <em>Piku</em>.</h1>
+        <p className="lede">
+          Short for Pikachu. Born <strong>27 august, 2018</strong>. Picky eater,
+          snack maximalist, professional sunbeam follower. Co-author of every
+          late-night refactor on this site, by way of walking across the keyboard.
+        </p>
+      </section>
 
-        <motion.div
-          className="space-y-1 text-sm text-muted-foreground"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <p>
-            this is <span className="text-foreground font-medium">piku</span>, short for pikachu.
-          </p>
-          <p>born august 27, 2018. very picky eater. loves snacks more than his actual food.</p>
-        </motion.div>
+      <section className="dossier">
+        <div className="dossier-grid">
+          <div className="label">// dossier</div>
+          <pre className="struct">{DOSSIER}</pre>
+        </div>
+      </section>
+
+      <section className="gallery-section">
+        <h2>Field photos</h2>
+        <p className="sub">Piku, in his natural habitat.</p>
+        <div className="gallery">
+          {PHOTOS.map((p) => (
+            <div key={p.src} className="ph">
+              <Image src={p.src} alt={p.cap} fill sizes="(max-width: 760px) 50vw, 33vw" />
+              <span className="cap">{p.cap}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="table-section">
+        <header>
+          <span>// observability ─ piku, sample window: lifetime</span>
+          <span className="right">prod</span>
+        </header>
+        <table className="kv">
+          <tbody>
+            {STATS.map(([k, expected, observed]) => (
+              <tr key={k}>
+                <td className="k">{k}</td>
+                <td className="expected">expected: {expected}</td>
+                <td className="observed">observed: <b>{observed}</b></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <div className="closing">
+        end of file.
+        <div className="meow-trail">meow · meow · meow · meow · meow</div>
       </div>
-
-      {/* Film strip gallery */}
-      <motion.div
-        className="relative -mx-6 sm:-mx-8 md:-mx-12 overflow-hidden"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.4 }}
-      >
-        {/* Top film strip perforation */}
-        <div className="flex gap-6 px-4 py-1 mb-3">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div
-              key={`top-${i}`}
-              className="w-3 h-2 rounded-sm bg-neutral-200 dark:bg-neutral-700 shrink-0"
-            />
-          ))}
-        </div>
-
-        {/* Scrolling track */}
-        <div
-          className="flex w-max animate-film-scroll hover:[animation-play-state:paused]"
-          style={{ animationPlayState: paused ? "paused" : undefined }}
-        >
-          {loopImages.map((image, i) => (
-            <motion.div
-              key={`${image.src}-${i}`}
-              className="shrink-0 px-3 cursor-pointer"
-              initial={{ rotate: rotations[i % images.length] }}
-              whileHover={{
-                rotate: 0,
-                scale: 1.08,
-                zIndex: 10,
-                transition: { duration: 0.3 },
-              }}
-              onClick={() => {
-                setSelected(i % images.length)
-                setPaused(true)
-              }}
-            >
-              <div className="bg-white dark:bg-neutral-800 p-2 pb-7 rounded-sm shadow-md dark:shadow-neutral-900/50 w-56 sm:w-64">
-                <div className="relative aspect-square overflow-hidden">
-                  <Image
-                    src={image.src}
-                    alt={image.alt}
-                    fill
-                    sizes="256px"
-                    className="object-cover"
-                    quality={80}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Bottom film strip perforation */}
-        <div className="flex gap-6 px-4 py-1 mt-3">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div
-              key={`bottom-${i}`}
-              className="w-3 h-2 rounded-sm bg-neutral-200 dark:bg-neutral-700 shrink-0"
-            />
-          ))}
-        </div>
-
-        {/* Pause/play toggle */}
-        <button
-          onClick={() => setPaused((p) => !p)}
-          className="absolute bottom-0 right-4 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          aria-label={paused ? "Resume scrolling" : "Pause scrolling"}
-        >
-          {paused ? "play" : "pause"}
-        </button>
-      </motion.div>
-
-      {/* Lightbox */}
-      <AnimatePresence>
-        {selected !== null && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            onClick={closeLightbox}
-          >
-            <motion.div
-              className="relative max-w-[90vw] max-h-[85vh] w-full aspect-square sm:w-[70vmin] sm:h-[70vmin]"
-              initial={{ scale: 0.8, opacity: 0, y: 40 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.85, opacity: 0, y: 30 }}
-              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-white dark:bg-neutral-800 p-3 pb-10 rounded-sm shadow-2xl w-full h-full">
-                <div className="relative w-full h-full overflow-hidden">
-                  <Image
-                    src={images[selected].src}
-                    alt={images[selected].alt}
-                    fill
-                    sizes="70vmin"
-                    className="object-cover"
-                    quality={90}
-                    priority
-                  />
-                </div>
-              </div>
-              <p className="absolute -bottom-8 left-0 right-0 text-center text-sm text-neutral-400">
-                {images[selected].alt}
-              </p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    </>
   )
 }
