@@ -1,259 +1,213 @@
-import type { Metadata } from "next"
-import { Github, Linkedin } from "lucide-react"
-import { FadeIn } from "@/components/fade-in"
-import { LinkPreview } from "@/components/link-preview"
-import { FolderTabs } from "@/components/folder-tabs"
-import { ProjectCardsMarquee } from "@/components/project-cards-marquee"
+import Link from "next/link"
+import { Eyebrow } from "@/components/eyebrow"
+import { MetaCard } from "@/components/meta-card"
+import { SectionHeader } from "@/components/section-header"
+import { NowStrip, type NowCell } from "@/components/now-strip"
+import { WorkList, type WorkItem } from "@/components/work-list"
+import { PubCard, type PubCardItem } from "@/components/pub-card"
+import { PanicToast } from "@/components/panic-toast"
+import "./home.css"
 
-export const metadata: Metadata = {
-  title: "Sushmita R. (aka meowy)",
-  description:
-    "Backend engineer building real-time systems, observability infrastructure, and agent-facing tools in Rust.",
-}
+const ELSEWHERE: PubCardItem[] = [
+  {
+    org: "MetaMask",
+    title: "Viem vs. Ethers.js: a detailed comparison",
+    year: "2024",
+    href: "https://metamask.io/news/developers/viem-vs-ethers-js-a-detailed-comparison-for-web-3-developers/",
+  },
+  {
+    org: "Linea",
+    title: "The Linea prover, in depth",
+    year: "2024",
+    href: "https://linea.mirror.xyz/zYD75brljMLn8nWudtihqvjd54nLK23P8-cnyvxmvSU",
+  },
+  {
+    org: "MetaMask",
+    title: "Hardhat vs. Foundry: choosing the right tool",
+    year: "2024",
+    href: "https://metamask.io/news/developers/hardhat-vs-foundry-choosing-the-right-ethereum-development-tool/",
+  },
+]
 
-const meContent = (
-  <div className="space-y-8">
-    <ul className="list-disc pl-5 space-y-2 leading-relaxed">
-      <li>
-        backend engineer building real-time systems, observability
-        infrastructure, and agent-facing tools in rust
-      </li>
-      <li>
-        focused on distributed systems, real-time services, and observability
-      </li>
-      <li>
-        4+ years shipping production software, 7+ apps deployed across solana
-        and ethereum
-      </li>
-      <li>
-        open-source contributor, published sdk author, former devrel engineer
-        at consensys, gaia, and developer dao
-      </li>
-      <li>
-        authored 15+ technical deep-dives on evm internals, tooling, and zk
-        proof systems. developed udacity&apos;s blockchain nanodegree
-        curriculum and designed chainlink&apos;s certification exam framework
-      </li>
-      <li>
-        building with rust, tokio, axum, tonic, grpc, typescript, and next.js
-      </li>
-    </ul>
+const NOW_CELLS: NowCell[] = [
+  { key: "Building", val: "gulfwatch", sub: "solana observability, in rust" },
+  { key: "Hacked on", val: "helius latency challenge", sub: "262s → 80s, shipped" },
+  { key: "Mentoring", val: "HER DAO rust cohort", sub: "upcoming" },
+  { key: "Co-running", val: "kronos guild", sub: "solana dev community" },
+  { key: "Available", val: "full-time + freelance", sub: "rust / systems / web3" },
+]
 
-    <div>
-      <h3 className="text-sm text-muted-foreground mb-3">projects</h3>
-      <ProjectCardsMarquee />
-    </div>
-  </div>
-)
-
-const currentContent = (
-  <ul className="list-disc pl-5 space-y-2 leading-relaxed">
-    <li>
-      building{" "}
-      <LinkPreview
-        href="https://github.com/meowyx/gulfwatch"
-        className="underline underline-offset-2"
-      >
-        gulfwatch
-      </LinkPreview>
-      , a real-time solana program observability platform in rust.
-      bounded-channel backpressure, rolling-window metrics, 9+ detection rules
-      including token 2022 extension monitoring (transfer hooks, permanent
-      delegate, fee authority, default frozen) and cross-program signer
-      correlation. 6-tab transaction deep-dive with per-instruction cu
-      attribution and balance diffs. 151 workspace tests, zero warnings,
-      mainnet-validated. shipping for the colosseum frontier hackathon.
-    </li>
-    <li>
-      shipped an mcp server in rust (rmcp 1.4) wrapping gulfwatch&apos;s rest
-      surface so claude and other agents can query transaction history,
-      metrics, and recent alerts directly. one binary runs the full stack:
-      ingest, http, websocket, prometheus, tui, and mcp.
-    </li>
-    <li>
-      took on helius&apos;s solana wallet-history latency challenge with a
-      4-phase parallel fetch pipeline: classify sparse vs busy, density-chunked
-      gap fill, paginated parallel fetch, and full balance curve. busy wallets
-      drop from ~262s to ~80s with lamport-exact pnl. concurrency knee (16
-      parallel) and chunk sizes derived from measured helius behavior, not
-      guessed. writeup coming.{" "}
-      <LinkPreview
-        href="https://github.com/meowyx/computing-sol-algo"
-        className="underline underline-offset-2"
-      >
-        repo
-      </LinkPreview>
-      .
-    </li>
-    <li>
-      built{" "}
-      <LinkPreview
-        href="https://github.com/meowyx/solana-contest-platform"
-        className="underline underline-offset-2"
-      >
-        solarena
-      </LinkPreview>
-      , a decentralized solana contest platform with anchor escrow, pda-tracked
-      entries, multisig judging, and fee-sponsored transactions so participants
-      enter without holding sol.
-    </li>
-    <li>
-      built mewtui, a terminal-based code editor in rust with a live shell,
-      syntax highlighting, and 20 switchable themes
-    </li>
-    <li>
-      built dispatch-router and router-flow, real-time delivery assignment and
-      distributed logistics simulation services in rust with gRPC, weighted
-      scoring, and live dashboards
-    </li>
-    <li>
-      co-founder of{" "}
-      <LinkPreview
-        href="https://www.kronos.build/"
-        className="underline underline-offset-2"
-      >
-        kronos guild
-      </LinkPreview>
-      , solana developer community. built open source templates, developed
-      curriculum for the solana campus tour, and host weekly office hours and
-      onboarding workshops for builders and students
-    </li>
-    <li>
-      building{" "}
-      <LinkPreview
-        href="https://templates.solana.com/x402-template"
-        className="underline underline-offset-2"
-      >
-        x402 template
-      </LinkPreview>{" "}
-      and contributing to{" "}
-      <LinkPreview
-        href="https://github.com/solana-foundation/framework-kit"
-        className="underline underline-offset-2"
-      >
-        framework-kit
-      </LinkPreview>
-    </li>
-    <li>
-      taking on freelance rust and web3 engineering: contract builds, rust code
-      review, and open source contributions
-    </li>
-    <li>
-      open to collaborating on rust infrastructure, systems tooling, and
-      solana/web3 projects
-    </li>
-  </ul>
-)
-
-const previouslyContent = (
-  <ul className="list-disc pl-5 space-y-2 leading-relaxed">
-    <li>
-      devrel engineer at consensys, built 10+ production dapps, templates, CLI
-      tools, and authored 15+ technical blogs for metamask, infura, and linea
-    </li>
-    <li>
-      devrel engineer at{" "}
-      <LinkPreview
-        href="https://www.gaianet.ai/"
-        className="underline underline-offset-2"
-      >
-        gaia
-      </LinkPreview>{" "}
-      (ai startup), built developer tooling, CLI tools, and technical docs for
-      their decentralized AI infrastructure
-    </li>
-    <li>
-      founded education team at{" "}
-      <LinkPreview
-        href="https://academy.developerdao.com/"
-        className="underline underline-offset-2"
-      >
-        developer dao
-      </LinkPreview>
-      , launched the open source web3 academy
-    </li>
-    <li>
-      instructor at{" "}
-      <LinkPreview
-        href="https://www.udacity.com/course/blockchain-developer--nd1310"
-        className="underline underline-offset-2"
-      >
-        udacity
-      </LinkPreview>
-      , blockchain developer nanodegree
-    </li>
-    <li>
-      educational consultant at{" "}
-      <LinkPreview
-        href="https://dev.chain.link/certification"
-        className="underline underline-offset-2"
-      >
-        chainlink labs
-      </LinkPreview>
-    </li>
-  </ul>
-)
+const WORK: WorkItem[] = [
+  {
+    name: "gulfwatch",
+    href: "https://github.com/meowyx/gulfwatch",
+    repo: "github.com/meowyx/gulfwatch",
+    desc: (
+      <>
+        Real-time Solana program observability platform. Bounded-channel backpressure,
+        rolling-window metrics, 9+ detection rules including Token-2022 extension monitoring
+        (transfer hooks, permanent delegate, fee authority, default frozen) and cross-program
+        signer correlation. 6-tab transaction deep-dive with per-instruction CU attribution
+        and balance diffs. 151 workspace tests, zero warnings, mainnet-validated.
+      </>
+    ),
+    status: <>shipping<br />colosseum frontier</>,
+    shipping: true,
+  },
+  {
+    name: "gulfwatch MCP server",
+    repo: "rust · rmcp 1.4",
+    desc: (
+      <>
+        An MCP server in rust wrapping gulfwatch&#39;s REST surface so Claude and other agents
+        can query transaction history, metrics, and recent alerts directly. One binary
+        runs the full stack: ingest, http, websocket, prometheus, tui, and mcp.
+      </>
+    ),
+    status: "shipped",
+  },
+  {
+    name: "helius wallet-history latency",
+    href: "https://github.com/meowyx/computing-sol-algo",
+    repo: "github.com/meowyx/computing-sol-algo",
+    desc: (
+      <>
+        A 4-phase parallel fetch pipeline: classify sparse vs busy, density-chunked gap fill,
+        paginated parallel fetch, and full balance curve. Busy wallets drop from ~262s to ~80s
+        with lamport-exact PnL. Concurrency knee (16 parallel) and chunk sizes derived from
+        measured Helius behavior, not guessed. Shipped.
+      </>
+    ),
+    status: "shipped",
+  },
+  {
+    name: "solarena",
+    href: "https://github.com/meowyx/solana-contest-platform",
+    repo: "anchor · escrow · multisig",
+    desc: (
+      <>
+        Decentralized Solana contest platform with anchor escrow, PDA-tracked entries,
+        multisig judging, and fee-sponsored transactions so participants enter without
+        holding SOL.
+      </>
+    ),
+    status: "shipped",
+  },
+  {
+    name: "mewtui & dispatch-router",
+    repo: "rust · tui · grpc",
+    desc: (
+      <>
+        mewtui is a terminal-based code editor in rust with a live shell, syntax highlighting,
+        and 20 switchable themes. dispatch-router and router-flow are real-time delivery assignment
+        and distributed logistics simulation services in rust with gRPC, weighted scoring, and live dashboards.
+      </>
+    ),
+    status: "side projects",
+  },
+]
 
 export default function HomePage() {
   return (
-    <div className="space-y-10">
-      <FadeIn>
-        <h1 className="text-xl font-semibold mb-6">Sushmita R. (aka meowy)</h1>
-      </FadeIn>
+    <>
+      {/* HERO */}
+      <section className="hero">
+        <div className="hero-grid">
+          <div>
+            <Eyebrow withDot className="rise" style={{ marginBottom: 22 }}>
+              sushmita r. · aka meowy
+            </Eyebrow>
 
-      <FadeIn delay={50}>
-        <FolderTabs
-          defaultId="me"
-          tabs={[
-            { id: "me", label: "me", content: meContent },
-            { id: "current", label: "current", content: currentContent },
-            { id: "previously", label: "previously", content: previouslyContent },
-          ]}
-        />
-      </FadeIn>
+            <h1 className="rise d1">
+              I build <em>quietly fast</em>
+              <br />
+              backends.
+            </h1>
 
-      <FadeIn delay={150}>
-        <div className="flex items-center gap-4 pt-2">
-          <a
-            href="https://github.com/meowyx"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="GitHub"
-          >
-            <Github className="size-5" />
-          </a>
-          <a
-            href="https://x.com/me256ow"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="X (Twitter)"
-          >
-            <svg
-              className="size-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M4 4l11.733 16h4.267l-11.733 -16z" />
-              <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772" />
-            </svg>
-          </a>
-          <a
-            href="https://www.linkedin.com/in/sushmitaaar/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="LinkedIn"
-          >
-            <Linkedin className="size-5" />
-          </a>
+            <p className="intro rise d2">
+              Mostly observability infrastructure and agent-facing tools, mostly on{" "}
+              <strong>Solana</strong>, increasingly in rust. Tokio, axum, tonic, and a healthy
+              respect for bounded channels. Open-source contributor; previously devrel at
+              Consensys, Gaia, and Developer DAO. I write, mentor, and occasionally co-run a
+              Solana dev guild.
+            </p>
+          </div>
+
+          <MetaCard
+            className="rise d3"
+            entries={[
+              { label: "Status", value: <><span className="pulse" />open to full-time + freelance</> },
+              { label: "Working on", value: "gulfwatch · solana observability" },
+              { label: "Stack", value: "rust · tokio · axum · tonic · grpc" },
+              { label: "Background", value: "4+ years building in web3" },
+            ]}
+          />
         </div>
-      </FadeIn>
-    </div>
+
+        <NowStrip cells={NOW_CELLS} className="rise d4" />
+      </section>
+
+      {/* CURRENT WORK */}
+      <section>
+        <SectionHeader
+          title="Currently"
+          subtitle="/ what I'm shipping"
+          moreHref="/about"
+          moreLabel="full story →"
+        />
+
+        <WorkList items={WORK} />
+      </section>
+
+      {/* PUBLICATIONS PREVIEW */}
+      <section>
+        <SectionHeader
+          title="Elsewhere"
+          subtitle="/ pieces I wrote for other places"
+          moreHref="/publications"
+          moreLabel="full archive →"
+        />
+
+        <div className="pubs">
+          {ELSEWHERE.map((p) => <PubCard key={p.href} {...p} />)}
+        </div>
+      </section>
+
+      {/* ABOUT TEASER */}
+      <section className="about-teaser">
+        <div>
+          <Eyebrow style={{ marginBottom: 14 }}>in the longer version</Eyebrow>
+          <h2>
+            Four years of shipping software, a detour through devrel, and a slow but stubborn
+            move toward systems work in rust.
+          </h2>
+        </div>
+        <div>
+          <p>
+            I came to rust through web3. First as a devrel engineer building dapps, templates,
+            and tooling for MetaMask, Linea, and Gaia, then as the kind of engineer who reads
+            other people&#39;s flamegraphs for fun. These days I&#39;m focused on observability,
+            real-time pipelines, and the unglamorous middle of distributed systems.
+          </p>
+          <p>
+            If you want the long version (the projects, the talks, the things I&#39;ve shipped)
+            the about page has it all.
+          </p>
+          <Link
+            href="/about"
+            className="link"
+            style={{ fontSize: 15, color: "var(--accent)" }}
+          >
+            read the longer version&nbsp;→
+          </Link>
+        </div>
+      </section>
+
+      <p className="konami">
+        try typing <span style={{ color: "var(--accent)" }}>`panic`</span>
+      </p>
+
+      <PanicToast />
+    </>
   )
 }

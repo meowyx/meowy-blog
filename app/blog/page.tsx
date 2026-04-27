@@ -1,42 +1,70 @@
 import type { Metadata } from "next"
-import Link from "next/link"
-import { getAllPosts } from "@/lib/posts"
-import { format } from "date-fns"
-import { FadeIn } from "@/components/fade-in"
+import { BlogArchive } from "@/components/blog-archive"
+import { Eyebrow } from "@/components/eyebrow"
+import { MetaCard } from "@/components/meta-card"
+import { RowHead } from "@/components/row-head"
+import { FEATURED, getAllBlogEntries } from "@/lib/blog-data"
+import "./blog.css"
 
 export const metadata: Metadata = {
   title: "Blog",
+  description:
+    "Long-form notes on rust, web3 tooling, and the unglamorous middle of building software.",
 }
 
 export default function BlogPage() {
-  const posts = getAllPosts()
+  const entries = getAllBlogEntries()
 
   return (
-    <div>
-      <FadeIn>
-        <h1 className="text-xl font-semibold mb-8">meowy&apos;s blogs</h1>
-      </FadeIn>
+    <>
+      <section className="blog-head">
+        <div>
+          <Eyebrow style={{ marginBottom: 18 }}>writing</Eyebrow>
+          <h1>The blog.</h1>
+          <p>
+            Long-form notes on rust, web3 tooling, and the unglamorous middle of building
+            software. For pieces I wrote elsewhere (MetaMask, Linea, Gaia, talks, courses)
+            see <a href="/publications" className="link" style={{ color: "var(--accent)" }}>publications</a>.
+          </p>
+        </div>
+        <MetaCard
+          entries={[
+            { label: "Total posts", value: `${entries.length} in archive` },
+            { label: "Topics", value: "rust · solana · evm · zk · tutorials" },
+            { label: "Coming up", value: "gulfwatch design notes · helius latency writeup" },
+          ]}
+        />
+      </section>
 
-      <ul className="space-y-3">
-        {posts.map((post, i) => (
-          <FadeIn key={post.slug} delay={i * 50}>
-            <li>
-              <Link
-                href={`/blog/${post.slug}`}
-                className="group flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3"
-              >
-                <span className="group-hover:underline">{post.title}</span>
-                {post.date && (
-                  <span className="shrink-0 text-sm text-muted-foreground">
-                    {format(new Date(post.date), "MMM d, yyyy")}
-                  </span>
-                )}
-              </Link>
-            </li>
-          </FadeIn>
-        ))}
+      <section>
+        <RowHead title="Featured" hint="hand-picked · most recent on top" />
+        <div className="featured-grid">
+          {FEATURED.map((f) => (
+            <a key={f.url} href={f.url} className="feat">
+              <h3>{f.title}</h3>
+              <p>{f.description}</p>
+              <div className="foot">
+                <span>{f.meta}</span>
+                <span className="arrow">read →</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
 
-      </ul>
-    </div>
+      <section className="archive-wrap">
+        <RowHead title="Archive" hint={`${entries.length} posts`} />
+        <BlogArchive entries={entries} />
+      </section>
+
+      <div className="draft-note">
+        <strong>In drafts:</strong> a writeup of the gulfwatch design decisions, and the
+        helius wallet-history latency challenge (262s → 80s). Follow on{" "}
+        <a href="https://x.com/me256ow" target="_blank" rel="noopener noreferrer">X</a> or
+        watch the{" "}
+        <a href="https://github.com/meowyx" target="_blank" rel="noopener noreferrer">GitHub</a>{" "}
+        for these.
+      </div>
+    </>
   )
 }
