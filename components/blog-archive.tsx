@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState } from "react"
 import type { BlogEntry } from "@/lib/blog-data"
 
-type SortMode = "newest" | "oldest" | "venue"
+type SortMode = "newest" | "oldest"
 
 function Highlighted({ text, q }: { text: string; q: string }) {
   if (!q) return <>{text}</>
@@ -51,8 +51,6 @@ export function BlogArchive({ entries }: { entries: BlogEntry[] }) {
       )
     }
     r.sort((a, b) => {
-      if (sort === "venue")
-        return a.venue.localeCompare(b.venue) || b.date.localeCompare(a.date)
       if (sort === "oldest") return a.date.localeCompare(b.date)
       return b.date.localeCompare(a.date)
     })
@@ -122,7 +120,7 @@ export function BlogArchive({ entries }: { entries: BlogEntry[] }) {
                 <Highlighted text={p.title} q={q} />
                 {p.tags[0] && <span className="tag">{p.tags[0]}</span>}
               </span>
-              <span className="where" />
+              <span className="where">on <b>{p.publication}</b></span>
               <span className="ext">read →</span>
             </a>
           </li>

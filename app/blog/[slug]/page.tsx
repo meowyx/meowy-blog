@@ -40,7 +40,7 @@ export default async function BlogPostPage({
   return (
     <article>
       <header className="post-head">
-        <Link href="/blog" className="crumb">
+        <Link href="/" className="crumb">
           ← back to blog
         </Link>
         <h1>{post.title}</h1>
