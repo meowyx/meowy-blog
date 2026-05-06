@@ -1,6 +1,6 @@
 import { getAllPosts } from "./posts"
 
-export const SITE_DOMAIN = "meowy.dev"
+export const SITE_DOMAIN = "meowy"
 
 export interface BlogEntry {
   date: string
