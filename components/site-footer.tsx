@@ -3,7 +3,7 @@ export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="shell">
-        <span>// crafted with care &nbsp;·&nbsp; {year}</span>
+        <span>// crafted with my cat &nbsp;·&nbsp; {year}</span>
         <span>
           <a href="https://github.com/meowyx" className="link">github</a>
           &nbsp;·&nbsp;

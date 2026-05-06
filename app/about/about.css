@@ -3,8 +3,15 @@
 .about-head {
   padding: 72px 0 48px;
   border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
 }
-@media (max-width: 760px) { .about-head { padding: 48px 0 32px; } }
+.about-head > .head-main { flex: 1 1 auto; min-width: 0; }
+@media (max-width: 760px) {
+  .about-head { padding: 48px 0 32px; flex-direction: column; gap: 24px; }
+}
 
 .about-head h1 {
   font-size: clamp(40px, 6.4vw, 84px);

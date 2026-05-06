@@ -4,9 +4,14 @@
 .blog-head {
   padding: 72px 0 36px;
   border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
 }
+.blog-head > div:first-child { flex: 1 1 auto; min-width: 0; }
 @media (max-width: 880px) {
-  .blog-head { padding: 48px 0 24px; }
+  .blog-head { padding: 48px 0 24px; flex-direction: column; gap: 20px; }
 }
 .blog-head h1 {
   font-size: clamp(40px, 6vw, 76px);

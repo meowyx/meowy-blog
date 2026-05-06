@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Image from "next/image"
 import { Eyebrow } from "@/components/eyebrow"
+import { YouTubeLink } from "@/components/youtube-link"
 import "./meow.css"
 
 export const metadata: Metadata = {
@@ -44,13 +45,16 @@ export default function MeowPage() {
   return (
     <>
       <section className="meow-head">
-        <Eyebrow withDot style={{ marginBottom: 18 }}>cat dossier</Eyebrow>
-        <h1>This is <em>Piku</em>.</h1>
-        <p className="lede">
-          Short for Pikachu. Born <strong>27 august, 2018</strong>. Picky eater,
-          snack maximalist, professional sunbeam follower. Co-author of every
-          late-night refactor on this site, by way of walking across the keyboard.
-        </p>
+        <div className="head-main">
+          <Eyebrow withDot style={{ marginBottom: 18 }}>cat dossier</Eyebrow>
+          <h1>This is <em>Piku</em>.</h1>
+          <p className="lede">
+            Short for Pikachu. Born <strong>27 august, 2018</strong>. Picky eater,
+            snack maximalist, professional sunbeam follower. Co-author of every
+            late-night refactor on this site, by way of walking across the keyboard.
+          </p>
+        </div>
+        <YouTubeLink />
       </section>
 
       <section className="dossier">

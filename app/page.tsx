@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { BlogArchive } from "@/components/blog-archive"
 import { Eyebrow } from "@/components/eyebrow"
+import { YouTubeLink } from "@/components/youtube-link"
 import { getAllBlogEntries } from "@/lib/blog-data"
 import "./blog/blog.css"
 
@@ -23,6 +24,7 @@ export default function HomePage() {
             Notes on rust, backends, and the unglamorous middle of building software.
           </p>
         </div>
+        <YouTubeLink />
       </section>
 
       <section className="archive-wrap">

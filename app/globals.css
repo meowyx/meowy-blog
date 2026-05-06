@@ -256,3 +256,54 @@ nav.primary a.active::after {
 /* Muted utility */
 .muted { color: var(--ink-3); }
 .accent { color: var(--accent); }
+
+/* YouTube link — sits top-right of head sections.
+   Hover: a thin frame draws itself in around the pill, top → right → bottom → left.
+   Built from two pseudo-elements: ::before owns the top + right corner,
+   ::after owns the bottom + left corner. Each grows width then height,
+   with staggered delays to give the sequential single-line trace. */
+.youtube-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  color: #FF0000;
+  font-family: var(--mono);
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.youtube-link svg { display: block; flex-shrink: 0; }
+.youtube-link::before,
+.youtube-link::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.youtube-link::before {
+  top: 0;
+  left: 0;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  transition: width .18s ease 0s, height .18s ease .18s;
+}
+.youtube-link::after {
+  bottom: 0;
+  right: 0;
+  border-bottom: 1.5px solid currentColor;
+  border-left: 1.5px solid currentColor;
+  transition: width .18s ease .36s, height .18s ease .54s;
+}
+.youtube-link:hover::before {
+  width: 100%;
+  height: 100%;
+  transition: width .18s ease 0s, height .18s ease .18s;
+}
+.youtube-link:hover::after {
+  width: 100%;
+  height: 100%;
+  transition: width .18s ease .36s, height .18s ease .54s;
+}

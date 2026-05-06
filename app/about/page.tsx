@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { Eyebrow } from "@/components/eyebrow"
+import { YouTubeLink } from "@/components/youtube-link"
 import "./about.css"
 
 export const metadata: Metadata = {
@@ -13,16 +14,19 @@ export default function AboutPage() {
   return (
     <>
       <section className="about-head">
-        <Eyebrow style={{ marginBottom: 18 }}>about</Eyebrow>
-        <h1>
-          I&#39;m <em>meowy</em>. These days, I&#39;m a rust dev.
-        </h1>
-        <p className="lede">
-          A longer version of who I am, where I&#39;ve been, and what I&#39;m into now.
-          I spent the last four years in web3 devrel, writing tutorials and shipping
-          templates across a bunch of teams. Now I&#39;m focused on backend, distributed
-          systems, and getting deeper into rust.
-        </p>
+        <div className="head-main">
+          <Eyebrow style={{ marginBottom: 18 }}>about</Eyebrow>
+          <h1>
+            I&#39;m <em>meowy</em>. These days, I&#39;m a rust dev.
+          </h1>
+          <p className="lede">
+            A longer version of who I am, where I&#39;ve been, and what I&#39;m into now.
+            I spent the last four years in web3 devrel, writing tutorials and shipping
+            templates across a bunch of teams. Now I&#39;m focused on backend, distributed
+            systems, and getting deeper into rust.
+          </p>
+        </div>
+        <YouTubeLink />
       </section>
 
       <section className="prose">
@@ -31,8 +35,8 @@ export default function AboutPage() {
           <p>
             Rust is the thing I want to be really good at. Backend systems, distributed
             services, observability, and the parts of solana that live below the program
-            layer. I&#39;m reading source, shipping side projects, mentoring at the HER DAO
-            rust cohort, and writing about what I learn as I learn it.
+            layer. I&#39;m reading source, shipping side projects, and writing about what I
+            learn as I learn it.
           </p>
           <p>
             Day-to-day I&#39;m working in <strong>rust, tokio, axum, tonic, and gRPC</strong>.
