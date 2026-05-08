@@ -6,6 +6,7 @@ import { format } from "date-fns"
 import { getAllSlugs, getPostBySlug } from "@/lib/posts"
 import { mdxOptions } from "@/lib/mdx"
 import { mdxComponents } from "@/lib/mdx-components"
+import { YouTubeLink } from "@/components/youtube-link"
 import "./post.css"
 
 export function generateStaticParams() {
@@ -40,9 +41,12 @@ export default async function BlogPostPage({
   return (
     <article>
       <header className="post-head">
-        <Link href="/" className="crumb">
-          ← back to blog
-        </Link>
+        <div className="post-head-top">
+          <Link href="/" className="crumb">
+            ← back to blog
+          </Link>
+          <YouTubeLink />
+        </div>
         <h1>{post.title}</h1>
         {post.description && <p className="desc">{post.description}</p>}
         <div className="meta">
