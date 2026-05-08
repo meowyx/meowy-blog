@@ -38,13 +38,12 @@ No prior systems experience needed, you can just start right away.
 
 ## Why Rust?
 
-![Why is Rust the future?](/media/rust-from-zero-ep01/02-why-future.png)
 
 Rust is the fastest-growing programming language in the world right now. JetBrains called it the future of programming. So what's behind the hype? Or is it just overhyped?
 
 Three reasons actually. Let's dive in and explore those.
 
-![Three reasons: memory safety, fearless concurrency, real performance](/media/rust-from-zero-ep01/03-three-reasons.png)
+![Three reasons: memory safety, fearless concurrency, real performance](/media/rust-from-zero-ep01/03-three-reasons.webp)
 
 1. **Memory safety.** Rust catches whole categories of bugs at compile time. The kind of bugs other languages catch at three a.m. in production.
 2. **Fearless concurrency.** You can write multi-threaded code, and the compiler proves it's free of data races before it runs.
@@ -76,7 +75,7 @@ That's it for now. You're ready to start writing Rust code.
 
 ### `cargo new` vs `cargo init`
 
-![cargo new vs cargo init](/media/rust-from-zero-ep01/04-cargo-new-vs-init.png)
+![cargo new vs cargo init](/media/rust-from-zero-ep01/04-cargo-new-vs-init.webp)
 
 Cargo is Rust's build tool and package manager. It does most of the work for you. Which command you use depends on your starting point.
 
@@ -89,7 +88,7 @@ Same files come out either way. Different starting point. This is why you have b
 
 ### Project structure
 
-![Rust project structure: Cargo.toml, src/main.rs, target/](/media/rust-from-zero-ep01/05-project-structure.png)
+![Rust project structure: Cargo.toml, src/main.rs, target/](/media/rust-from-zero-ep01/05-project-structure.webp)
 
 Five files, each with one job, and you always have them in both cases.
 
@@ -107,7 +106,6 @@ Five files, each with one job, and you always have them in both cases.
 
 ### Hello, world
 
-![Hello world in Rust](/media/rust-from-zero-ep01/06-hello-world.png)
 
 ```rust
 fn main() {
@@ -121,7 +119,7 @@ From zero to running in thirty seconds. Now let's gp into some details.
 
 ### `fn main`, piece by piece
 
-![fn main breakdown](/media/rust-from-zero-ep01/07-fn-main.png)
+![fn main breakdown](/media/rust-from-zero-ep01/07-fn-main.webp)
 
 Let's break this down piece by piece. 
 
@@ -138,7 +136,7 @@ Let's break this down piece by piece.
 
 ### `let`, type inference, and `const`
 
-![let with type inference and explicit annotation](/media/rust-from-zero-ep01/08-let-types.png)
+![let with type inference and explicit annotation](/media/rust-from-zero-ep01/08-let-types.webp)
 
 In Rust, you use `let` to bind a value to a name.
 
@@ -150,7 +148,7 @@ let name = "Rust";      // strings work the same way
 
 Constants are different:
 
-![const with required type and SCREAMING_SNAKE_CASE name](/media/rust-from-zero-ep01/09-const.png)
+![const with required type and SCREAMING_SNAKE_CASE name](/media/rust-from-zero-ep01/09-const.webp)
 
 ```rust
 const MAX_SCORE: u32 = 100;
@@ -160,7 +158,7 @@ Use the `const` keyword, the type is required, and the name is in `SCREAMING_SNA
 
 ### Shadowing
 
-![Shadowing: re-declaring a name with let inside a block](/media/rust-from-zero-ep01/10-shadowing.png)
+![Shadowing: re-declaring a name with let inside a block](/media/rust-from-zero-ep01/10-shadowing.webp)
 
 Try to reassign a regular `let`, and the compiler stops you. Variables are immutable by default.
 
@@ -175,7 +173,7 @@ You can even shadow inside a block. Inside the curly braces, `x` is a new variab
 
 ### `mut`
 
-![mut keeps the same type; shadowing can change the type](/media/rust-from-zero-ep01/11-mutability.png)
+![mut keeps the same type; shadowing can change the type](/media/rust-from-zero-ep01/11-mutability.webp)
 
 If you do want to change a value, opt in with `mut`:
 
@@ -201,7 +199,7 @@ Need a different type? Use `let`. Need a new value, same type? Use `mut`.
 
 Scalar types hold a single value. Five flavors: integers, unsigned integers, floats, booleans, chars.
 
-![Scalar integer family: i8 through i128, u8 through usize](/media/rust-from-zero-ep01/12-scalar-family.png)
+![Scalar integer family: i8 through i128, u8 through usize](/media/rust-from-zero-ep01/12-scalar-family.webp)
 
 `i32` is the default integer. Thirty-two-bit signed, fastest on most CPUs. Unsigned integers like `u64` are zero or positive only: great for sizes, counts, indexes.
 
@@ -211,7 +209,6 @@ Integers come in six sizes, signed and unsigned. Pick the one that fits your val
 
 Booleans are `true` or `false`. One byte. No truthy ints in Rust. Be explicit.
 
-![Char: a single Unicode scalar value, four bytes, single quotes](/media/rust-from-zero-ep01/13-scalar-char.png)
 
 Chars are a single Unicode scalar value. Four bytes. Use single quotes. Yes, emoji works.
 
@@ -219,7 +216,6 @@ Chars are a single Unicode scalar value. Four bytes. Use single quotes. Yes, emo
 
 Compound types group multiple values into one. Two flavors, very different.
 
-![Tuple: fixed-length, mixed-type group](/media/rust-from-zero-ep01/14-tuple.png)
 
 **Tuples** are fixed-length, mixed-type. The type is parens, with each item's type, in order:
 
@@ -231,7 +227,6 @@ let first = pair.0;       // or use dot-access
 
 The empty tuple, `()`, is called the **unit**. You'll see it as a default return type.
 
-![Array: same type, fixed length](/media/rust-from-zero-ep01/15-array.png)
 
 **Arrays** are different. Same type, fixed length:
 
@@ -241,13 +236,13 @@ let zeros = [0; 10];      // shortcut: ten zeros
 let first = nums[0];
 ```
 
-![Tuple vs array, side by side](/media/rust-from-zero-ep01/16-tuple-vs-array.png)
+![Tuple vs array, side by side](/media/rust-from-zero-ep01/16-tuple-vs-array.webp)
 
 Both are fixed at compile time. If you need to grow it, you want a `Vec`. We'll cover that in a later video.
 
 ### Your first struct
 
-![Person struct definition](/media/rust-from-zero-ep01/17-struct-defn.png)
+![Person struct definition](/media/rust-from-zero-ep01/17-struct-defn.webp)
 
 A struct is your custom shape for related data.
 
@@ -261,7 +256,7 @@ struct Person {
 
 Define it with the `struct` keyword and a name in `PascalCase`. Inside the curly braces, list each field as `name: type`, comma at the end.
 
-![Struct instance using String::from](/media/rust-from-zero-ep01/18-struct-instance.png)
+![Struct instance using String::from](/media/rust-from-zero-ep01/18-struct-instance.webp)
 
 To make an instance, use the type name with curly braces and fill in every field:
 
@@ -285,7 +280,6 @@ There's a lot more you can do with structs (methods, tuple structs, enums), but 
 
 ### Functions
 
-![Functions: parameters, return types, snake_case](/media/rust-from-zero-ep01/19-functions.png)
 
 We've already seen `fn main`. `fn` declares a function, parens for parameters, curly braces for the body. `snake_case` names by convention.
 
@@ -299,7 +293,6 @@ fn plus_one(x: i32) -> i32 {
 }
 ```
 
-![Function parameter and return types](/media/rust-from-zero-ep01/20-function-types.png)
 
 A few rules:
 
@@ -311,7 +304,7 @@ That last one is the gotcha. Watch for it.
 
 ### Comments
 
-![Five kinds of Rust comments: //, ///, //!, /* */](/media/rust-from-zero-ep01/21-comments.png)
+![Five kinds of Rust comments: //, ///, //!, /* */](/media/rust-from-zero-ep01/21-comments.webp)
 
 Comments are notes for humans. Five prefixes, each does one job:
 
@@ -328,7 +321,6 @@ Comments are notes for humans. Five prefixes, each does one job:
 
 ### `if` / `else`
 
-![if/else: no parens, bool only, expressions](/media/rust-from-zero-ep01/22-if-else.png)
 
 `if` and `else` give you a fork in the road.
 
@@ -356,7 +348,7 @@ For more than two cases, chain `else if`. They check top to bottom and stop at t
 
 ### Loops
 
-![loop, while, for compared](/media/rust-from-zero-ep01/23-loops.png)
+![loop, while, for compared](/media/rust-from-zero-ep01/23-loops.webp)
 
 Three loop types in Rust:
 
@@ -389,7 +381,7 @@ Quick mental model:
 
 `for` is the safest (no off-by-one bugs) and usually the fastest (the compiler can skip bounds checks it knows are unnecessary). When in doubt, reach for `for`.
 
-![Loop labels for nested loops](/media/rust-from-zero-ep01/24-loop-labels.png)
+![Loop labels for nested loops](/media/rust-from-zero-ep01/24-loop-labels.webp)
 
 For nested loops, label them with a quote and a name:
 
@@ -407,7 +399,6 @@ Now `break` or `continue` can target the loop you want, instead of just the inne
 
 ## The compiler is your friend
 
-![Pull quote: the compiler is your friend](/media/rust-from-zero-ep01/25-pull-quote.png)
 
 Here's something to keep in mind as you start writing Rust.
 
@@ -419,7 +410,6 @@ That's the Rust difference.
 
 ## What's next
 
-![Outro: episode 02 teases ownership and the borrow checker](/media/rust-from-zero-ep01/26-outro.png)
 
 That's a wrap. You now know enough Rust to write a real program.
 
