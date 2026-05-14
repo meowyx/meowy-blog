@@ -1,7 +1,7 @@
 /* About page styles (mirror design-resources/about.html <style>) */
 
 .about-head {
-  padding: 72px 0 48px;
+  padding: 48px 0 32px;
   border-bottom: 1px solid var(--rule);
   display: flex;
   align-items: flex-start;
@@ -10,16 +10,16 @@
 }
 .about-head > .head-main { flex: 1 1 auto; min-width: 0; }
 @media (max-width: 760px) {
-  .about-head { padding: 48px 0 32px; flex-direction: column; gap: 24px; }
+  .about-head { padding: 32px 0 24px; flex-direction: column; gap: 18px; }
 }
 
 .about-head h1 {
-  font-size: clamp(40px, 6.4vw, 84px);
-  line-height: 0.96;
-  letter-spacing: -0.035em;
+  font-size: clamp(24px, 3.1vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
   font-weight: 500;
-  margin: 0 0 24px;
-  max-width: 18ch;
+  margin: 0 0 16px;
+  max-width: 36ch;
   text-wrap: balance;
 }
 .about-head h1 em {
@@ -28,16 +28,93 @@
   font-weight: 500;
 }
 
+.about-head .lede {
+  margin: 0 0 13px;
+  font-size: clamp(14.5px, 1.15vw, 16px);
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 76ch;
+}
+.about-head .lede strong { color: var(--ink); font-weight: 500; }
+.about-head .lede a { color: var(--accent); }
+.about-head .lede a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* "What I'm into" label + bullet list inside the head */
+.about-head .into-label {
+  margin: 16px 0 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.about-head .into-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: 5px 36px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  max-width: 78ch;
+}
+.about-head .into-list li {
+  padding-left: 16px;
+  position: relative;
+}
+.about-head .into-list li::before {
+  content: "▸";
+  position: absolute;
+  left: 0;
+  top: 1px;
+  color: var(--accent);
+  font-size: 10px;
+}
+@media (max-width: 600px) {
+  .about-head .into-list { grid-template-columns: 1fr; }
+}
+
+/* Compact label/content row used for stack / open to / extras under the lede */
+.head-strip {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 16px;
+  align-items: baseline;
+  margin-top: 9px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 84ch;
+}
+.head-strip-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.head-strip strong { color: var(--ink); font-weight: 500; }
+.head-strip a { color: var(--accent); }
+.head-strip a:hover { text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 600px) {
+  .head-strip {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
 .prose {
   display: grid;
   grid-template-columns: 220px 1fr;
   gap: 56px;
-  padding: 56px 0;
+  padding: 44px 0;
   border-bottom: 1px solid var(--rule);
   align-items: start;
 }
 @media (max-width: 760px) {
-  .prose { grid-template-columns: 1fr; gap: 12px; padding: 36px 0; }
+  .prose { grid-template-columns: 1fr; gap: 12px; padding: 32px 0; }
 }
 .prose h2 {
   font-size: 14px;
@@ -116,3 +193,165 @@
   letter-spacing: -0.005em;
 }
 .contact a:hover .val { color: var(--accent); }
+
+/* Selected Work: full-width section with sliding card carousel */
+.work {
+  padding: 44px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.work-head {
+  margin: 0 0 20px;
+}
+.work h2 {
+  font-size: 14px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 6px;
+  font-weight: 400;
+}
+.work-intro {
+  font-size: 14px;
+  font-family: var(--mono);
+  color: var(--ink-3);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 760px) {
+  .work { padding: 36px 0; }
+}
+
+/* Carousel viewport: bleeds full-width inside the shell with a soft edge mask
+   so cards fade in/out rather than hard-clipping. */
+.carousel-wrap {
+  overflow: hidden;
+  position: relative;
+  margin: 0 calc(var(--gutter) * -1);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black 40px,
+    black calc(100% - 40px),
+    transparent 100%
+  );
+          mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black 40px,
+    black calc(100% - 40px),
+    transparent 100%
+  );
+}
+.carousel-track {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+  padding: 4px var(--gutter);
+  animation: work-marquee 160s linear infinite;
+  will-change: transform;
+}
+.carousel-wrap:hover .carousel-track {
+  animation-play-state: paused;
+}
+@keyframes work-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .carousel-track { animation: none; }
+  .carousel-wrap {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+            mask-image: none;
+  }
+}
+
+/* Individual card */
+.work-card {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 22px 18px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  min-height: 280px;
+  border-radius: 2px;
+  transition:
+    transform .2s cubic-bezier(.2,.7,.2,1),
+    border-color .2s,
+    box-shadow .2s;
+}
+.work-card:hover {
+  border-color: var(--accent-soft);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px oklch(0.5 0.05 150 / 0.07);
+}
+.work-card-kind {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  margin-bottom: 14px;
+}
+.work-card-title {
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0 0 8px;
+  line-height: 1.2;
+}
+.work-card-desc {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0 0 16px;
+  flex: 1 1 auto;
+}
+.work-card-tech {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.work-card-tech-chip {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 4px 8px;
+  color: var(--ink-2);
+  background: var(--paper-2);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.work-card-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.work-card-link {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 7px 11px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--ink-2);
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.work-card-link:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+.work-card-link.primary {
+  background: var(--accent);
+  color: var(--paper);
+  border-color: var(--accent);
+}
+.work-card-link.primary:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+  color: var(--paper);
+}
