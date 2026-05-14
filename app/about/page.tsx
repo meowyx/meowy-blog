@@ -319,42 +319,80 @@ export default function AboutPage() {
             picking up whatever a project actually needs. Curiosity is my fuel.
             When interest sparks, energy follows.
           </p>
-          <div className="head-strip">
-            <span className="head-strip-label">rust</span>
-            <span>
-              Rust · Tokio · Axum · Tonic · Prost · DashMap · ratatui · rmcp ·
-              Prometheus · tracing · criterion · flamegraph
-            </span>
-          </div>
-          <div className="head-strip">
-            <span className="head-strip-label">frontend</span>
-            <span>
-              TypeScript · JavaScript · Next.js · React · Tailwind ·
-              shadcn/ui · Astro · Privy
-            </span>
-          </div>
-          <div className="head-strip">
-            <span className="head-strip-label">web3</span>
-            <span>
-              <strong>Solana:</strong> Anchor · Pinocchio · Native · SPL
-              Token + Token-2022 · Switchboard VRF · Helius.{" "}
-              <strong>EVM:</strong> Solidity · Foundry · Hardhat · Viem ·
-              Wagmi · OpenZeppelin · Chainlink
-            </span>
-          </div>
-          <div className="head-strip">
-            <span className="head-strip-label">ai-native</span>
-            <span>
-              Claude Code · Cursor · MCP servers (built in Rust) · agent-facing
-              API design · prompt engineering
-            </span>
-          </div>
+          <details className="stack-details">
+            <summary>
+              <div className="head-strip">
+                <span className="head-strip-label">stack</span>
+                <span>
+                  Rust · Next.js · Solana + EVM · AI-native
+                  <span className="stack-chevron" aria-hidden="true">
+                    ▸
+                  </span>
+                  <span className="stack-hint" aria-hidden="true">
+                    <svg
+                      className="stack-hint-arrow"
+                      width="68"
+                      height="22"
+                      viewBox="0 0 68 22"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path
+                        className="stack-hint-curve"
+                        d="M 64 4 C 52 4, 32 12, 14 14 C 10 14.4, 7 14.4, 4 13.6"
+                      />
+                      <path
+                        className="stack-hint-tip"
+                        d="M 4 13.6 L 9 10 M 4 13.6 L 9 17"
+                      />
+                    </svg>
+                    <span className="stack-hint-text">click to see all</span>
+                  </span>
+                </span>
+              </div>
+            </summary>
+            <div className="stack-details-body">
+              <div className="head-strip">
+                <span className="head-strip-label">rust</span>
+                <span>
+                  Rust · Tokio · Axum · Tonic · Prost · DashMap · ratatui ·
+                  rmcp · Prometheus · tracing · criterion · flamegraph
+                </span>
+              </div>
+              <div className="head-strip">
+                <span className="head-strip-label">frontend</span>
+                <span>
+                  TypeScript · JavaScript · Next.js · React · Tailwind ·
+                  shadcn/ui · Astro · Privy
+                </span>
+              </div>
+              <div className="head-strip">
+                <span className="head-strip-label">web3</span>
+                <span>
+                  <strong>Solana:</strong> Anchor · Pinocchio · Native · SPL
+                  Token + Token-2022 · Switchboard VRF · Helius.{" "}
+                  <strong>EVM:</strong> Solidity · Foundry · Hardhat · Viem ·
+                  Wagmi · OpenZeppelin · Chainlink
+                </span>
+              </div>
+              <div className="head-strip">
+                <span className="head-strip-label">ai-native</span>
+                <span>
+                  Claude Code · Cursor · MCP servers (built in Rust) ·
+                  agent-facing API design · prompt engineering
+                </span>
+              </div>
+            </div>
+          </details>
           <div className="head-strip">
             <span className="head-strip-label">open to</span>
             <span>
-              Software, full-stack, rust backend, frontend (real engineering
-              only), founding, solutions, forward deployed, devrel, AI-native
-              product. Any timezone, any hours.
+              Software, full-stack, rust backend, frontend, founding,
+              solutions, forward deployed, devrel, AI-native product. Any
+              timezone, any hours.
             </span>
           </div>
           <div className="head-strip">

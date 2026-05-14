@@ -83,10 +83,10 @@
   grid-template-columns: 86px 1fr;
   gap: 16px;
   align-items: baseline;
-  margin-top: 9px;
+  margin-top: 14px;
   font-family: var(--mono);
   font-size: 12.5px;
-  line-height: 1.55;
+  line-height: 1.65;
   color: var(--ink-2);
   max-width: 84ch;
 }
@@ -104,6 +104,113 @@
     grid-template-columns: 1fr;
     gap: 4px;
   }
+}
+
+/* Collapsible stack section: 4 detail rows hide behind a single summary by
+   default. Native <details>/<summary>, no JS. */
+.stack-details summary {
+  list-style: none;
+  cursor: pointer;
+  outline: none;
+}
+.stack-details summary::-webkit-details-marker { display: none; }
+.stack-details summary::marker { display: none; }
+
+.stack-details summary .head-strip {
+  margin-top: 14px;
+  transition: color .15s;
+}
+.stack-details summary:hover .head-strip-label,
+.stack-details summary:hover .stack-chevron {
+  color: var(--ink);
+}
+
+.stack-chevron {
+  display: inline-block;
+  margin-left: 10px;
+  color: var(--ink-3);
+  font-size: 10px;
+  transform-origin: center;
+  transition: transform .2s ease;
+  vertical-align: middle;
+}
+.stack-details[open] .stack-chevron {
+  transform: rotate(90deg);
+}
+.stack-details-body {
+  padding-left: 0;
+}
+.stack-details-body .head-strip { margin-top: 10px; }
+.stack-details-body .head-strip:first-child { margin-top: 8px; }
+
+/* Hand-drawn "click to see all" hint pointing at the stack chevron.
+   Sketched SVG curve + arrowhead, draws itself in on load and gently
+   bobs toward the chevron. Fades out once the user opens the section. */
+.stack-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+  color: var(--accent);
+  font-family: var(--sans);
+  font-style: italic;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  vertical-align: middle;
+  animation: stack-hint-bob 2.4s ease-in-out infinite;
+  opacity: 1;
+  transition: opacity .2s ease;
+}
+.stack-hint-arrow {
+  display: block;
+  color: var(--accent);
+  flex-shrink: 0;
+  /* small irregular tilt so the arrow reads as sketched, not perfectly straight */
+  transform: rotate(-2deg);
+}
+.stack-hint-arrow path {
+  stroke-dasharray: 220;
+  stroke-dashoffset: 220;
+  animation: stack-hint-draw 1.1s cubic-bezier(.2,.7,.2,1) .35s forwards;
+}
+.stack-hint-text {
+  white-space: nowrap;
+}
+
+/* When the dropdown is open, the affordance is no longer needed. */
+.stack-details[open] .stack-hint {
+  opacity: 0;
+  visibility: hidden;
+  animation: none;
+}
+
+/* Bob the whole hint a few pixels left, toward the chevron it points at. */
+@keyframes stack-hint-bob {
+  0%, 100%  { transform: translateX(0); }
+  50%       { transform: translateX(-5px); }
+}
+
+/* Draw the curve + arrowhead in once on load. */
+@keyframes stack-hint-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Respect reduced-motion: keep the hint visible, drop animations. */
+@media (prefers-reduced-motion: reduce) {
+  .stack-hint { animation: none; }
+  .stack-hint-arrow path {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+}
+
+/* Mobile: the hint takes a lot of width on a narrow screen.
+   At <600px we already collapse head-strip to a single column; drop the
+   text but keep the arrow as a smaller visual cue. */
+@media (max-width: 600px) {
+  .stack-hint-text { display: none; }
+  .stack-hint { margin-left: 8px; }
 }
 
 .prose {
