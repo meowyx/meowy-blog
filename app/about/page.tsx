@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { Eyebrow } from "@/components/eyebrow"
+import { LangTag } from "@/components/lang-tag"
 import { YouTubeLink } from "@/components/youtube-link"
 import "./about.css"
 
@@ -240,183 +241,32 @@ export default function AboutPage() {
         <div className="head-main">
           <Eyebrow style={{ marginBottom: 14 }}>about</Eyebrow>
           <h1>
-            I&#39;m Sushmita R (aka <em>meowy</em>). I ship full-stack apps,
-            rust backends, on-chain protocols, and AI agents.
+            I&#39;m Sushmita R (aka <em>meowy</em>). I build full-stack apps,
+            dev tooling, and on-chain backends.
           </h1>
           <p className="lede">
             <strong>Full-stack engineer</strong>,{" "}
-            <strong>5+ years</strong> in web3. Rust backends, Next.js +
-            TypeScript frontends, smart contracts on both Solana and EVM, AI
-            agents, plus the technical writing and teaching that surrounds
-            them. Recent ships:{" "}
-            <a
-              href="https://github.com/meowyx/gulfwatch"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              gulfwatch
-            </a>{" "}
-            (Rust observability),{" "}
-            <a
-              href="https://raffl.fun"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              raffl.fun
-            </a>{" "}
-            (full-stack on-chain raffle: Anchor + Next.js + Privy), and{" "}
-            <a
-              href="https://crates.io/crates/mewtui"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              mewtui
-            </a>{" "}
-            (Rust terminal editor on crates.io).
+            <strong>5+ years</strong> in the trenches building software.
           </p>
           <p className="lede">
-            Developer-facing side at <strong>Consensys</strong> (MetaMask,
-            Infura, Linea) and <strong>Gaia</strong>: built reference
-            integrations, ran weekly debugging calls with builders, wrote{" "}
-            <Link href="/publications">15+ technical blogs</Link>. Earlier
-            built curriculum for{" "}
-            <a
-              href="https://www.udacity.com/course/blockchain-developer--nd1310"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <strong>Udacity</strong>
-            </a>
-            ,{" "}
-            <a
-              href="https://dev.chain.link/certification"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <strong>Chainlink</strong>
-            </a>
-            , and{" "}
-            <a
-              href="https://academy.developerdao.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <strong>Developer DAO</strong>
-            </a>{" "}
-            (academy used by <strong>1000+ developers</strong>).
+            Frontend in <strong>Next.js</strong> with <LangTag lang="ts" />{" "}
+            <LangTag lang="js" />. Backends depend on the job: web3 backends
+            in <LangTag lang="solidity" /> and <LangTag lang="rust" />,
+            otherwise I reach for <LangTag lang="rust" /> or{" "}
+            <LangTag lang="go" />.
+          </p>
+          <p className="lede">
+            I learn and build in public, write technical deep-dives, and make
+            video content. I love teaching what I build.
           </p>
           <p className="into-label">What I&#39;m into</p>
           <ul className="into-list">
-            <li>Real-time and streaming systems</li>
+            <li>Full-stack apps</li>
+            <li>Dev tooling</li>
             <li>Distributed systems and observability</li>
-            <li>Low-level Rust (down to Pinocchio on Solana)</li>
-            <li>Smart contracts on Solana and EVM</li>
-            <li>Full-stack apps end-to-end</li>
-            <li>AI agents and MCP servers</li>
+            <li>APIs and databases</li>
+            <li>AI agents and agentic development</li>
           </ul>
-          <p className="lede">
-            What I love: building things end-to-end, teaching what I ship, and
-            picking up whatever a project actually needs. Curiosity is my fuel.
-            When interest sparks, energy follows.
-          </p>
-          <details className="stack-details">
-            <summary>
-              <div className="head-strip">
-                <span className="head-strip-label">stack</span>
-                <span>
-                  Rust · Next.js · Solana + EVM · AI-native
-                  <span className="stack-chevron" aria-hidden="true">
-                    ▸
-                  </span>
-                  <span className="stack-hint" aria-hidden="true">
-                    <svg
-                      className="stack-hint-arrow"
-                      width="68"
-                      height="22"
-                      viewBox="0 0 68 22"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path
-                        className="stack-hint-curve"
-                        d="M 64 4 C 52 4, 32 12, 14 14 C 10 14.4, 7 14.4, 4 13.6"
-                      />
-                      <path
-                        className="stack-hint-tip"
-                        d="M 4 13.6 L 9 10 M 4 13.6 L 9 17"
-                      />
-                    </svg>
-                    <span className="stack-hint-text">click to see all</span>
-                  </span>
-                </span>
-              </div>
-            </summary>
-            <div className="stack-details-body">
-              <div className="head-strip">
-                <span className="head-strip-label">rust</span>
-                <span>
-                  Rust · Tokio · Axum · Tonic · Prost · DashMap · ratatui ·
-                  rmcp · Prometheus · tracing · criterion · flamegraph
-                </span>
-              </div>
-              <div className="head-strip">
-                <span className="head-strip-label">frontend</span>
-                <span>
-                  TypeScript · JavaScript · Next.js · React · Tailwind ·
-                  shadcn/ui · Astro · Privy
-                </span>
-              </div>
-              <div className="head-strip">
-                <span className="head-strip-label">web3</span>
-                <span>
-                  <strong>Solana:</strong> Anchor · Pinocchio · Native · SPL
-                  Token + Token-2022 · Switchboard VRF · Helius.{" "}
-                  <strong>EVM:</strong> Solidity · Foundry · Hardhat · Viem ·
-                  Wagmi · OpenZeppelin · Chainlink
-                </span>
-              </div>
-              <div className="head-strip">
-                <span className="head-strip-label">ai-native</span>
-                <span>
-                  Claude Code · Cursor · MCP servers (built in Rust) ·
-                  agent-facing API design · prompt engineering
-                </span>
-              </div>
-            </div>
-          </details>
-          <div className="head-strip">
-            <span className="head-strip-label">open to</span>
-            <span>
-              Software, full-stack, rust backend, frontend, founding,
-              solutions, forward deployed, devrel, AI-native product. Any
-              timezone, any hours.
-            </span>
-          </div>
-          <div className="head-strip">
-            <span className="head-strip-label">extras</span>
-            <span>
-              Rust intro on X passed{" "}
-              <a
-                href="https://x.com/me256ow/status/2051811337886716408"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <strong>20K+ views</strong>
-              </a>
-              . Weekly Rust tutorials on{" "}
-              <a
-                href="https://www.youtube.com/@MeowyTheDev"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                YouTube
-              </a>
-              .
-            </span>
-          </div>
         </div>
         <YouTubeLink />
       </section>

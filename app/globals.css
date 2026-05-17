@@ -132,6 +132,11 @@ nav.primary a.active::after {
 }
 .site-footer .shell {
   display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.footer-meta {
+  display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px;
@@ -257,7 +262,7 @@ nav.primary a.active::after {
 .muted { color: var(--ink-3); }
 .accent { color: var(--accent); }
 
-/* YouTube link — sits top-right of head sections.
+/* YouTube link, sits top-right of head sections.
    Hover: a thin frame draws itself in around the pill, top → right → bottom → left.
    Built from two pseudo-elements: ::before owns the top + right corner,
    ::after owns the bottom + left corner. Each grows width then height,
@@ -306,4 +311,120 @@ nav.primary a.active::after {
   width: 100%;
   height: 100%;
   transition: width .18s ease .36s, height .18s ease .54s;
+}
+
+/* Subscribe */
+.subscribe { margin: 0; }
+.subscribe-default {
+  margin: 64px 0 0;
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+  padding: clamp(24px, 4vw, 40px);
+}
+.subscribe-intro h2 {
+  font-size: clamp(22px, 3vw, 30px);
+  letter-spacing: -0.02em;
+  font-weight: 500;
+  margin: 14px 0 8px;
+}
+.subscribe-intro p {
+  color: var(--ink-2);
+  margin: 0 0 22px;
+  max-width: 52ch;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.subscribe-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  max-width: 480px;
+}
+.subscribe-row input[type="email"] {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  border-radius: 4px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  transition: border-color .15s, box-shadow .15s;
+}
+.subscribe-row input[type="email"]::placeholder { color: var(--ink-3); }
+.subscribe-row input[type="email"]:focus {
+  outline: 0;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 14%, transparent);
+}
+.subscribe-row input[aria-invalid="true"] {
+  border-color: oklch(0.55 0.16 25);
+}
+.subscribe-row button {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.subscribe-row button:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.subscribe-row button:disabled { opacity: .55; cursor: default; }
+
+/* Honeypot: offscreen but still in the DOM and focusable only to bots. */
+.subscribe-hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.subscribe-status {
+  min-height: 1.2em;
+  margin: 10px 0 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: oklch(0.55 0.16 25);
+  letter-spacing: 0.02em;
+}
+
+.subscribe-done {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.subscribe-default.subscribe-done {
+  margin-top: 64px;
+  padding: clamp(24px, 4vw, 40px);
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+}
+.subscribe-done .subscribe-dot { color: var(--accent); }
+.subscribe-done p { margin: 0; }
+
+/* Compact variant: site footer */
+.subscribe-compact {
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--rule);
+}
+.subscribe-compact .subscribe-row { max-width: 420px; }
+.subscribe-compact.subscribe-done { color: var(--ink-3); padding-bottom: 28px; }
+
+@media (max-width: 560px) {
+  .subscribe-row { flex-direction: column; }
+  .subscribe-row button { padding: 12px 20px; }
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { BlogArchive } from "@/components/blog-archive"
 import { Eyebrow } from "@/components/eyebrow"
+import { SubscribeForm } from "@/components/subscribe-form"
 import { YouTubeLink } from "@/components/youtube-link"
 import { getAllBlogEntries } from "@/lib/blog-data"
 import "./blog/blog.css"
@@ -34,6 +35,8 @@ export default function HomePage() {
         </div>
         <BlogArchive entries={entries} />
       </section>
+
+      <SubscribeForm />
     </>
   )
 }
