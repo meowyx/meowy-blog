@@ -250,10 +250,8 @@ export default function AboutPage() {
           </p>
           <p className="lede">
             Frontend in <strong>Next.js</strong> with <LangTag lang="ts" />{" "}
-            <LangTag lang="js" />. Backends depend on the job: web3 backends
-            in <LangTag lang="solidity" /> and <LangTag lang="rust" />,
-            otherwise I reach for <LangTag lang="rust" /> or{" "}
-            <LangTag lang="go" />.
+            <LangTag lang="js" />. Backends depend on the job, either{" "}
+            <LangTag lang="rust" /> or <LangTag lang="go" />.
           </p>
           <p className="lede">
             I learn and build in public, write technical deep-dives, and make
