@@ -154,6 +154,16 @@
   font-size: inherit;
 }
 
+/* Handwritten sign-off at the end of a letter, via <Signature>. */
+.prose-mdx .signature {
+  display: inline-block;
+  font-family: var(--hand);
+  font-size: 2.1em;
+  line-height: 1;
+  color: var(--ink);
+  margin-top: 0.15em;
+}
+
 .prose-mdx img {
   border: 1px solid var(--rule);
   border-radius: 4px;

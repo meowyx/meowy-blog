@@ -13,6 +13,7 @@
 
   --sans:  var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --mono:  var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --hand:  var(--font-hand), "Segoe Script", cursive;
 
   --max:    1240px;
   --gutter: clamp(20px, 4vw, 64px);
@@ -28,6 +29,7 @@
   --color-accent: var(--accent);
   --font-sans: var(--sans);
   --font-mono: var(--mono);
+  --font-hand: var(--hand);
 }
 
 * { box-sizing: border-box; }

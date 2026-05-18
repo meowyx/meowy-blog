@@ -1,6 +1,6 @@
 ---
 title: "I built my own newsletter"
-description: "I always really wanted to build my own newsletter and actually did it with resend"
+description: "I always really wanted to build my own newsletter and actually did it with Resend"
 date: 2026-05-18
 category: tutorial 
 type: posts
@@ -8,19 +8,19 @@ tags: [newsletter, beginner, api, tutorial]
 fav: true
 ---
 
-I have always wanted to add newsletter on my blog site or portfolio. But the process felt quite complex and all the advices I've got were something like, "just use an existing platform". But I love owning my own traffic, so what happened was that I've ended up not doing anything about it for a long time.
+I have always wanted to add newsletter on my blog site or portfolio. But the process felt quite complex and all the advice I've got were something like, "just use an existing platform". But I love owning my own traffic, so what happened was that I've ended up not doing anything about it for a long time.
 
-Last week around friday, I've come across this job post about "DX Engineering" for resend. I have already been searching for jobs so of course I would focus on finding details about it. But what caught my eye mostly was there were a section that said "Submit an application by sending a multipart/form-data request". That was something which immediately intrigued me and gave me the perfect excuse to build my own newsletter with resend over the weekend.
+Last week around friday, I've come across this job post about "DX Engineering" for Resend. I have already been searching for jobs so of course I would focus on finding details about it. But what caught my eye mostly was there were a section that said "Submit an application by sending a multipart/form-data request". That was something which immediately intrigued me and gave me the perfect excuse to build my own newsletter with Resend over the weekend.
 
-I wanted to write about it as well as capture the decisions I've made. Honestly the amount of AI getting intregrated to our daily workflow sometimes makes me feel like "we're living in a simulation" but of course with no token/rate limt. Don't get me wrong, I'm a heavy ai user but I love to make my own choices as it forces me to think. When I was first starting out with ai, I let it do mostly 90% things for me but when it came to maintaining project that's where I stumbled. So currently I prefer making ai to do work for me with a step by step process than delegating all the thinking. I would rather read the code written than mindlessly hitting "confirm" non-stop and then doing push-backs. But my learning process also quite different with ai, maybe that can be another writeup for another day.
+I wanted to write about it as well as capture the decisions I've made. Honestly the amount of AI getting integrated to our daily workflow sometimes makes me feel like "we're living in a simulation" but of course with no token/rate limit. Don't get me wrong, I'm a heavy ai user but I love to make my own choices as it forces me to think. When I was first starting out with ai, I let it do mostly 90% things for me but when it came to maintaining project that's where I stumbled. So currently I prefer making ai to do work for me with a step by step process than delegating all the thinking. I would rather read the code written than mindlessly hitting "confirm" non-stop and then doing push-backs. But my learning process also quite different with ai, maybe that can be another writeup for another day.
 
-Anyway back to the subscribtion part, I back to I have a habit of writing and teaching what I learn and build. So that's why I'm writing this. Maybe as a log or maybe as a tutorial or maybe someone would find it useful when integrating theirs.
+Anyway back to the subscription part, I have a habit of writing and teaching what I learn and build. So that's why I'm writing this. Maybe as a log or maybe as a tutorial or maybe someone would find it useful when integrating theirs.
 
 My stack for this was nextjs because my blog/portfolio site is built with nextjs and also it's hosted on vercel. I do sometimes think vercel is too expensive and aspire to maybe use something else but I do love the convenience vercel gives me currently.
 I have also used the [react email](https://github.com/resend/resend-examples/tree/main/nextjs-resend-examples/typescript/src/app/react-email) because of the react components. 
 
 
-Before we dive into the code, we need to sign up for resend and get an API key and the audience ID. We also need to setip our domain, resend free version lets you use one domain. 
+Before we dive into the code, we need to sign up for Resend and get an API key and the audience ID. We also need to set up our domain, Resend free version lets you use one domain. 
 
 ### Installation and Setup
 To get started, you need to install the `resend` package. I have used pnpm instead of npm as my current setup was with pnpm.
@@ -30,7 +30,7 @@ pnpm install resend
 
 ```
 
-There were two environment variable. 
+There were two environment variables. 
 
 
 ```
@@ -42,7 +42,7 @@ I always try to double check if I'm putting `.env` on gitignore, but this is a m
 
 ### The Server Action
 
-The server action is a simple Next.js API route that handles the subscription logic. It uses the `resend` package to send the welcome email and add the subscriber to the audience. I also used react email to create the welcome email template. Let's write the `subscribe.ts` file.
+The server action handles the subscription logic. It uses the `resend` package to send the welcome email and add the subscriber to the audience. I also used react email to create the welcome email template. Let's write the `subscribe.ts` file.
 
 ```ts
 "use server"
@@ -55,21 +55,30 @@ export type SubscribeState = {
   message: string
 }
 
+// Sender identity. The domain must stay on the verified send subdomain.
+const FROM = "meowy <hello@send.meowy.xyz>"
+
+// Permissive on purpose. Resend validates server-side; this just
+// catches obvious typos before spending an API call.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 ```
 
 This type is used to define the state of the subscription process. The `subscribe` function is the server action that handles the subscription logic.
 
 ```ts
 export async function subscribe(
-  email: string
+  _prev: SubscribeState,
+  formData: FormData,
 ): Promise<SubscribeState> {
   
 }
 ```
 
-By doing this, you can now handle the subscription logic on the server side, ensuring that the email is sent and the subscriber is added to the audience before the client is redirected.
+By doing this, you can now handle the subscription logic on the server side, ensuring that the email is sent and the subscriber is added to the audience before the result is returned to the client.
 
 ```ts
+const trap = (formData.get("company") as string | null)?.trim()
 if (trap) {
   return { status: "success", message: "Thanks, you're on the list." }
 }
@@ -180,18 +189,22 @@ Now to have the welcome email sent,  I had to install [react email](https://gith
 
 ### DNS setup
 
-While doing the DNS setup, I noticed it had option to do it by adding vercel but I did that manually by following the instruction. It was easier to follow. If you sign up for resend, you will be guilded for this so I don't think this would be something difficult. 
+While doing the DNS setup, I noticed it had option to do it by adding vercel but I did that manually by following the instruction. It was easier to follow. If you sign up for Resend, you will be guided for this so I don't think this would be something difficult. 
 
 ### Some thoughts 
 
 1. While creating the API key, I noticed there's option to full access or sending only. I was confused at first but I understood that I need to have full-access API key which writes to an audience and not just sending. A sending key would just send the welcome email but wouldn't write to the audience or add the subscriber.
 
-2. Few other decisions that I had to make were about database and the flow. There were 2 options for me regarding the database, I could build my own or I could just use `Resend Audiences`. And honestly resend is quite generous with free-tier. I looked into billing and it mostly focused on how many emails being sent. And i could send around 3000 emails per month, 100 emails per day and I can store upto 1000 contacts for free tier. That sounded quite wonderful for me who's just looking into adding subscription personal website. So I decided to use resend's `Resend Audiences`. I did accepted the trade-off which is the subscriber's data would live in Resend and not something I can own currently. But I believe that was the right call for a personal project.
+2. Few other decisions that I had to make were about database and the flow. There were 2 options for me regarding the database, I could build my own or I could just use `Resend Audiences`. And honestly Resend is quite generous with free-tier. I looked into billing and it mostly focused on how many emails being sent. And i could send around 3000 emails per month, 100 emails per day and I can store upto 1000 contacts for free tier. That sounded quite wonderful for me who's just looking into adding subscription personal website. So I decided to use Resend's `Resend Audiences`. I did accepted the trade-off which is the subscriber's data would live in Resend and not something I can own currently. But I believe that was the right call for a personal project.
 
 3. Now about the flow, I wanted to keep it simple and use a standard email subscription flow with single opt-in plus a welcome email. Even though I would have really wanted to use the double opt-in but that might have been an overkill for this case.
 
 This was really fun and simple to setup. I truly enjoyed the process of setting up the subscription flow with Resend. It was easy to integrate and the documentation was quite clear. 
 
-If you're someone with personal portfolio and blog site and want to ahve your own subscription flow. I would highly suggest using [Resend](https://resend.com/home).
+If you're someone with personal portfolio and blog site and want to have your own subscription flow. I would highly suggest using [Resend](https://resend.com/home).
+
+### Broadcasting
+
+One thing I want to mention is how the posts actually reach the subscribers. Right now I'm just using the Resend dashboard to do the broadcasting, and honestly that's enough for where I'm at. You can also set it up so a broadcast goes out automatically every time you publish a post, but I'm intentionally leaving that part out for now and might write about it separately.
 
 Also this is the first blog post that's gonna be sent to the subscribers.
