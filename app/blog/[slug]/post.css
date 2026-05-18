@@ -139,6 +139,14 @@
   overflow-x: auto;
   margin: 1.4em 0;
 }
+/* Geist Mono ligates ===, !==, ?? into single glyphs (the "black bar"
+   on operators). Turn ligatures off for all code. */
+.prose-mdx pre,
+.prose-mdx pre code,
+.prose-mdx code {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+}
 .prose-mdx pre code {
   background: transparent;
   border: 0;
