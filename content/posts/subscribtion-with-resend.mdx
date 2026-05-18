@@ -1,0 +1,197 @@
+---
+title: "I built my own newsletter"
+description: "I always really wanted to build my own newsletter and actually did it with resend"
+date: 2026-05-18
+category: tutorial 
+type: posts
+tags: [newsletter, beginner, api, tutorial]
+fav: true
+---
+
+I have always wanted to add newsletter on my blog site or portfolio. But the process felt quite complex and all the advices I've got were something like, "just use an existing platform". But I love owning my own traffic, so what happened was that I've ended up not doing anything about it for a long time.
+
+Last week around friday, I've come across this job post about "DX Engineering" for resend. I have already been searching for jobs so of course I would focus on finding details about it. But what caught my eye mostly was there were a section that said "Submit an application by sending a multipart/form-data request". That was something which immediately intrigued me and gave me the perfect excuse to build my own newsletter with resend over the weekend.
+
+I wanted to write about it as well as capture the decisions I've made. Honestly the amount of AI getting intregrated to our daily workflow sometimes makes me feel like "we're living in a simulation" but of course with no token/rate limt. Don't get me wrong, I'm a heavy ai user but I love to make my own choices as it forces me to think. When I was first starting out with ai, I let it do mostly 90% things for me but when it came to maintaining project that's where I stumbled. So currently I prefer making ai to do work for me with a step by step process than delegating all the thinking. I would rather read the code written than mindlessly hitting "confirm" non-stop and then doing push-backs. But my learning process also quite different with ai, maybe that can be another writeup for another day.
+
+Anyway back to the subscribtion part, I back to I have a habit of writing and teaching what I learn and build. So that's why I'm writing this. Maybe as a log or maybe as a tutorial or maybe someone would find it useful when integrating theirs.
+
+My stack for this was nextjs because my blog/portfolio site is built with nextjs and also it's hosted on vercel. I do sometimes think vercel is too expensive and aspire to maybe use something else but I do love the convenience vercel gives me currently.
+I have also used the [react email](https://github.com/resend/resend-examples/tree/main/nextjs-resend-examples/typescript/src/app/react-email) because of the react components. 
+
+
+Before we dive into the code, we need to sign up for resend and get an API key and the audience ID. We also need to setip our domain, resend free version lets you use one domain. 
+
+### Installation and Setup
+To get started, you need to install the `resend` package. I have used pnpm instead of npm as my current setup was with pnpm.
+
+```bash
+pnpm install resend
+
+```
+
+There were two environment variable. 
+
+
+```
+RESEND_API_KEY=re_...          # Full access key
+RESEND_AUDIENCE_ID=<uuid>      # the UUID in resend.com/audiences/<uuid>
+```
+
+I always try to double check if I'm putting `.env` on gitignore, but this is a must. After all no one really wants to push their `.env` file to GitHub.
+
+### The Server Action
+
+The server action is a simple Next.js API route that handles the subscription logic. It uses the `resend` package to send the welcome email and add the subscriber to the audience. I also used react email to create the welcome email template. Let's write the `subscribe.ts` file.
+
+```ts
+"use server"
+
+import { Resend } from "resend"
+import { WelcomeEmail } from "@/emails/welcome"
+
+export type SubscribeState = {
+  status: "idle" | "success" | "error"
+  message: string
+}
+
+```
+
+This type is used to define the state of the subscription process. The `subscribe` function is the server action that handles the subscription logic.
+
+```ts
+export async function subscribe(
+  email: string
+): Promise<SubscribeState> {
+  
+}
+```
+
+By doing this, you can now handle the subscription logic on the server side, ensuring that the email is sent and the subscriber is added to the audience before the client is redirected.
+
+```ts
+if (trap) {
+  return { status: "success", message: "Thanks, you're on the list." }
+}
+```
+
+Also if its a bot, we can return a success message without sending an email. It's just a simple honeypot logic.
+
+
+```ts
+const email =
+   (formData.get("email") as string | null)?.trim().toLowerCase() ?? ""
+
+ if (!email || email.length > 254 || !EMAIL_RE.test(email)) {
+   return { status: "error", message: "That email doesn't look right. Mind checking it?" }
+ }
+ ```
+
+ This is the main logic that validates the email and adds the subscriber to the audience. It returns a success message if the email is valid and the subscriber is added to the audience. 
+
+ ```ts
+ const apiKey = process.env.RESEND_API_KEY
+   const audienceId = process.env.RESEND_AUDIENCE_ID
+   if (!apiKey || !audienceId) {
+     return { status: "error", message: "Subscriptions aren't set up yet. Please try again later." }
+   }
+ 
+   const resend = new Resend(apiKey)
+ 
+   const { error: contactError } = await resend.contacts.create({
+     audienceId,
+     email,
+     unsubscribed: false,
+   })
+ 
+   if (contactError) {
+     const msg = contactError.message?.toLowerCase() ?? ""
+     // Already subscribed: treat as success. Do not reveal who is on the list.
+     if (!msg.includes("already")) {
+       return { status: "error", message: "Something went wrong on our end. Please try again." }
+     }
+   }
+ ```
+
+ This is just the classic way where we just made way to add email to the audience and then we can return a success message. 
+ This is quite straightforward process and it's important to understand how it works. Also it's necessary to handle errors properly and return relevant messages to the user. We also gotta make sure that the email is valid and the audience is set up before we can add the subscriber. As I don't want to reveal who is on the list, I treat "already subscribed" as a success.
+
+ Now we're onto the last part of the sending welcome email.
+
+ ```ts
+ const { error: emailError } = await resend.emails.send({
+     from: FROM,
+     to: email,
+     subject: "You're in. Welcome to the meowy blog",
+     react: WelcomeEmail(),
+   })
+   if (emailError) console.error("[subscribe] welcome email failed:", emailError)
+ 
+   return { status: "success", message: "Thanks, you're on the list. Check your inbox." }
+ }
+ ```
+
+ This is the final part of the subscription process. We are sending the welcome email and return a success message to the user.
+ 
+Now onto the client form. We will create a simple form that allows the user to enter their email and subscribe. We will use `useActionState` to handle the form submission and display the result to the user.
+
+```tsx
+"use client"
+
+ import { useActionState } from "react"
+ import { subscribe, type SubscribeState } from "@/app/actions/subscribe"
+
+ const INITIAL: SubscribeState = { status: "idle", message: "" }
+
+ export function SubscribeForm() {
+   const [state, formAction, pending] = useActionState(subscribe, INITIAL)
+
+   // Subscribed: replace the whole form so it can't be resubmitted.
+   if (state.status === "success") {
+     return <p className="subscribe-done">{state.message}</p>
+   }
+
+   return (
+     <form action={formAction}>
+       <input
+         type="email"
+         name="email"
+         required
+         placeholder="you@example.com"
+         disabled={pending}
+       />
+
+       {/* Honeypot: hidden from humans, only bots fill it. */}
+       <input type="text" name="company" tabIndex={-1} className="subscribe-hp" />
+
+       <button type="submit" disabled={pending}>
+         {pending ? "sending…" : "subscribe"}
+       </button>
+
+       {state.status === "error" && <p role="alert">{state.message}</p>}
+     </form>
+   )
+ }
+```
+
+Well now we have a simple form that allows the user to subscribe to our newsletter. And this was super quick for me to setup and really organized flow.
+
+Now to have the welcome email sent,  I had to install [react email](https://github.com/resend/resend-examples/tree/main/nextjs-resend-examples/typescript/src/app/react-email) because it's type safe component and i didn't want to use HTML email template.
+
+### DNS setup
+
+While doing the DNS setup, I noticed it had option to do it by adding vercel but I did that manually by following the instruction. It was easier to follow. If you sign up for resend, you will be guilded for this so I don't think this would be something difficult. 
+
+### Some thoughts 
+
+1. While creating the API key, I noticed there's option to full access or sending only. I was confused at first but I understood that I need to have full-access API key which writes to an audience and not just sending. A sending key would just send the welcome email but wouldn't write to the audience or add the subscriber.
+
+2. Few other decisions that I had to make were about database and the flow. There were 2 options for me regarding the database, I could build my own or I could just use `Resend Audiences`. And honestly resend is quite generous with free-tier. I looked into billing and it mostly focused on how many emails being sent. And i could send around 3000 emails per month, 100 emails per day and I can store upto 1000 contacts for free tier. That sounded quite wonderful for me who's just looking into adding subscription personal website. So I decided to use resend's `Resend Audiences`. I did accepted the trade-off which is the subscriber's data would live in Resend and not something I can own currently. But I believe that was the right call for a personal project.
+
+3. Now about the flow, I wanted to keep it simple and use a standard email subscription flow with single opt-in plus a welcome email. Even though I would have really wanted to use the double opt-in but that might have been an overkill for this case.
+
+This was really fun and simple to setup. I truly enjoyed the process of setting up the subscription flow with Resend. It was easy to integrate and the documentation was quite clear. 
+
+If you're someone with personal portfolio and blog site and want to ahve your own subscription flow. I would highly suggest using [Resend](https://resend.com/home).
+
+Also this is the first blog post that's gonna be sent to the subscribers.
