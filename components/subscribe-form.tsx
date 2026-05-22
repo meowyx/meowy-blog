@@ -31,9 +31,8 @@ export function SubscribeForm({
           </div>
           <h2>New posts, in your inbox.</h2>
           <p>
-            Full-stack apps, dev tooling, distributed systems, and the
-            unglamorous middle of building software. No noise, unsubscribe
-            anytime.
+            Rust, Go, frontend, backend, and the cryptography and math. No
+            noise, unsubscribe anytime.
           </p>
         </div>
       )}

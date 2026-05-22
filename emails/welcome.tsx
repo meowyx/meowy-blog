@@ -58,10 +58,9 @@ export function WelcomeEmail() {
           </Heading>
 
           <Text style={{ fontSize: "15px", lineHeight: 1.65, color: c.ink2, margin: "0 0 22px" }}>
-            Thanks for subscribing. Expect notes on full-stack apps, dev
-            tooling, distributed systems, and the unglamorous middle of
-            building software, plus what I learn building in public. No noise,
-            unsubscribe anytime.
+            Thanks for subscribing. Expect notes on Rust, Go, frontend,
+            backend, and the cryptography and math, plus what I learn building
+            in public. No noise, unsubscribe anytime.
           </Text>
 
           <Hr style={{ border: "none", borderTop: `1px solid ${c.rule}`, margin: "0 0 18px" }} />

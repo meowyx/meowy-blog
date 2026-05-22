@@ -9,7 +9,7 @@ import "./blog/blog.css"
 export const metadata: Metadata = {
   title: "meowy",
   description:
-    "Notes on rust, backends, and the unglamorous middle of building software.",
+    "Notes on Rust, Go, frontend, backend, and the cryptography and math.",
 }
 
 export default function HomePage() {
@@ -22,7 +22,7 @@ export default function HomePage() {
           <Eyebrow style={{ marginBottom: 18 }}>writing</Eyebrow>
           <h1>The blog.</h1>
           <p>
-            Notes on rust, backends, and the unglamorous middle of building software.
+            Notes on Rust, Go, frontend, backend, and the cryptography and math.
           </p>
         </div>
         <YouTubeLink />
