@@ -2,7 +2,6 @@ import type { MDXComponents } from "mdx/types"
 import { CopyButton } from "@/components/copy-button"
 import { Collapsible } from "@/components/collapsible"
 import { DesignPrinciples } from "@/components/design-principles"
-import { Signature } from "@/components/signature"
 
 /**
  * MDX renders inside a `.prose-mdx` wrapper. Styling lives in
@@ -18,5 +17,4 @@ export const mdxComponents: MDXComponents = {
   ),
   Collapsible,
   DesignPrinciples,
-  Signature,
 }
