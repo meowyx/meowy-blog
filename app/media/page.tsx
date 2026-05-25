@@ -104,7 +104,6 @@ export default function MediaPage() {
           loading="lazy"
           title="meowy's mix on Spotify"
           style={{ border: 0, borderRadius: 0, display: "block" }}
-          allowFullScreen
         />
       </div>
 

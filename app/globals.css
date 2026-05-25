@@ -1836,23 +1836,15 @@ body.no-scan .screen::before {
     display: none;
   }
 
-  /* hide hardware chrome that doesn't belong on a phone */
+  /* only the chassis-frame chrome stays hidden; full control panel shows below */
   .below-plate,
-  .bottom-bar,
-  .led-row,
-  .knob-wrap,
-  .cassette-slot,
-  .btn-row {
+  .bottom-bar {
     display: none;
   }
 
-  /* side widgets (now playing, recent tx) flow below content, unframed */
+  /* side panel keeps its beige control-panel look, stacked below the screen */
   .side {
-    background: none;
-    border: none;
-    box-shadow: none;
-    padding: 4px 16px 0;
-    gap: 16px;
+    margin-top: 12px;
   }
 
   /* nav moves to the fixed bottom-tab bar */
