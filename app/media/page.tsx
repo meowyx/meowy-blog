@@ -49,7 +49,7 @@ export default function MediaPage() {
       cassetteTape="SIDE D · MEDIA"
     >
       <div className="hero-block">
-        <pre className="ascii">{ASCII_TV}</pre>
+        <pre className="ascii ascii-screen">{ASCII_TV}</pre>
         <div>
           <h1 className="h-title">
             CURRENTLY{" "}
