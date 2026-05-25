@@ -49,7 +49,7 @@ export default function HomePage() {
 
       <div className="section-head">
         <span className="title-row">
-          <span className="amber2">// LATEST TRANSMISSIONS</span>
+          <span className="amber2">LATEST TRANSMISSIONS</span>
         </span>
         <span className="count">{pad2(entries.length)} ENTRIES · NEWEST FIRST</span>
       </div>

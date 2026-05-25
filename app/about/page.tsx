@@ -189,7 +189,7 @@ export default function AboutPage() {
 
       <div className="bio-grid">
         <div>
-          <h3>// BIO.TXT</h3>
+          <h3>BIO</h3>
           <article className="prose" style={{ maxWidth: "none" }}>
             <p>
               frontend in <b>next.js</b> with typescript. backends depend on the
@@ -208,7 +208,7 @@ export default function AboutPage() {
           </article>
         </div>
         <div>
-          <h3>// INTERESTS.LST</h3>
+          <h3>INTERESTS</h3>
           <ul
             className="prose"
             style={{ margin: 0, paddingLeft: 24, fontSize: 18 }}

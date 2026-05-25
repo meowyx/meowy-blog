@@ -67,7 +67,7 @@ export default function MediaPage() {
 
       <div className="section-head">
         <span className="title-row">
-          <span className="amber2">// on rotation</span>
+          <span className="amber2">on rotation</span>
         </span>
         <span className="count">{pad2(ON_ROTATION.length)} items</span>
       </div>
@@ -85,7 +85,7 @@ export default function MediaPage() {
 
       <div className="section-head" style={{ marginTop: 20 }}>
         <span className="title-row">
-          <span className="amber2">// the tape</span>
+          <span className="amber2">the tape</span>
         </span>
         <span className="count">spinning right now</span>
       </div>
@@ -109,7 +109,7 @@ export default function MediaPage() {
 
       <div className="section-head" style={{ marginTop: 24 }}>
         <span className="title-row">
-          <span className="amber2">// all-time loves</span>
+          <span className="amber2">all-time loves</span>
         </span>
         <span className="count">short list</span>
       </div>
@@ -124,7 +124,7 @@ export default function MediaPage() {
 
       <div className="section-head" style={{ marginTop: 24 }}>
         <span className="title-row">
-          <span className="amber2">// liner notes</span>
+          <span className="amber2">liner notes</span>
         </span>
         <span className="count">essays · coming soon</span>
       </div>

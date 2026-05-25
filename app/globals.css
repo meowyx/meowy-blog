@@ -309,6 +309,18 @@ body.no-scan .screen::before {
 .screen-header .ch-id {
   color: var(--amber-2);
 }
+/* small blinking status light before the header label (the "rec" dot) */
+.screen-header .ch-id .status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--led-green);
+  box-shadow: 0 0 6px var(--led-green);
+  margin-right: 7px;
+  vertical-align: middle;
+  animation: blink 1.4s infinite;
+}
 .screen-header .crumbs {
   display: inline-flex;
   align-items: center;

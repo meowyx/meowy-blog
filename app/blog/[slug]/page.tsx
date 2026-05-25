@@ -104,7 +104,7 @@ export default async function BlogPostPage({
       channel={0}
       ch={`ch.01 / ${num}`}
       now="- post"
-      chId={`MEOWY.XYZ // CH.01 / POST-${num}`}
+      chId="freq 82.7"
       nowScreen={nowScreen}
       txBlock={txBlock}
       cassetteTape={`SIDE A · TX-${num} PLAYING`}
@@ -128,7 +128,7 @@ export default async function BlogPostPage({
             [ {t} ]
           </span>
         ))}
-        <span className="dim read">// EST. READ: {readMin} MIN</span>
+        <span className="dim read">EST. READ: {readMin} MIN</span>
       </div>
 
       <article className="prose">

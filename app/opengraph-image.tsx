@@ -20,7 +20,7 @@ export default function OpengraphImage() {
         }}
       >
         <div style={{ fontSize: 30, letterSpacing: 8, color: "#a07d3a" }}>
-          // PERSONAL TERMINAL
+          PERSONAL TERMINAL
         </div>
         <div
           style={{

@@ -31,7 +31,7 @@ type ChassisProps = {
   ch: string
   /** top-strip page label, e.g. "- home" */
   now: string
-  /** screen-header left label; defaults to "// transmission" */
+  /** screen-header left label; defaults to "signal" */
   chId?: string
   /** side mini-display block; defaults to NOW PLAYING */
   nowScreen?: ReactNode
@@ -73,7 +73,7 @@ export function Chassis({
   channel,
   ch,
   now,
-  chId = "// transmission",
+  chId = "freq 82.7",
   nowScreen = DEFAULT_NOW_SCREEN,
   txBlock,
   tx = [],
@@ -155,7 +155,10 @@ export function Chassis({
             <div className="screen">
               <div className="screen-inner">
                 <div className="screen-header">
-                  <span className="ch-id">{chId}</span>
+                  <span className="ch-id">
+                    <span className="status-dot" />
+                    {chId}
+                  </span>
                   <div className="header-right">
                     <span className="crumbs">
                       {CRUMBS.map((c, i) => (

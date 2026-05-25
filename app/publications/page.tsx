@@ -27,7 +27,7 @@ export default function PublicationsPage() {
       channel={-1}
       ch="ch.05"
       now="- archive"
-      chId="// archive"
+      chId="archive"
       tx={recent}
       cassetteTape="SIDE E · ARCHIVE"
     >
@@ -54,7 +54,7 @@ export default function PublicationsPage() {
           <div key={section.id}>
             <div className="section-head">
               <span className="title-row">
-                <span className="amber2">// {section.id}</span>
+                <span className="amber2">{section.id}</span>
               </span>
               <span className="count">{pad2(section.items.length)} pieces</span>
             </div>

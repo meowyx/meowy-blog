@@ -13,7 +13,7 @@ export function SubscribeCrt() {
   return (
     <div className="term-block">
       <div className="sub-cap dim">
-        // SUBSCRIBE_CHANNEL - receive new transmissions
+        SUBSCRIBE_CHANNEL - receive new transmissions
       </div>
 
       {state.status === "success" ? (
@@ -39,7 +39,7 @@ export function SubscribeCrt() {
             </label>
           </div>
           <button type="submit" disabled={pending}>
-            {pending ? "▸ SENDING…" : "▸ TRANSMIT"}
+            {pending ? "▸ SUBSCRIBING…" : "▸ SUBSCRIBE"}
           </button>
         </form>
       )}
