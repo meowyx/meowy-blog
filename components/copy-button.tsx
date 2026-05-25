@@ -1,15 +1,13 @@
 "use client"
 
-import * as React from "react"
-import { Check, Copy } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState } from "react"
 
 export function CopyButton() {
-  const [copied, setCopied] = React.useState(false)
+  const [copied, setCopied] = useState(false)
 
-  const handleCopy = async (e: React.MouseEvent) => {
+  async function handleCopy(e: React.MouseEvent) {
     const pre = (e.currentTarget as HTMLElement)
-      .closest(".group")
+      .closest(".code-wrap")
       ?.querySelector("pre")
     const code = pre?.querySelector("code")
     if (!code) return
@@ -20,14 +18,13 @@ export function CopyButton() {
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="absolute right-2 top-2 z-10 size-8 opacity-0 transition-opacity group-hover:opacity-100 text-neutral-400 hover:text-neutral-200"
+    <button
+      type="button"
+      className="copy-btn"
       onClick={handleCopy}
+      aria-label="Copy code"
     >
-      {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-      <span className="sr-only">Copy code</span>
-    </Button>
+      {copied ? "COPIED" : "COPY"}
+    </button>
   )
 }

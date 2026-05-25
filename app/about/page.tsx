@@ -1,467 +1,410 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Eyebrow } from "@/components/eyebrow"
-import { LangTag } from "@/components/lang-tag"
-import { YouTubeLink } from "@/components/youtube-link"
-import "./about.css"
+import { Chassis, type TxItem } from "@/components/chassis"
+import { getAllPosts } from "@/lib/posts"
+import { getPublicationCount } from "@/lib/publications"
 
 export const metadata: Metadata = {
-  title: "About",
+  title: "about",
   description:
-    "A longer version of who I am, where I've been, and what I'm into now.",
+    "Sushmita R (meowy) - full-stack engineer. I build full-stack apps, dev tooling, and on-chain backends.",
 }
 
-type CardKind =
-  | "Project"
-  | "Smart Contract"
-  | "Agent"
-  | "Tool"
-  | "Experiment"
-  | "Tutorial"
+const ASCII_FACE = " ░░░░░\n░ o o ░\n░  v  ░\n ░░░░░"
+const pad2 = (n: number) => String(n).padStart(2, "0")
+const pad3 = (n: number) => String(n).padStart(3, "0")
 
-type WorkCard = {
-  kind: CardKind
+// Real project list, ported from the existing /about (with real links).
+const PROJECTS: {
   title: string
-  description: string
-  tech: string[]
-  links: { label: string; href: string; primary?: boolean }[]
-}
-
-const workCards: WorkCard[] = [
+  tag: string
+  href: string
+}[] = [
   {
-    kind: "Project",
-    title: "GulfWatch",
-    description:
-      "Real-time Solana program observability. Bounded mpsc backpressure, 9+ exploit detection rules, and an MCP server in Rust so agents can query mainnet directly.",
-    tech: ["Rust", "Tokio", "Axum", "ratatui", "rmcp", "Helius"],
-    links: [
-      { label: "View Code", href: "https://github.com/meowyx/gulfwatch", primary: true },
-    ],
+    title: "gulfwatch - real-time solana program observability",
+    tag: "[ RUST · TOKIO · AXUM ]",
+    href: "https://github.com/meowyx/gulfwatch",
   },
   {
-    kind: "Project",
-    title: "raffl.fun",
-    description:
-      "On-chain raffle protocol on Solana. Escrowed prize vaults and Switchboard VRF for verifiable winner selection. No operator, no admin override.",
-    tech: ["Anchor", "Switchboard VRF", "Next.js", "Privy"],
-    links: [
-      { label: "raffl.fun", href: "https://raffl.fun", primary: true },
-      { label: "View Code", href: "https://github.com/meowyx/raffl" },
-    ],
+    title: "raffl.fun - on-chain raffle protocol on solana",
+    tag: "[ ANCHOR · VRF · NEXT.JS ]",
+    href: "https://raffl.fun",
   },
   {
-    kind: "Project",
-    title: "mewtui",
-    description:
-      "Terminal-based code editor in Rust. Real PTY shell, tree-sitter highlighting, 20 themes. Published on crates.io.",
-    tech: ["Rust", "Tokio", "ratatui", "tree-sitter"],
-    links: [
-      { label: "crates.io", href: "https://crates.io/crates/mewtui", primary: true },
-      { label: "View Code", href: "https://github.com/meowyx/mewtui" },
-    ],
+    title: "mewtui - terminal code editor in rust, on crates.io",
+    tag: "[ RUST · TOKIO · RATATUI ]",
+    href: "https://crates.io/crates/mewtui",
   },
   {
-    kind: "Project",
-    title: "Solana Contest Platform",
-    description:
-      "Decentralized contest platform on Solana. Anchor escrow, PDA-tracked entries, fee-sponsored transactions so participants can enter without holding SOL.",
-    tech: ["Rust", "Anchor", "Next.js"],
-    links: [
-      {
-        label: "View Code",
-        href: "https://github.com/meowyx/solana-contest-platform",
-        primary: true,
-      },
-    ],
+    title: "solana contest platform - decentralized contests with anchor",
+    tag: "[ RUST · ANCHOR · NEXT.JS ]",
+    href: "https://github.com/meowyx/solana-contest-platform",
   },
   {
-    kind: "Project",
-    title: "Dispatch Router",
-    description:
-      "Real-time delivery assignment service. Weighted scoring (proximity, capacity, rating, priority), REST + gRPC server-streaming APIs, live WebSocket dashboard.",
-    tech: ["Rust", "Axum", "Tonic", "DashMap", "Prometheus"],
-    links: [
-      {
-        label: "View Code",
-        href: "https://github.com/meowyx/dispatch-router",
-        primary: true,
-      },
-    ],
+    title: "dispatch router - real-time delivery assignment service",
+    tag: "[ RUST · AXUM · TONIC ]",
+    href: "https://github.com/meowyx/dispatch-router",
   },
   {
-    kind: "Tutorial",
-    title: "Rust Tutorial Series",
-    description:
-      "Intro video on X passed 20K views. Weekly YouTube tutorials on ownership, async, lifetimes, and traits.",
-    tech: ["Rust", "Video"],
-    links: [
-      {
-        label: "View on X (20K+ views)",
-        href: "https://x.com/me256ow/status/2051811337886716408",
-        primary: true,
-      },
-      { label: "YouTube", href: "https://www.youtube.com/@MeowyTheDev" },
-    ],
+    title: "rust tutorial series - weekly rust tutorials",
+    tag: "[ RUST · VIDEO ]",
+    href: "https://www.youtube.com/@MeowyTheDev",
   },
   {
-    kind: "Agent",
-    title: "Research Agent",
-    description:
-      "Dual-agent research system. One agent searches online sources and analyzes, another evaluates and synthesizes findings. Runs on a local LLM.",
-    tech: ["Multi-agent", "Local LLM", "Web search"],
-    links: [
-      { label: "View Code", href: "https://github.com/meowyx/research-agent", primary: true },
-    ],
+    title: "research agent - dual-agent research system on a local llm",
+    tag: "[ MULTI-AGENT · LOCAL LLM ]",
+    href: "https://github.com/meowyx/research-agent",
   },
   {
-    kind: "Agent",
-    title: "Chess Agent",
-    description:
-      "Chess-playing agent powered by a local LLM. Reads the board state and plans moves.",
-    tech: ["Next.js", "Local LLM"],
-    links: [
-      { label: "View Code", href: "https://github.com/meowyx/chess-agent", primary: true },
-    ],
+    title: "chess agent - chess-playing agent on a local llm",
+    tag: "[ NEXT.JS · LOCAL LLM ]",
+    href: "https://github.com/meowyx/chess-agent",
   },
   {
-    kind: "Experiment",
-    title: "Helius Latency Challenge",
-    description:
-      "Solana wallet-history latency challenge. 4-phase parallel fetch pipeline drops busy wallets from 262s to 80s with lamport-exact PnL.",
-    tech: ["Rust", "Tokio", "reqwest"],
-    links: [
-      {
-        label: "View Code",
-        href: "https://github.com/meowyx/computing-sol-algo",
-        primary: true,
-      },
-    ],
+    title: "helius latency challenge - wallet history, 262s to 80s",
+    tag: "[ RUST · TOKIO · REQWEST ]",
+    href: "https://github.com/meowyx/computing-sol-algo",
   },
   {
-    kind: "Tool",
-    title: "Local LLM Picker",
-    description:
-      "CLI that scans your hardware and picks a local LLM you can actually run. Saves you the manual setup math.",
-    tech: ["JavaScript", "CLI", "Local LLM"],
-    links: [
-      { label: "View Code", href: "https://github.com/meowyx/gaia-toolkit", primary: true },
-    ],
+    title: "local llm picker - cli that picks a local llm for your hardware",
+    tag: "[ JS · CLI · LOCAL LLM ]",
+    href: "https://github.com/meowyx/gaia-toolkit",
   },
   {
-    kind: "Agent",
-    title: "Agentic ERC-20 Deployer",
-    description:
-      "Agentic Ethereum app. Deploy ERC-20 contracts via natural-language agent control. MetaMask for signing, local LLM for the agent loop.",
-    tech: ["Next.js", "MetaMask", "Local LLM"],
-    links: [
-      {
-        label: "View Code",
-        href: "https://github.com/meowyx/metamask-gaia-starter",
-        primary: true,
-      },
-    ],
+    title: "agentic erc-20 deployer - deploy erc-20s via a language agent",
+    tag: "[ NEXT.JS · METAMASK · LLM ]",
+    href: "https://github.com/meowyx/metamask-gaia-starter",
   },
   {
-    kind: "Smart Contract",
-    title: "Solana AMM",
-    description:
-      "Simplified automated market maker on Solana. Constant product formula (x * y = k) for swaps, liquidity provision, and removal.",
-    tech: ["Rust", "Anchor"],
-    links: [
-      { label: "View Code", href: "https://github.com/meowyx/solana-amm", primary: true },
-    ],
+    title: "solana amm - constant-product market maker",
+    tag: "[ RUST · ANCHOR ]",
+    href: "https://github.com/meowyx/solana-amm",
   },
   {
-    kind: "Smart Contract",
-    title: "Pinocchio Escrow",
-    description:
-      "Native Solana escrow built with Pinocchio. No Anchor, no Borsh. Two-party token swap with cancel-before-fill on either side.",
-    tech: ["Rust", "Pinocchio", "Native Solana"],
-    links: [
-      { label: "View Code", href: "https://github.com/meowyx/pinocchio-escrow", primary: true },
-    ],
+    title: "pinocchio escrow - native solana escrow, no anchor",
+    tag: "[ RUST · PINOCCHIO ]",
+    href: "https://github.com/meowyx/pinocchio-escrow",
   },
   {
-    kind: "Smart Contract",
-    title: "Pinocchio Fundraiser",
-    description:
-      "Native Solana crowdfunder built with Pinocchio. Target plus deadline; if the goal misses, backers reclaim refunds.",
-    tech: ["Rust", "Pinocchio", "Native Solana"],
-    links: [
-      {
-        label: "View Code",
-        href: "https://github.com/meowyx/pinocchio-fundraiser",
-        primary: true,
-      },
-    ],
+    title: "pinocchio fundraiser - native solana crowdfunder with refunds",
+    tag: "[ RUST · PINOCCHIO ]",
+    href: "https://github.com/meowyx/pinocchio-fundraiser",
   },
   {
-    kind: "Smart Contract",
-    title: "Solana Escrow",
-    description: "Trustless two-party token swap on Solana. Anchor-based escrow.",
-    tech: ["Rust", "Anchor"],
-    links: [
-      { label: "View Code", href: "https://github.com/meowyx/solana-escrow", primary: true },
-    ],
+    title: "solana escrow - trustless two-party token swap",
+    tag: "[ RUST · ANCHOR ]",
+    href: "https://github.com/meowyx/solana-escrow",
   },
   {
-    kind: "Smart Contract",
-    title: "Metaplex NFT Collection",
-    description:
-      "NFT collection program on Solana with Metaplex Core. Whitelist creator system plus mint, freeze, thaw, and update.",
-    tech: ["Rust", "Anchor", "Metaplex Core"],
-    links: [
-      {
-        label: "View Code",
-        href: "https://github.com/meowyx/metaplex-nft-collection",
-        primary: true,
-      },
-    ],
+    title: "metaplex nft collection - nft program with metaplex core",
+    tag: "[ RUST · ANCHOR · METAPLEX ]",
+    href: "https://github.com/meowyx/metaplex-nft-collection",
   },
   {
-    kind: "Smart Contract",
-    title: "Token-2022 Transfer Hook",
-    description:
-      "SPL Token-2022 transfer hook enforcing a whitelist. Only approved addresses can move hook-enabled tokens.",
-    tech: ["Rust", "SPL Token-2022"],
-    links: [
-      {
-        label: "View Code",
-        href: "https://github.com/meowyx/token2022-transfer-hook",
-        primary: true,
-      },
-    ],
+    title: "token-2022 transfer hook - whitelist-gated token transfers",
+    tag: "[ RUST · TOKEN-2022 ]",
+    href: "https://github.com/meowyx/token2022-transfer-hook",
   },
 ]
 
 export default function AboutPage() {
+  const posts = getAllPosts()
+  const recent: TxItem[] = posts.slice(0, 3).map((p, i) => ({
+    num: pad3(i + 1),
+    title: p.title,
+    href: `/blog/${p.slug}`,
+  }))
+
+  const nowScreen = (
+    <div>
+      <div className="now-label">OPERATOR</div>
+      <div className="now-screen">
+        <div className="now-row">
+          <span className="now-key">NAME</span>
+          <span className="now-val">SUSHMITA R</span>
+        </div>
+        <div className="now-row">
+          <span className="now-key">ALIAS</span>
+          <span className="now-val">MEOWY</span>
+        </div>
+        <div className="now-row">
+          <span className="now-key">STACK</span>
+          <span className="now-val">RUST · TS</span>
+        </div>
+        <div className="now-row">
+          <span className="now-key">STAT</span>
+          <span className="now-val">SHIPPING</span>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
-    <>
-      <section className="about-head">
-        <div className="head-main">
-          <Eyebrow style={{ marginBottom: 14 }}>about</Eyebrow>
-          <h1>
-            I&#39;m Sushmita R (aka <em>meowy</em>). I build full-stack apps,
-            dev tooling, and on-chain backends.
+    <Chassis
+      channel={1}
+      ch="ch.02"
+      now="- about"
+      tx={recent}
+      nowScreen={nowScreen}
+      cassetteTape="SIDE B · DOSSIER MMXXVI"
+    >
+      <div className="hero-block">
+        <pre className="ascii">{ASCII_FACE}</pre>
+        <div>
+          <h1 className="h-title">
+            I&apos;M SUSHMITA
+            <br />
+            (AKA{" "}
+            <span className="big">
+              MEOWY<span className="cursor">.</span>
+            </span>
+            )
           </h1>
           <p className="lede">
-            <strong>Full-stack engineer</strong>,{" "}
-            <strong>5+ years</strong> in the trenches building software.
+            <span className="prompt">&gt;</span> full-stack engineer,{" "}
+            <b>5+ years</b> shipping software. i build full-stack apps, dev
+            tooling, and on-chain systems down to the validator.
           </p>
-          <p className="lede">
-            Frontend in <strong>Next.js</strong> with <LangTag lang="ts" />{" "}
-            <LangTag lang="js" />. Backends depend on the job, either{" "}
-            <LangTag lang="rust" /> or <LangTag lang="go" />.
-          </p>
-          <p className="lede">
-            I learn and build in public, write technical deep-dives, and make
-            video content. I love teaching what I build.
-          </p>
-          <p className="into-label">What I&#39;m into</p>
-          <ul className="into-list">
-            <li>Full-stack apps</li>
-            <li>Dev tooling</li>
-            <li>Distributed systems and observability</li>
-            <li>APIs and databases</li>
-            <li>AI agents and agentic development</li>
+        </div>
+      </div>
+
+      <div className="stat-grid">
+        <div className="stat-cell">
+          <div className="k">EXP</div>
+          <div className="v">5+yr</div>
+        </div>
+        <div className="stat-cell">
+          <div className="k">PROJECTS</div>
+          <div className="v">{PROJECTS.length}+</div>
+        </div>
+        <div className="stat-cell">
+          <div className="k">WRITING</div>
+          <div className="v">{posts.length + getPublicationCount()}+</div>
+        </div>
+        <div className="stat-cell">
+          <div className="k">CAT</div>
+          <div className="v">×1</div>
+        </div>
+      </div>
+
+      <div className="bio-grid">
+        <div>
+          <h3>// BIO.TXT</h3>
+          <article className="prose" style={{ maxWidth: "none" }}>
+            <p>
+              frontend in <b>next.js</b> with typescript. backends depend on the
+              job, either <b>rust</b> or <b>go</b>.
+            </p>
+            <p>
+              right now i&apos;m in the trenches of <b>solana&apos;s validator</b>:
+              svm internals, alpenglow consensus, kernel-bypass networking, and
+              profiling the hot path against a latency budget.
+            </p>
+            <p>
+              i learn and build in public, write technical deep-dives, and make
+              video to match. i love teaching what i build. most of my work the
+              last 5+ years has been developer relations and developer education.
+            </p>
+          </article>
+        </div>
+        <div>
+          <h3>// INTERESTS.LST</h3>
+          <ul
+            className="prose"
+            style={{ margin: 0, paddingLeft: 24, fontSize: 18 }}
+          >
+            <li>full-stack apps</li>
+            <li>dev tooling</li>
+            <li>distributed systems &amp; observability</li>
+            <li>apis &amp; databases</li>
+            <li>ai agents &amp; agentic development</li>
+            <li>solana protocol &amp; validator internals</li>
+            <li>low-latency systems &amp; kernel bypass</li>
           </ul>
         </div>
-        <YouTubeLink />
-      </section>
+      </div>
 
-      <section className="work">
-        <div className="work-head">
-          <h2>Selected Work</h2>
-          <p className="work-intro">
-            Projects, smart contracts, agents, and tools. Hover to pause.
-          </p>
-        </div>
-        <div className="carousel-wrap" aria-label="Selected work carousel">
-          <div className="carousel-track">
-            {[...workCards, ...workCards].map((card, i) => (
-              <article
-                key={`${card.title}-${i}`}
-                className="work-card"
-                aria-hidden={i >= workCards.length ? true : undefined}
-              >
-                <div className="work-card-kind">[ {card.kind} ]</div>
-                <h3 className="work-card-title">{card.title}</h3>
-                <p className="work-card-desc">{card.description}</p>
-                <div className="work-card-tech">
-                  {card.tech.map((t) => (
-                    <span key={t} className="work-card-tech-chip">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-                <div className="work-card-links">
-                  {card.links.map((link, j) => (
-                    <a
-                      key={`${link.label}-${j}`}
-                      className={`work-card-link${link.primary ? " primary" : ""}`}
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {link.label} <span aria-hidden="true">→</span>
-                    </a>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
+      <div className="section-head">
+        <span className="title-row">
+          <span className="num">[ 01 ]</span> <span>PROJECTS</span>
+        </span>
+        <span className="count">{pad2(PROJECTS.length)} SHIPPED</span>
+      </div>
 
-      <section className="prose">
-        <h2>Previously</h2>
-        <div className="body">
-          <p>
-            Most of my work the last 5+ years has been developer relations and
-            developer education. Some of the highlights:
-          </p>
-          <ul className="dot">
-            <li>
-              <strong>Devrel engineer at Consensys</strong>, building production
-              dapps, templates, and CLI tools, and writing technical deep-dives
-              for MetaMask, Infura, and Linea.
-            </li>
-            <li>
-              <strong>
-                Devrel engineer at{" "}
-                <a
-                  href="https://www.gaianet.ai/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Gaia
-                </a>
-              </strong>
-              , an AI infra startup, where I built developer tooling and
-              technical docs for their decentralized AI stack.
-            </li>
-            <li>
-              <strong>
-                Founded the education team at{" "}
-                <a
-                  href="https://academy.developerdao.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Developer DAO
-                </a>
-              </strong>{" "}
-              and launched the open-source web3 academy, used by 1000+
-              developers.
-            </li>
-            <li>
-              <strong>
-                Instructor at{" "}
-                <a
-                  href="https://www.udacity.com/course/blockchain-developer--nd1310"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Udacity
-                </a>
-              </strong>{" "}
-              on the Blockchain Developer Nanodegree.
-            </li>
-            <li>
-              <strong>
-                Educational consultant at{" "}
-                <a
-                  href="https://dev.chain.link/certification"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Chainlink Labs
-                </a>
-              </strong>
-              , designed their certification exam framework.
-            </li>
-          </ul>
-        </div>
-      </section>
+      <div className="row-list proj-list">
+        {PROJECTS.map((p, i) => (
+          <a
+            className="row-item"
+            key={p.href}
+            href={p.href}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="idx">P-{pad2(i + 1)}</span>
+            <span className="title">{p.title}</span>
+            <span className="tag">{p.tag}</span>
+            <span className="arr">▸</span>
+          </a>
+        ))}
+      </div>
 
-      <section className="prose">
-        <h2>Publications elsewhere</h2>
-        <div className="body">
-          <p>
-            A lot of my technical writing lives on other people&#39;s sites. The
-            full set is scattered, but here are the main venues if you want to
-            dig:
-          </p>
-          <ul className="dot">
-            <li>
-              <strong>MetaMask</strong> developer blog: tutorials on the
-              metamask sdk, gas api, viem vs ethers, hardhat vs foundry, and
-              deploying stablecoins on linea.{" "}
+      <div className="section-head">
+        <span className="title-row">
+          <span className="num">[ 02 ]</span> <span>PREVIOUSLY</span>
+        </span>
+        <span className="count">DEVREL + EDUCATION</span>
+      </div>
+
+      <div className="term-block">
+        <ul
+          className="prose"
+          style={{ margin: 0, paddingLeft: 24, fontSize: 18 }}
+        >
+          <li>
+            <b>
+              devrel engineer @{" "}
+              <a href="https://consensys.io/" target="_blank" rel="noopener noreferrer">
+                consensys
+              </a>
+            </b>{" "}
+            - production dapps, templates, and cli tools, plus technical
+            deep-dives for metamask, infura, and linea.
+          </li>
+          <li>
+            <b>
+              devrel engineer @{" "}
+              <a href="https://www.gaianet.ai/" target="_blank" rel="noopener noreferrer">
+                gaia
+              </a>
+            </b>{" "}
+            - ai infra startup; built dev tooling and docs for their
+            decentralized ai stack.
+          </li>
+          <li>
+            <b>
+              founded the education team @{" "}
               <a
-                href="https://metamask.io/news/developers"
+                href="https://academy.developerdao.com/"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                metamask.io/news/developers
+                developer dao
               </a>
-            </li>
-            <li>
-              <strong>Linea</strong> on mirror.xyz: deep-dives on the linea
-              prover, ai agents on linea, ERC20 walkthroughs, and a series of
-              workshops.{" "}
+            </b>{" "}
+            - launched the open-source web3 academy, used by 1000+ devs.
+          </li>
+          <li>
+            <b>
+              instructor @{" "}
               <a
-                href="https://linea.mirror.xyz"
+                href="https://www.udacity.com/course/blockchain-developer--nd1310"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                linea.mirror.xyz
+                udacity
               </a>
-            </li>
-          </ul>
-          <p style={{ marginTop: 8 }}>
-            <Link href="/publications" className="more">
-              See the full list on publications&nbsp;→
-            </Link>
-          </p>
-        </div>
-      </section>
+            </b>{" "}
+            - blockchain developer nanodegree.
+          </li>
+          <li>
+            <b>
+              education consultant @{" "}
+              <a
+                href="https://dev.chain.link/certification"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                chainlink labs
+              </a>
+            </b>{" "}
+            - designed their certification exam framework.
+          </li>
+        </ul>
+      </div>
 
-      <section className="prose" id="reach-me">
-        <h2>Reach me</h2>
-        <div className="body" style={{ maxWidth: "100%" }}>
-          <p style={{ fontSize: 16, color: "var(--ink-2)", marginBottom: 0 }}>
-            The fastest way to get a response is to make the first paragraph
-            specific. Freelance, collab, code review, or just to say hi, all
-            welcome.
-          </p>
-          <div className="contact">
+      <div className="section-head">
+        <span className="title-row">
+          <span className="num">[ 03 ]</span> <span>PUBLICATIONS ELSEWHERE</span>
+        </span>
+      </div>
+
+      <article className="prose">
+        <p>
+          a lot of my technical writing lives on other people&apos;s sites. the
+          main venues:
+        </p>
+        <ul>
+          <li>
+            <b>metamask</b> dev blog - tutorials on the sdk, gas api, viem vs
+            ethers, hardhat vs foundry, and stablecoins on linea.{" "}
             <a
-              href="https://github.com/meowyx"
+              href="https://metamask.io/news/developers"
               target="_blank"
               rel="noopener noreferrer"
             >
-              <div className="key">GitHub</div>
-              <div className="val">@meowyx</div>
+              metamask.io/news/developers
             </a>
-            <a
-              href="https://x.com/me256ow"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <div className="key">X / Twitter</div>
-              <div className="val">@me256ow</div>
+          </li>
+          <li>
+            <b>linea</b> on mirror.xyz - deep-dives on the prover, ai agents on
+            linea, ERC20 walkthroughs, and a workshop series.{" "}
+            <a href="https://linea.mirror.xyz" target="_blank" rel="noopener noreferrer">
+              linea.mirror.xyz
             </a>
-            <a
-              href="https://www.linkedin.com/in/sushmitaaar/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <div className="key">LinkedIn</div>
-              <div className="val">sushmitaaar</div>
-            </a>
+          </li>
+        </ul>
+        <p>
+          <Link href="/publications">► see the full list on publications</Link>
+        </p>
+      </article>
+
+      <div className="section-head">
+        <span className="title-row">
+          <span className="num">[ 04 ]</span> <span>REACH ME</span>
+        </span>
+        <span className="count">FASTEST: BE SPECIFIC IN ¶1</span>
+      </div>
+
+      <div className="stat-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+        <a
+          href="https://github.com/meowyx"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="stat-cell"
+          style={{ textDecoration: "none" }}
+        >
+          <div className="k">GITHUB</div>
+          <div className="v" style={{ fontSize: 22 }}>
+            @meowyx
           </div>
-        </div>
-      </section>
-    </>
+        </a>
+        <a
+          href="https://x.com/me256ow"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="stat-cell"
+          style={{ textDecoration: "none" }}
+        >
+          <div className="k">X / TWITTER</div>
+          <div className="v" style={{ fontSize: 22 }}>
+            @me256ow
+          </div>
+        </a>
+        <a
+          href="https://www.linkedin.com/in/sushmitaaar/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="stat-cell"
+          style={{ textDecoration: "none" }}
+        >
+          <div className="k">LINKEDIN</div>
+          <div className="v" style={{ fontSize: 22 }}>
+            sushmitaaar
+          </div>
+        </a>
+      </div>
+
+      <div className="eof">END OF DOSSIER</div>
+    </Chassis>
   )
 }
