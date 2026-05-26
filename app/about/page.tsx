@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "Sushmita R (meowy) - full-stack engineer. I build full-stack apps, dev tooling, and on-chain backends.",
 }
 
-const ASCII_FACE = " ░░░░░\n░ o o ░\n░  v  ░\n ░░░░░"
+const ASCII_FACE = " /\\_/\\\n( o.O )\n  >v<"
 const pad2 = (n: number) => String(n).padStart(2, "0")
 const pad3 = (n: number) => String(n).padStart(3, "0")
 
@@ -129,7 +129,7 @@ export default function AboutPage() {
         </div>
         <div className="now-row">
           <span className="now-key">STACK</span>
-          <span className="now-val">RUST · TS</span>
+          <span className="now-val">RUST · TS · PY</span>
         </div>
         <div className="now-row">
           <span className="now-key">STAT</span>
@@ -193,7 +193,7 @@ export default function AboutPage() {
           <article className="prose" style={{ maxWidth: "none" }}>
             <p>
               frontend in <b>next.js</b> with typescript. backends depend on the
-              job, either <b>rust</b> or <b>go</b>.
+              job: <b>rust</b>, <b>go</b>, or <b>python</b>.
             </p>
             <p>
               right now i&apos;m in the trenches of <b>solana&apos;s validator</b>:
@@ -360,7 +360,48 @@ export default function AboutPage() {
 
       <div className="section-head">
         <span className="title-row">
-          <span className="num">[ 04 ]</span> <span>REACH ME</span>
+          <span className="num">[ 04 ]</span> <span>HACKATHONS · 2022</span>
+        </span>
+        <span className="count">×2 BOUNTY WINS</span>
+      </div>
+
+      <div className="term-block">
+        <ul
+          className="prose"
+          style={{ margin: 0, paddingLeft: 24, fontSize: 18 }}
+        >
+          <li>
+            <b>glitch</b> - web3con hackathon, livepeer killer web3 video app
+            bounty winner. a decentralized video streaming platform with
+            tokengated functionality for live and on-demand video. (
+            <a
+              href="https://github.com/e-roy/glitch"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              repo
+            </a>
+            )
+          </li>
+          <li>
+            <b>building blocks</b> - chainlink hackathon, top 40 chainlink
+            projects bounty. on-demand multisig with horizontal governance:
+            every member votes, every action is persistent on-chain. (
+            <a
+              href="https://github.com/diegoalzate/building-blocks"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              repo
+            </a>
+            )
+          </li>
+        </ul>
+      </div>
+
+      <div className="section-head">
+        <span className="title-row">
+          <span className="num">[ 05 ]</span> <span>REACH ME</span>
         </span>
         <span className="count">FASTEST: BE SPECIFIC IN ¶1</span>
       </div>

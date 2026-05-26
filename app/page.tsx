@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { Chassis, type TxItem } from "@/components/chassis"
 import { Transmissions } from "@/components/transmissions"
 import { SubscribeCrt } from "@/components/subscribe-crt"
@@ -41,8 +42,9 @@ export default function HomePage() {
             </span>
           </h1>
           <p className="lede">
-            <span className="prompt">&gt;</span> notes on <b>rust</b>, go, frontend,
-            backend, and the cryptography and math.
+            <span className="prompt">&gt;</span> notes on <b>rust</b>, go, python,
+            frontend, backend, <b>low-level systems</b>, and the cryptography and
+            maths.
           </p>
         </div>
       </div>
@@ -55,6 +57,12 @@ export default function HomePage() {
       </div>
 
       <Transmissions entries={entries} />
+
+      <div className="term-block">
+        <span className="prompt">&gt;</span> more technical writing lives on
+        other people&apos;s sites.{" "}
+        <Link href="/publications">► see publications</Link>
+      </div>
 
       <SubscribeCrt />
 

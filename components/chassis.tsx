@@ -137,10 +137,8 @@ export function Chassis({
       {/* top label tape strip */}
       <div className="top-strip">
         <div className="nameplate">
-          <span>
-            meowy<span className="dot">.</span>xyz
-          </span>
-          <span className="sub">personal terminal</span>
+          <span>meowy</span>
+          <span className="sub">build log</span>
         </div>
         <div className="page-index">
           <span>{ch}</span>

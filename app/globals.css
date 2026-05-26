@@ -145,10 +145,10 @@ body::before {
   align-items: baseline;
   gap: 12px;
   padding: 2px 0;
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-family: var(--font-vt323), ui-monospace, monospace;
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
   color: rgba(58, 42, 20, 0.92);
   text-shadow:
     1px 1px 0 rgba(255, 255, 255, 0.45),
@@ -158,11 +158,11 @@ body::before {
   color: var(--plastic-dark);
 }
 .nameplate .sub {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
-  font-weight: 500;
+  font-family: var(--font-special-elite), "Courier New", monospace;
+  font-size: 12px;
+  font-weight: 400;
   color: rgba(90, 72, 35, 0.7);
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   padding-left: 12px;
   margin-left: 2px;
@@ -837,9 +837,9 @@ body.no-scan .screen::before {
   color: var(--amber-2);
   text-shadow: 0 0 8px rgba(var(--amber-2-rgb), 0.7);
 }
-/* media "tv" glyph: SVG so the box/dots/arrows render identically across platforms
+/* hero-block glyphs: inline SVGs so they render identically across platforms
    (Unicode box-drawing characters render with gaps on Android system monospaces) */
-.tv-glyph {
+.hero-glyph {
   width: clamp(96px, 22vw, 140px);
   height: auto;
   color: var(--amber-2);
@@ -850,6 +850,7 @@ body.no-scan .screen::before {
 .prompt {
   color: var(--led-green);
   text-shadow: 0 0 6px var(--led-green);
+  padding-right: 0.2em;
 }
 
 /* hero block */

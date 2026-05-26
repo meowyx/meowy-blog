@@ -49,7 +49,7 @@ export default function MediaPage() {
     >
       <div className="hero-block">
         <svg
-          className="tv-glyph"
+          className="hero-glyph"
           viewBox="0 0 70 50"
           xmlns="http://www.w3.org/2000/svg"
           aria-hidden="true"

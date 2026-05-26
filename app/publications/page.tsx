@@ -9,7 +9,6 @@ export const metadata: Metadata = {
     "Pieces I authored for company blogs, talks I've given, and courses I've worked on.",
 }
 
-const ASCII_ARCHIVE = "┌───┐\n│≡≡≡│\n│≡≡≡│\n└───┘"
 const pad2 = (n: number) => String(n).padStart(2, "0")
 const pad3 = (n: number) => String(n).padStart(3, "0")
 
@@ -32,7 +31,55 @@ export default function PublicationsPage() {
       cassetteTape="SIDE E · ARCHIVE"
     >
       <div className="hero-block">
-        <pre className="ascii">{ASCII_ARCHIVE}</pre>
+        <svg
+          className="hero-glyph"
+          viewBox="0 0 70 50"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <rect
+            x="2"
+            y="2"
+            width="66"
+            height="46"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
+          <line
+            x1="11"
+            y1="14"
+            x2="59"
+            y2="14"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
+          <line
+            x1="11"
+            y1="22"
+            x2="59"
+            y2="22"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
+          <line
+            x1="11"
+            y1="30"
+            x2="59"
+            y2="30"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
+          <line
+            x1="11"
+            y1="38"
+            x2="59"
+            y2="38"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
+        </svg>
         <div>
           <h1 className="h-title">
             PUBLICATIONS<span className="cursor">.</span>
@@ -40,7 +87,7 @@ export default function PublicationsPage() {
           <p className="lede">
             <span className="prompt">&gt;</span> pieces i wrote for company blogs,
             talks i&apos;ve given, and courses i&apos;ve worked on. originals live
-            where they were published; these are the canonical links.
+            where they were published; everything below links to the source.
           </p>
         </div>
       </div>
