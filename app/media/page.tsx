@@ -19,7 +19,7 @@ const ON_ROTATION = [
   { title: "from · s4", tag: "[ TV · WATCHING ]" },
   { title: "widow's bay", tag: "[ TV · MAYBE ]" },
   { title: "colony", tag: "[ FILM · SOON ]" },
-  { title: "call of duty: black ops 6", tag: "[ GAME · RECENT ]" },
+  { title: "call of duty: black ops 7", tag: "[ GAME · RECENT ]" },
   { title: "stardew valley", tag: "[ GAME · RECENT ]" },
   { title: "diablo iv", tag: "[ GAME · RECENT ]" },
   { title: "cyberpunk 2077", tag: "[ GAME · RECENT ]" },
@@ -28,7 +28,7 @@ const ON_ROTATION = [
 // All-time loves. More categories and picks to come.
 const LOVES = [
   { cat: "ANIME", picks: "barakamon · mushishi" },
-  { cat: "TV", picks: "more soon" },
+  { cat: "TV", picks: "the wonderfools" },
 ]
 
 export default function MediaPage() {
