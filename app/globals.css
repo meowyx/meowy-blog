@@ -837,12 +837,14 @@ body.no-scan .screen::before {
   color: var(--amber-2);
   text-shadow: 0 0 8px rgba(var(--amber-2-rgb), 0.7);
 }
-/* the media "tv" glyph uses box-drawing + a triangle VT323 lacks; render it in a
-   consistent system monospace so the box, dots, and arrows all align and stay crisp */
-.ascii.ascii-screen {
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: clamp(16px, 5vw, 22px);
-  line-height: 1.05;
+/* media "tv" glyph: SVG so the box/dots/arrows render identically across platforms
+   (Unicode box-drawing characters render with gaps on Android system monospaces) */
+.tv-glyph {
+  width: clamp(96px, 22vw, 140px);
+  height: auto;
+  color: var(--amber-2);
+  filter: drop-shadow(0 0 6px rgba(var(--amber-2-rgb), 0.55));
+  display: block;
 }
 
 .prompt {

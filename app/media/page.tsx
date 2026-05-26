@@ -7,7 +7,6 @@ export const metadata: Metadata = {
   description: "What I've been playing and watching, plus all-time favourites.",
 }
 
-const ASCII_TV = "┌─────┐\n│ ░░░ │\n│ ▸▸▸ │\n└─────┘"
 const pad2 = (n: number) => String(n).padStart(2, "0")
 const pad3 = (n: number) => String(n).padStart(3, "0")
 
@@ -49,7 +48,41 @@ export default function MediaPage() {
       cassetteTape="SIDE D · MEDIA"
     >
       <div className="hero-block">
-        <pre className="ascii ascii-screen">{ASCII_TV}</pre>
+        <svg
+          className="tv-glyph"
+          viewBox="0 0 70 50"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <rect
+            x="2"
+            y="2"
+            width="66"
+            height="46"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
+          <g fill="currentColor">
+            {Array.from({ length: 3 }).flatMap((_, row) =>
+              Array.from({ length: 9 }).map((_, col) => (
+                <rect
+                  key={`d-${row}-${col}`}
+                  x={13.8 + col * 5}
+                  y={9 + row * 5}
+                  width="2.4"
+                  height="2.4"
+                />
+              )),
+            )}
+          </g>
+          <g fill="currentColor">
+            <polygon points="23,32 29,36 23,40" />
+            <polygon points="32,32 38,36 32,40" />
+            <polygon points="41,32 47,36 41,40" />
+          </g>
+        </svg>
         <div>
           <h1 className="h-title">
             CURRENTLY{" "}
