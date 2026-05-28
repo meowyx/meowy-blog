@@ -1,25 +1,32 @@
-import type { Metadata } from "next"
-import Link from "next/link"
-import { Chassis, type TxItem } from "@/components/chassis"
-import { getAllPosts } from "@/lib/posts"
-import { getPublicationCount } from "@/lib/publications"
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Chassis, type TxItem } from "@/components/chassis";
+import { getAllPosts } from "@/lib/posts";
+import { getPublicationCount } from "@/lib/publications";
 
 export const metadata: Metadata = {
   title: "about",
   description:
     "Sushmita R (meowy) - full-stack engineer. I build full-stack apps, dev tooling, and on-chain backends.",
-}
+};
 
-const ASCII_FACE = " /\\_/\\\n( o.O )\n  >v<"
-const pad2 = (n: number) => String(n).padStart(2, "0")
-const pad3 = (n: number) => String(n).padStart(3, "0")
+const ASCII_FACE = " /\\_/\\\n( o.O )\n  >v<";
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const pad3 = (n: number) => String(n).padStart(3, "0");
 
 // Real project list, ported from the existing /about (with real links).
 const PROJECTS: {
-  title: string
-  tag: string
-  href: string
+  title: string;
+  tag: string;
+  href: string;
+  wide?: boolean;
 }[] = [
+  {
+    title: "wiki-rag - tiny rag app to ask notes & get answers with citations",
+    tag: "[ PYTHON 3.13 · FASTAPI · LANGCHAIN · CHROMA · REDIS · SQLITE · LANGFUSE · RAGAS · OPENAI ]",
+    href: "https://github.com/meowyx/wiki-rag",
+    wide: true,
+  },
   {
     title: "gulfwatch - real-time solana program observability",
     tag: "[ RUST · TOKIO · AXUM ]",
@@ -105,15 +112,15 @@ const PROJECTS: {
     tag: "[ RUST · TOKEN-2022 ]",
     href: "https://github.com/meowyx/token2022-transfer-hook",
   },
-]
+];
 
 export default function AboutPage() {
-  const posts = getAllPosts()
+  const posts = getAllPosts();
   const recent: TxItem[] = posts.slice(0, 3).map((p, i) => ({
     num: pad3(i + 1),
     title: p.title,
     href: `/blog/${p.slug}`,
-  }))
+  }));
 
   const nowScreen = (
     <div>
@@ -137,7 +144,7 @@ export default function AboutPage() {
         </div>
       </div>
     </div>
-  )
+  );
 
   return (
     <Chassis
@@ -196,14 +203,16 @@ export default function AboutPage() {
               job: <b>rust</b>, <b>go</b>, or <b>python</b>.
             </p>
             <p>
-              right now i&apos;m in the trenches of <b>solana&apos;s validator</b>:
-              svm internals, alpenglow consensus, kernel-bypass networking, and
-              profiling the hot path against a latency budget.
+              right now i&apos;m in the trenches of{" "}
+              <b>solana&apos;s validator</b>: svm internals, alpenglow
+              consensus, kernel-bypass networking, and profiling the hot path
+              against a latency budget.
             </p>
             <p>
               i learn and build in public, write technical deep-dives, and make
               video to match. i love teaching what i build. most of my work the
-              last 5+ years has been developer relations and developer education.
+              last 5+ years has been developer relations and developer
+              education.
             </p>
           </article>
         </div>
@@ -234,7 +243,7 @@ export default function AboutPage() {
       <div className="row-list proj-list">
         {PROJECTS.map((p, i) => (
           <a
-            className="row-item"
+            className={`row-item${p.wide ? " row-item--wide" : ""}`}
             key={p.href}
             href={p.href}
             target="_blank"
@@ -263,7 +272,11 @@ export default function AboutPage() {
           <li>
             <b>
               devrel engineer @{" "}
-              <a href="https://consensys.io/" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://consensys.io/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 consensys
               </a>
             </b>{" "}
@@ -273,7 +286,11 @@ export default function AboutPage() {
           <li>
             <b>
               devrel engineer @{" "}
-              <a href="https://www.gaianet.ai/" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://www.gaianet.ai/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 gaia
               </a>
             </b>{" "}
@@ -324,7 +341,8 @@ export default function AboutPage() {
 
       <div className="section-head">
         <span className="title-row">
-          <span className="num">[ 03 ]</span> <span>PUBLICATIONS ELSEWHERE</span>
+          <span className="num">[ 03 ]</span>{" "}
+          <span>PUBLICATIONS ELSEWHERE</span>
         </span>
       </div>
 
@@ -348,7 +366,11 @@ export default function AboutPage() {
           <li>
             <b>linea</b> on mirror.xyz - deep-dives on the prover, ai agents on
             linea, ERC20 walkthroughs, and a workshop series.{" "}
-            <a href="https://linea.mirror.xyz" target="_blank" rel="noopener noreferrer">
+            <a
+              href="https://linea.mirror.xyz"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               linea.mirror.xyz
             </a>
           </li>
@@ -406,7 +428,10 @@ export default function AboutPage() {
         <span className="count">FASTEST: BE SPECIFIC IN ¶1</span>
       </div>
 
-      <div className="stat-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+      <div
+        className="stat-grid"
+        style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
+      >
         <a
           href="https://github.com/meowyx"
           target="_blank"
@@ -447,5 +472,5 @@ export default function AboutPage() {
 
       <div className="eof">END OF DOSSIER</div>
     </Chassis>
-  )
+  );
 }

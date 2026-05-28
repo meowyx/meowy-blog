@@ -1114,6 +1114,14 @@ body.no-scan .screen::before {
   text-shadow: none;
   letter-spacing: 0;
 }
+.prose pre code {
+  display: block;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+}
 .prose pre .kw {
   color: #ff8e6e;
 }
@@ -1158,6 +1166,33 @@ body.no-scan .screen::before {
   font-style: italic;
   font-size: 15px;
   background: rgba(var(--amber-1-rgb), 0.04);
+}
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0;
+  font-size: 14px;
+}
+.prose th,
+.prose td {
+  text-align: left;
+  padding: 8px 14px;
+  border: 1px solid rgba(var(--amber-1-rgb), 0.22);
+}
+.prose th {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber-dim);
+  font-weight: 500;
+  background: rgba(var(--amber-1-rgb), 0.06);
+}
+.prose td {
+  color: var(--amber-1);
+}
+.prose tbody tr:hover td {
+  background: rgba(var(--amber-1-rgb), 0.05);
 }
 
 /* media page - shelf */
@@ -1714,6 +1749,28 @@ body.no-scan .screen::before {
   .proj-list .row-item {
     grid-template-columns: 44px 1fr auto;
   }
+}
+/* Wide rows: tag is too long for one line, so drop it under the title. */
+.proj-list .row-item--wide {
+  grid-template-columns: 56px 1fr 24px;
+  row-gap: 8px;
+}
+.proj-list .row-item--wide .idx {
+  grid-row: 1 / span 2;
+}
+.proj-list .row-item--wide .title {
+  grid-column: 2;
+  grid-row: 1;
+}
+.proj-list .row-item--wide .tag {
+  grid-column: 2;
+  grid-row: 2;
+  white-space: normal;
+  line-height: 1.5;
+}
+.proj-list .row-item--wide .arr {
+  grid-column: 3;
+  grid-row: 1;
 }
 
 /* meow: real field photos fill the card covers */
