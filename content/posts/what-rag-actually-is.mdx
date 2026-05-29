@@ -1,0 +1,141 @@
+---
+title: "What RAG actually is"
+description: "understanding rag without the complex stuff"
+date: 2026-05-29
+category: guide
+type: posts
+tags: [rag, llm, notes]
+fav: true
+author: meowy
+---
+
+Nowadays LLMs are like superintelligent ai heroes that can understand and help you with everything from writing to coding. But most LLMs are frozen in time, think of like an isekai-ed hero that's been hit by truck-kun and sent to another world where they're stuck forever. But that hero doesn't know anything about the world and still needs to learn and adapt for the survival of the new world they're sent to.
+Just like that, LLMs are stuck in frozen time also. It doesn't know anything about specific company docs, personal notes, or even worse cause when it doesn't know what it doesn't know, it doesn't stay quiet, it just starts to hallucinate and make up things that are not true. We can definitely fine-tune the model to help us with tasks but that's super slow and expensive to do. And we have to keep doing it every time the data changes.
+
+But RAG (Retrieval-Augmented Generation) is a technique that helps LLMs stay up-to-date with the latest information by getting relevant documents from a knowledge base or source and using them to generate responses. It's more like not putting relevant knowledge in the model itself but keeping it separate and updating it as needed.
+
+![how RAG works](/media/what-rag-actually-is/pipeline.png) 
+
+
+
+## How it actually works
+
+It actually works in two phases: indexing (once) and answering (every time).
+
+**Indexing:**
+
+it works ahead of time, here are the things it does.
+
+- take the documents (thats the knowledge base)
+- break them into chunks (normally a document is too big to fetch for the LLM so it needs to be broken into smaller chunks. In this way when we want to answer a question we only need to fetch the closest chunks, not the whole document)
+- turn each chunk into an embedding (we run each chunk through the embedding model and this turns texts into a vector of numbers. Mostly these long lists of numbers are stored in a vector store)
+- store the numbers in a vector store(chroma/qdrant db or other vector store) with the original texts alongside 
+
+**Answering/User Interaction:**
+
+it works on every question, here are the things it does.
+
+- user asks a question
+- embed the question with the same model (mostly you convert the question to a vector of numbers)
+- search the vector store for the closest chunks (normally it just search the store for the chunks whose vectors sit closest to the question vector)
+- the count is top-k which is basically how many chunks to retrieve. (lets just say it retrieves the top-k/top 5 closest chunks)
+- build a prompt : instruction + the retrieved chunks + the user's question
+- send to the LLM, it answers from the retrieved chunks and the user's question
+
+
+The last step is doing more than it looks. The model isn't answering from memory here, it's answering from the chunks that we provide to it, that's actually the whole point.
+But there's also a limit to how much we can hand to the model. Every model can only read so much at once, and that limit is called the model's context window.
+We can think of 1000+ episodes of an anime show but we can only watch so many at once. That's exactly why we watch maybe few episodes based on seasons and arc, and for rewatching specific arc we can go back and check maybe "one piece skypiea arc" which is like episodes 136 to 206. Just like LLM's context window and retrieval process, we also have limited time to watch anime and so we grab whatever we want to watch and focus on that. Same thing with our model, the instruction, the retrieved chunks, and the user's question all gotta fit within the model's context window and that's why we have to retrieve only the top-k/top 5 closest chunks. Instead of maybe dumping 1000+ documents, retrieval step trims it down to just what fits and what matters. 
+
+There's a whole skill around retrieving the right chunks to fit within the model's context window. That's context engineering. Maybe a topic for another day.
+
+## The chunking part
+
+I know this sounds super boring and why we're talking about this again. Well, it actually sort of decides how good the whole RAG is. Because a chunk is the unit of retrieval, it's also the first line of defense against bad answers. So if the chunks are bad, then the RAG is bad also. We never fetch a whole document, we fetch chunks. So how you cut them decides what can ever come back. You can have the best or most expensive embedding model in the world and still get garbage answers if the chunks are bad.
+
+It's all a tradeoff: chunk too big or too small. If it's too big, we get a blurry match that might not have the answer. If it's too small, we might miss the answer altogether.
+
+So there are some ways to cut the document into chunks:
+
+**Fixed size**: 
+
+It's just split every 500 tokens on the boundary of words. It's simplest, dumbest, and cuts mid-sentence without caring about meaning.
+
+**Fixed size with overlap**: 
+
+It's basically the same thing, but each chunk repeats the last bit of the one before it. That overlap is the trick, an idea sitting right on a boundary of the chunk still shows up whole in at least one chunk.
+
+**Recursive splitting**: 
+
+This is the one I used (langchain's RecursiveCharacterTextSplitter). Instead of blindly cutting, it tries to break on natural boundaries first, paragraphs, then lines, then sentences, and only cuts mid-sentence if it has to. It's more like "split on natural boundaries" for RAG chunking.
+
+**Structure-aware**: 
+
+This one splits on the document's own structure instead of raw length, things like markdown headers or code split by function. Works great when the docs actually have structure. It keeps a whole section together instead of slicing it at some random character count.
+
+**Semantic chunking**: 
+
+This is the fancy one. For this one, embed each sentence and start a new chunk only when the meaning shifts, so the breaks land where the topic actually changes instead of at some random character count. It costs more (cause it embeds everything upfront) and it's often overkill, but the idea is clean: chunk by meaning.
+
+**Agentic chunking**: 
+
+This specific method lets an llm pick the boundaries for you. So it matches on tiny chunks but feeds the model the bigger section they came from. For most cases though, one of the ways above is plenty.
+
+when I built [my own little RAG app](/blog/wiki-rag) over my obsidian notes, I used langchain's recursive splitter (`RecursiveCharacterTextSplitter`) with 1000-character chunks and 200 characters of overlap. That turned 17 notes into 92 chunks. I didn't overthink those numbers, they're the kind of defaults that just work until I have a real reason to change them, and I never hit one.
+
+
+
+## It can also break
+
+For some parts, RAG might feel like the fix for literally everything. But it also has a bunch of cons and most of them only can be realized after building one.
+
+Chunking is the first and one of the main ones. But we already talked about it above.
+
+**retrieval just misses.** 
+
+During retrieval, the whole thing rests on the right chunk landing in the top-k. if the question's vector doesn't land near the answer's, the model never even sees the right text, and it'll happily answer from whatever did come back, confident and wrong. 
+I actually hit a version of this in my own app, it answered a question about ownership correctly but cited `2026-03-31.md`, which was a daily journal that just happened to mention rust. I needed to tighten what gets indexed in the first place. It didn't need some fancy reranking model, a simple chunk overlap fix was enough.
+
+**it still hallucinates.** 
+
+RAG isn't a cure for hallucination, and it doesn't fix it completely. "just add RAG" gets sold as the cure for hallucination, and it isn't a complete one. The model can lean on its own memory instead of the given text, or the right chunk can be buried in the middle of a long context and get ignored (something like lost-in-the-middle). Or the answer just isn't in the docs and the model fills the silence anyway. Most of the time, the fix is adding the right document, not buying a smarter LLM.
+
+
+**and how do you even know it's working?** 
+
+We can measure it using two metrics: faithfulness (is the answer backed by the retrieved text) and answer relevancy (does it actually answer the question). We can run our model on a small golden set of questions and compare the results against these metrics. I mostly relied on ragas to score it, but I also did some manual verification.
+Ragas provides a convenient way to score RAG models using standard metrics like faithfulness and answer relevancy. It uses an llm to grade faithfulness and embeddings to grade answer relevancy, so we get a balanced view of how well your model is doing. When we change something, we can tell if it made the model better or worse instead of just vibing.
+
+
+## RAG, or something else?
+
+Even though RAG is one tool, it's not always the answer. It's important to know when to reach for something else instead. 
+
+**reach for RAG** 
+
+When the knowledge is large, private, or changes often. The win is that updating it is cheap, the edits on a document and re-index, no retraining the model, and we get citations almost for free since we already know which chunks the answer came from. this is the sweet spot. my notes app is exactly this, a pile of files that changes every time i write a new note.
+
+**reach for fine-tuning** 
+
+When we want to change how the model *behaves* rather than what it *knows*, its tone, its format, a particular style or skill. Fine-tuning makes more sense than diving that into the weights. It won't help to keep up with changing facts though, that's just not what it's for. 
+
+**and sometimes it's just the wrong tool** 
+
+RAG only gives the model a handful of chunks, so it's bad at anything that needs to reason across all the data at once. "compare these 50 companies and rank them" isn't a RAG question, it's a database query, the model never sees enough to compute the answer.
+
+## finally, what RAG actually is
+
+If we get rid of all the buzzwords then we can see that RAG is really just a way to give the model the right information at the right time and is a pretty simple concept.
+
+
+Everything we covered is just there to make that one move work. Embeddings let it find the right pieces by meaning. Chunking decides how those pieces get cut in the first place. A good prompt keeps the model honest enough to admit when the answer isn't there. And an eval tells that whether any of it is actually working.
+
+We discussed the frozen isekai-ed hero example from the start, stuck in a world they know nothing about. RAG is what hands them the right information at the exact moment they need it, so they stop guessing and filling the gaps with made-up stuff. The name makes it sound like heavy infrastructure, but really it is just looking things up before answering.
+
+ Here's the tiny RAG app I built over my own notes:
+
+[I built a tiny RAG app to talk to my own notes](/blog/wiki-rag)
+
+Thanks for reading! If you're into music then check out my media page for my go-to playlist. 
+
+Cheers mate 🥂
