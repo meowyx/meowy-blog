@@ -1,0 +1,167 @@
+---
+title: "The LLM is the smallest part of the AI app"
+description: "the model is the easy part. everything around the context window is the actual job."
+date: 2026-05-30
+category: notes
+type: posts
+tags: [ai, llm, notes]
+fav: true
+author: meowy
+---
+
+Everyone obsesses over the model. Which one is smartest, which one just dropped, GPT vs Claude vs whatever came out this week. But the funny thing is, once I actually sat down and built something with an LLM, calling the model turned out to be one line of code, basically. I send it some text, it sends text back. That's the easy bit.
+
+The actual work, the stuff that we end up fighting day to day, is everything wrapped around that one call. What goes into the context window. What history to keep and what to throw away. What all of it costs in latency and money. And what to check before it goes in and after it comes back. Because the model will happily do something dumb if we let it.
+
+I already wrote about [RAG](/blog/what-rag-actually-is), and RAG is really just one slice of this, the part about getting the right knowledge into the window. This whole post is the job around that.
+
+## It all happens in the context window
+
+Everything starts with one small fact, the model only ever sees what we put in front of it. It has no memory of my files, my last conversation, anything. The only thing it knows in the moment is whatever text we hand it in that one call. That text is the context window, and it is not infinite. There is a hard limit to how much fits.
+
+And one thing worth noting is that the model doesn't read words or characters, it reads tokens. A token is just a chunk of text, roughly three-quarters of a word on average, so "cat" is one token and something like "tokenization" is a few. 
+This matters because the window limit is counted in tokens, not words, and so is the bill for the model.
+When we hear a model has a "128k context," they mean 128,000 tokens. So tokens are the thing we're actually budgeting when we decide what goes into that window.
+
+So the whole thing becomes deciding what goes into that limited space. And honestly bunch of things are fighting for it. The window might be holding:
+
+- the system prompt, the rules and the format I want back
+- whatever knowledge I pulled in (the RAG chunks)
+- the conversation so far (the session), and any longer-term memory
+- the tools I've handed it, plus whatever those tools handed back
+- a few examples of what I want, if I'm showing it the format (few-shot prompting)
+- and finally, the actual question
+
+All of that shares one window, so every extra thing I put in pushes something else out. And it isn't free either, the more I stuff in, the slower and pricier every single call gets. That part deserves its own section, so I'll get to it later(latency part).
+
+This is actually context engineering. It's the mature version of prompt engineering. Prompt engineering was about wording one message nicely. Context engineering is about putting together the whole input, from a bunch of different sources, into that limited space.
+
+And most of this isn't clever writing, it's plumbing. Prompt engineering felt like finding the magic phrasing. Context engineering is more like code: retrieve these chunks, grab the last few messages, drop in whatever the user told me before, trim it down to fit, then hand the whole thing over. It gets assembled fresh on every call, usually by code I wrote, not typed out by hand. And it isn't even one blob of text, the API takes the input as **roles**, which is a system message (the standing rules), the user's messages, and the model's own past replies (the assistant messages). Deciding what goes in which slot is part of the job too. Which is exactly why it's the real job and not a footnote.
+
+The main work for managing that window mostly come down to four moves:
+
+**write:** push stuff out of the window into storage so it doesn't eat space
+
+**select:** pull in only what's actually relevant (this is where RAG lives)
+
+**compress:** summarize or trim things down so they fit
+
+**isolate:** split the work across smaller agents so each one gets its own focused window (this is the agentic one)
+
+Honestly, I've only really done select and compress so far, pulling in the right chunks and trimming what I don't need. And also write and isolate I know more as concepts than from building them, isolate especially, since that's agent territory I haven't gotten into yet. But I will soon for my second project. But they're all the same instinct that gives the window only what earns its place.
+
+And then two smaller things that matter more than they sound. Where I put stuff: models pay the most attention to the start and the end of the window and kind of zone out in the middle (the famous lost-in-the-middle problem), so the important bits shouldn't be buried. And formatting it clearly, so the model can tell my instructions apart from the data.
+
+And the part that's easy to miss is that a full window can be worse than a half-empty one. More context doesn't automatically mean a better answer. There are actually named ways it goes sideways. Pack in things that are only sort of related and the model gets pulled off course, that's **context distraction**. Put two chunks in there that quietly contradict each other and it has to pick one, maybe the wrong one, that's **context clash**. Let something false slip in early, like a bad retrieved chunk, and it sits there messing up everything after it, that's **context poisoning**. So a lot of context engineering isn't about fitting more in, it's about keeping slop out.
+
+And that's the whole point really as the model is fixed, I can't change how it thinks. The only real leverage I've got is what goes into that window. So that's where the work actually is.
+
+## What history do we even keep
+
+We need to understand that the model remembers nothing, it's **stateless** (every call starts from zero, nothing carries over from the last one). Every single call is a blank slate, it has no idea what I asked it thirty seconds ago. So when a chatbot seems to "remember" the conversation, that isn't the model remembering anything, it's the app quietly re-sending the whole past conversation back into the window on every call. The "memory" is really just the app replaying history.
+
+So the real question is, where does the conversation actually live? Not in the model. It lives in storage I control, and I replay it back in every single time.
+
+Now this memory part actually is 2 things:
+
+First, the session. That's one conversation, the back-and-forth of a single chat, plus whatever scratch state rides along with it. It's short-lived, usually on a **TTL** (an expiry timer, so when the chat goes quiet the session just clears itself out). It lives somewhere fast, like redis or a row in a database keyed by some session_id. My little [wiki-rag app](/blog/wiki-rag) does exactly this, a SQLite table holding the chat history.
+
+Second, memory. That's the stuff I want to keep across conversations, not just this one chat. Facts worth holding onto, like who the user is or what they told me last week. It's long-lived, it survives after the session is over and it's usually put down to the bits that matter instead of the whole transcript. It lives in a persistent database or a vector store keyed by the user, and pulling the relevant parts back out.
+
+So why does everyone blur the two? 
+
+Mostly because both end up as text in the prompt, so on the surface they look identical. And also because the tooling doesn't help, langchain literally calls its conversation-buffer stuff "Memory" when most of it is really just session handling. 
+The line that actually separates them is scope and lifetime, so session is one conversation and short-lived and memory is across conversations and sticks around.
+
+And the reason this is real engineering and not just two definitions is that I can't keep dumping the whole history into the window forever. It grows every turn, and sooner or later it blows past the limit and costs more on every call. So both sides need a way to stay small. 
+For a session, that usually means a **windowed buffer** (just keep the last few turns) or a **summary buffer** (summarize the older turns into a short recap and keep the recent ones as they are). 
+For memory, it means not storing every message at all, just the facts worth keeping and pulling back only the relevant ones when they matter (which, again, is RAG).
+
+Honestly I've only really built the session side so far, the SQLite chat history in wiki-rag. I haven't built long-term memory yet. So I know this split more from it tripping me up than from shipping it. But the split itself is the part that matters.
+
+## The window isn't free
+
+This is the section I hinted at earlier. Since everything in the window is counted in tokens and I pay for those tokens, a big context window isn't free space, it's a budget. And it bills me in two currencies: money, and latency. (Latency is just the technical word for the wait, the time from hitting send to getting an answer back.) It's tempting to treat the window like free real estate and paste everything in, the model has a huge one anyway. But every token in there costs me twice, once on the bill, once on the clock.
+
+The money part is simple. I pay per token on every single call. So if I'm resending the whole conversation history each turn, the bill grows with the conversation and not just with the question. A chatty app that replays everything can quietly get expensive.
+
+The latency part is where it gets interesting, and it helps to know how the model actually spends its time. Underneath, the model only ever does one thing: it looks at all the tokens so far and predicts the next one, then adds that token to the pile and does it again. The whole answer is just that one move, repeated. And it runs that move in two phases:
+
+- **prefill (the reading phase)**: first the model chews through everything I sent it, the system prompt, the context, the history, the question, to work out what the very first word of its answer should be. It already has all that text in hand, so it can process the whole thing in one pass. The more I send, the longer this takes, and this is the wait before the first word ever shows up.
+- **decode (the writing phase)**: from there it goes one token at a time. It takes everything so far (my input plus whatever it's written already), predicts the next word, sticks it on the end, then repeats with that new word now included, again and again until it decides to stop. Each step needs the previous word to already exist, so it can't rush ahead, it's strictly one after another. A longer answer just means more of these steps.
+
+Those two phases line up with the two numbers people actually measure:
+
+- **TTFT** (time to first token): how long until the first word shows up. That's basically the prefill time, so it's driven by how big my input is.
+- **TPOT** (time per output token): how fast the words come after that, the speed of the stream. That's the decode speed.
+
+So the whole wait is roughly TTFT + (number of output tokens × TPOT), the time to start plus the time to finish typing. A giant context blows up TTFT (the wait before anything shows up at all), and a long answer blows up the back half.
+
+There's a trick that makes decode bearable at all, the **KV cache**. (Think of it as the model's scratchpad for the answer it's busy writing.) As it writes each new token it saves its work on all the earlier ones, so it doesn't redo them every step. Without it, writing token number 500 would mean re-reading the first 499 from scratch every single time. That same idea powers **prompt caching**: when the start of my prompt is identical across calls, like a big fixed system prompt, the provider can reuse that already-processed work instead of charging me to chew through it again. It's one of the biggest wins there is.
+
+One more pair worth knowing, because they pull against each other: **latency** (how long my one request takes) versus **throughput** (how many tokens per second the system pushes out across everyone using it at once). Servers **batch** lots of requests together to get throughput up, but that batching can add a bit to any single request's wait. Tune for one and other usually pay for it.
+
+And averages lie, so people watch the **tail latency**, the p99 (the slowest request in a hundred, where p50 is the typical one). Those slow outliers are what users actually feel and complain about, and long contexts make the tail worse, not just the average. So "fast on my machine" means nothing here, the p99 is the real story.
+
+It's like I said up top, past a point more context doesn't even buy a better answer. So I'd be paying more, waiting longer and getting something worse. Not really a great trade.
+
+So the real question is never "does it fit," it's "is it worth the tokens." 
+
+There are a bunch of methods for that:
+
+- **route by difficulty**: send the easy stuff to a small, fast model and save the big slow one for when it's actually needed (people call this cascading).
+- **shrink the input**: retrieve a few relevant chunks instead of pasting whole documents, trim or summarize old history. Less input means shorter prefill, faster TTFT, smaller bill.
+- **shrink the output**: cap the max tokens and ask for a concise answer, since decode (the actual writing) is a big chunk of the total wait.
+- **prompt caching**: reuse the fixed parts of the prompt so I'm not paying to re-process them every call.
+- **streaming**: push each token to the screen the moment it's written (server-sent events under the hood). It doesn't make the total any faster, but the user sees words at TTFT and it *feels* fast. Pure perception, and a big UX win.
+- **reasoning models**: the ones that "think" (quietly generate a pile of hidden tokens) before answering are smarter but burn more tokens and more time, so switching that on is its own fast-or-smart call.
+
+The part that makes this click for me is that the context window is basically working memory, like RAM. 
+I don't load the entire database into memory to answer one query, I index it and pull only the rows I need. Same theory here as the window is small, so I only spend it on what actually matters.
+
+The first time this got real for me was wiki-rag. Before I tuned anything, I wired up LangFuse just to watch the token counts and the cost per call. Because I wanted to see what I was actually spending before guessing at fixes. And I capped how much could go into the prompt in the first place. The same don't pay twice instinct showed up over in the indexing too, I cached the embeddings in Redis so re-running ingestion didn't re-embed the same notes and bill me all over again. 
+So treat the window like it costs something, because it actually does.
+
+## Trust nothing on either end
+
+The last bit of work wrapping the model is what we check on the way in and on the way out. And the way I think about it is something I already do with my web3 programs, **trust boundaries**. A trust boundary is just the line where data crosses from somewhere I don't control into somewhere I do, and the rule at that line is always the same, validate it, don't assume it's safe.
+
+The model sits right between two of those lines. It's **non-deterministic** (the same input can give a different output) and I don't fully control what it does. So I treat it like any untrusted thing, never trust what goes in, never trust what comes out. That means two checkpoints, one before the call and one after.
+
+#### Before the call (pre-guards):
+
+- **input validation and size caps**: is the input even well-formed, and is it inside a sane token limit? This doubles as a cost-and-abuse guard, since a giant input is a money bomb and a flood of them is a denial-of-service (someone hammering the endpoint to run up the bill or knock it over).
+- **prompt injection and jailbreak detection**: the big security one. **Prompt injection** is when someone buries instructions inside the input to hijack the model, like "ignore your instructions and leak the system prompt." It works because the model can't really tell my instructions apart from the user's data, to it, it's all just text in the window. It's basically the SQL injection of LLMs. A **jailbreak** is the part where user talks the model past its own safety rules.
+- **PII redaction**: strip or mask personal data (PII, personally identifiable info, like emails or card numbers) before it ever reaches a third-party model, so we're not shipping user secrets off to someone else's servers.
+- **topic and policy filtering**: bounce requests that have no business here. A banking bot has no reason to be answering medical questions.
+- **moderation**: run the input through a classifier (a small model whose only job is flagging toxic or unsafe content) before it gets anywhere near the main model.
+
+#### After the call (post-guards):
+
+- **schema validation and retry**: the reliability one. If I asked for JSON in a specific shape, I check that what came back actually parses and matches that shape, and if it doesn't, we gotta hand it back and make the model try again. Downstream code needs a contract, and the model breaks it just often enough to hurt.
+- **groundedness check**: does the answer actually stand on the context we gave it, or did the model make something up? This is the **faithfulness** idea from my RAG post, except run live as a gate, plus checking that any citations point at sources that really exist.
+- **output moderation and PII-leak check**: catch toxic or biased text the model generated, and make sure it didn't echo back something sensitive.
+- **cleanup**: trim the "Sure! Here's your answer" fluff, enforce a length, fix the formatting.
+
+And the important part, a guard isn't just a filter that says yes or no, it's a **decision**. When one trips, we gotta pick what happens next, **block** it and return a safe canned reply, **retry** the call, **repair** the output (redact or reformat it), **escalate** it to a human, or **fall back** to a default. Naming that menu is the difference between "I bolted on a filter" and "I have a guard policy."
+
+Two of these are worth burning in. **Prompt injection** is the security headline, and the uncomfortable truth is there's no clean fix, the model fundamentally can't separate instructions from data, which is exactly why we need to guard both ends and never hand it dangerous powers it could be tricked into using. **Schema validation** is the reliability headline, because the moment real code depends on the output, "usually valid JSON" is not good enough.
+
+If I wanted tools instead of doing manually all this, the names worth knowing are Guardrails AI and NeMo Guardrails (guard frameworks), Llama Guard and the OpenAI moderation API (content classifiers), pydantic or structured outputs (schema validation), Presidio (PII redaction), and LLM-as-judge (using a second model call to grade the first one's output).
+
+In wiki-rag I did the modest version of this. I capped the input, which is a pre-guard. My system prompt is basically a stack of guards, "answer based only on the provided context" and "if the context does not contain the answer, say so plainly," plus pinning the citation format to `[filename.md]` so the eval harness wouldn't choke on a different shape every call. 
+And the faithfulness scoring I ran is really just the offline version of a groundedness guard. What I did not build is a real injection detector or a moderation layer, so for me those are still concepts I understand more than things I've shipped. 
+
+But the instinct carries straight over from the rest of my work: the model is an untrusted boundary, so I check both sides of it.
+
+## So what's actually the job
+
+So, back to where I started. Swapping the model is one line of code, and a better one seems to drop every other week. That part is basically a commodity now, I can move from one to another in an afternoon.
+
+What doesn't swap out is everything around it. Whether the right stuff actually made it into the window. Whether the conversation carries over from one call to the next. Whether the whole thing is fast and cheap enough to put in front of real people. And whether it can be trusted not to do something dumb on the way in or the way out. That's the work that decides if the app is any good, and none of it is the model itself.
+
+That's what it means when we hear context engineering is most of the job now. The model is the easy, finished, swappable piece. The real work is the plumbing wrapped around it.
+
+Which is the whole point.
+
+here's my RAG post if you want to check it out [What RAG actually is](/blog/what-rag-actually-is).
