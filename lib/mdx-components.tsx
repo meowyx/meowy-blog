@@ -1,7 +1,8 @@
 import type { MDXComponents } from "mdx/types"
 import { CopyButton } from "@/components/copy-button"
 import { Collapsible } from "@/components/collapsible"
-import { DesignPrinciples } from "@/components/design-principles"
+import { Divider } from "@/components/divider"
+import { Bold } from "@/components/bold"
 
 /**
  * MDX renders inside a `.prose` wrapper (cassette CRT styling in
@@ -34,5 +35,6 @@ export const mdxComponents: MDXComponents = {
   h2: linkable("h2"),
   h3: linkable("h3"),
   Collapsible,
-  DesignPrinciples,
+  Divider,
+  Bold,
 }
