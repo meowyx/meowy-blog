@@ -68,6 +68,10 @@ export default async function BlogPostPage({
           <span className="now-key">LEN</span>
           <span className="now-val">{readMin} MIN</span>
         </div>
+        <div className="now-row">
+          <span className="now-key">WORDS</span>
+          <span className="now-val">{words.toLocaleString("en-US")}</span>
+        </div>
         {dateShort && (
           <div className="now-row">
             <span className="now-key">DATE</span>
