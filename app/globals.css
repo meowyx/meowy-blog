@@ -261,7 +261,8 @@ body.no-scan .screen::before {
 
 .screen-inner {
   position: relative;
-  z-index: 1;
+  /* No z-index here: keeping this out of its own stacking context lets media
+     sit above the scanline + vignette overlay (see .screen-inner img/video). */
   height: 100%;
   overflow-y: auto;
   padding: 22px 28px 26px;
@@ -271,6 +272,16 @@ body.no-scan .screen::before {
   font-size: 18px;
   line-height: 1.25;
 }
+
+/* Images + video punch through the scanline + vignette overlay so media reads
+   clean, while text keeps the CRT scanlines. Below .screen-header (z-index 8)
+   so media still scrolls under the sticky nav. */
+.screen-inner img,
+.screen-inner video {
+  position: relative;
+  z-index: 7;
+}
+
 /* amber scrollbar */
 .screen-inner::-webkit-scrollbar {
   width: 10px;
@@ -291,7 +302,7 @@ body.no-scan .screen::before {
 .screen-header {
   position: sticky;
   top: 0;
-  z-index: 4;
+  z-index: 8;
   display: flex;
   justify-content: space-between;
   align-items: center;
