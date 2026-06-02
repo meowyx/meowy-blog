@@ -22,6 +22,13 @@ const PROJECTS: {
   wide?: boolean;
 }[] = [
   {
+    title:
+      "agave-votor-scope - profiling agave's banking_stage against alpenglow votor's timing budget",
+    tag: "[ RUST · TOKIO · AGAVE · SVM · TOKIO-CONSOLE ]",
+    href: "https://github.com/meowyx/agave-votor-scope",
+    wide: true,
+  },
+  {
     title: "wiki-rag - tiny rag app to ask notes & get answers with citations",
     tag: "[ PYTHON 3.13 · FASTAPI · LANGCHAIN · CHROMA · REDIS · SQLITE · LANGFUSE · RAGAS · OPENAI ]",
     href: "https://github.com/meowyx/wiki-rag",
