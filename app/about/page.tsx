@@ -23,6 +23,13 @@ const PROJECTS: {
 }[] = [
   {
     title:
+      "agentic-vault - an agentic app to talk to any kind of notes & documents",
+    tag: "[ PYTHON · FASTAPI · LANGGRAPH · LANGCHAIN · CHROMA · REDIS · SQLITE · JWT · LANGFUSE · OPENAI ]",
+    href: "https://github.com/meowyx/agentic-vault",
+    wide: true,
+  },
+  {
+    title:
       "agave-votor-scope - profiling agave's banking_stage against alpenglow votor's timing budget",
     tag: "[ RUST · TOKIO · AGAVE · SVM · TOKIO-CONSOLE ]",
     href: "https://github.com/meowyx/agave-votor-scope",
@@ -30,7 +37,7 @@ const PROJECTS: {
   },
   {
     title: "wiki-rag - tiny rag app to ask notes & get answers with citations",
-    tag: "[ PYTHON 3.13 · FASTAPI · LANGCHAIN · CHROMA · REDIS · SQLITE · LANGFUSE · RAGAS · OPENAI ]",
+    tag: "[ PYTHON · FASTAPI · LANGCHAIN · CHROMA · REDIS · SQLITE · LANGFUSE · RAGAS · OPENAI ]",
     href: "https://github.com/meowyx/wiki-rag",
     wide: true,
   },
