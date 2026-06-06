@@ -27,6 +27,7 @@ const ON_ROTATION = [
 
 // All-time loves. More categories and picks to come.
 const LOVES = [
+  { cat: "GENRE", picks: "horror (the most) · adventure · slice of life · comedy" },
   { cat: "ANIME", picks: "barakamon · mushishi" },
   { cat: "TV", picks: "the wonderfools" },
 ]
