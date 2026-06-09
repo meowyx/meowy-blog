@@ -23,6 +23,13 @@ const PROJECTS: {
 }[] = [
   {
     title:
+      "xdp-packet-router - kernel-level packet demultiplexer that sorts consensus traffic by source proposer",
+    tag: "[ RUST · EBPF/XDP · AYA · TOKIO · NO_STD · MUSL CROSS-COMPILE · LINUX KERNEL ]",
+    href: "https://github.com/meowyx/xdp-packet-router",
+    wide: true,
+  },
+  {
+    title:
       "agentic-vault - an agentic app to talk to any kind of notes & documents",
     tag: "[ PYTHON · FASTAPI · LANGGRAPH · LANGCHAIN · CHROMA · REDIS · SQLITE · JWT · LANGFUSE · OPENAI ]",
     href: "https://github.com/meowyx/agentic-vault",
