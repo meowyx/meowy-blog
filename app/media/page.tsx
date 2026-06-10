@@ -15,9 +15,9 @@ const SPOTIFY_PLAYLIST = "1bhdpU1YWPRVhcCWSfYJw6"
 // What I've been on lately. Currently watching nothing, no game in progress.
 // Add shows / books / albums here as they come.
 const ON_ROTATION = [
-  { title: "taiwan travelogue", tag: "[ BOOK · READING ]" },
+  { title: "got dropped into a ghost story, still gotta work", tag: "[ WEBNOVEL · READING ]" },
+  { title: "widow's bay", tag: "[ TV · WATCHING ]" },
   { title: "from · s4", tag: "[ TV · WATCHING ]" },
-  { title: "widow's bay", tag: "[ TV · MAYBE ]" },
   { title: "colony", tag: "[ FILM · SOON ]" },
   { title: "call of duty: black ops 7", tag: "[ GAME · RECENT ]" },
   { title: "stardew valley", tag: "[ GAME · RECENT ]" },
@@ -93,8 +93,9 @@ export default function MediaPage() {
           </h1>
           <p className="lede">
             <span className="prompt">&gt;</span> currently reading{" "}
-            <b>taiwan travelogue</b> and watching <b>from</b> (s4). a couple
-            things queued up, recent plays, and an all-time favs list below.
+            <b>got dropped into a ghost story, still gotta work</b> and watching{" "}
+            <b>widow&apos;s bay</b>. a couple things queued up, recent plays, and
+            an all-time favs list below.
           </p>
         </div>
       </div>
