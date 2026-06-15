@@ -15,7 +15,7 @@ const SPOTIFY_PLAYLIST = "1bhdpU1YWPRVhcCWSfYJw6"
 // What I've been on lately. Currently watching nothing, no game in progress.
 // Add shows / books / albums here as they come.
 const ON_ROTATION = [
-  { title: "got dropped into a ghost story, still gotta work", tag: "[ WEBNOVEL · READING ]" },
+  { title: "the author's pov", tag: "[ WEBNOVEL · READING ]" },
   { title: "widow's bay", tag: "[ TV · WATCHING ]" },
   { title: "from · s4", tag: "[ TV · WATCHING ]" },
   { title: "colony", tag: "[ FILM · SOON ]" },
@@ -93,7 +93,7 @@ export default function MediaPage() {
           </h1>
           <p className="lede">
             <span className="prompt">&gt;</span> currently reading{" "}
-            <b>got dropped into a ghost story, still gotta work</b> and watching{" "}
+            <b>the author&apos;s pov</b> and watching{" "}
             <b>widow&apos;s bay</b>. a couple things queued up, recent plays, and
             an all-time favs list below.
           </p>
