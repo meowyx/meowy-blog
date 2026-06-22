@@ -22,6 +22,18 @@ const PROJECTS: {
   wide?: boolean;
 }[] = [
   {
+    title: "constellation-encoder - reed-solomon erasure encoder at 4x redundancy",
+    tag: "[ RUST · REED-SOLOMON · ERASURE CODING · SOLANA ]",
+    href: "https://github.com/meowyx/constellation-encoder",
+    wide: true,
+  },
+  {
+    title: "zero to rust - written companion guide to the video series",
+    tag: "[ RUST · GUIDE ]",
+    href: "https://www.zerotorust.com/",
+    wide: true,
+  },
+  {
     title:
       "xdp-packet-router - kernel-level packet demultiplexer that sorts consensus traffic by source proposer",
     tag: "[ RUST · EBPF/XDP · AYA · TOKIO · NO_STD · MUSL CROSS-COMPILE · LINUX KERNEL ]",
