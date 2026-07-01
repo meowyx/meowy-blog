@@ -236,10 +236,15 @@ export default function AboutPage() {
               job: <b>rust</b>, <b>go</b>, or <b>python</b>.
             </p>
             <p>
-              right now i&apos;m in the trenches of{" "}
-              <b>solana&apos;s validator</b>: svm internals, alpenglow
-              consensus, kernel-bypass networking, and profiling the hot path
-              against a latency budget.
+              right now i&apos;m an <b>ai engineer</b> building a production
+              agent on a <b>langgraph</b> stack. most of my day is agent
+              routing, prompt engineering, and the llm evals that prove a change
+              actually works before it ships.
+            </p>
+            <p>
+              and i&apos;m deep in <b>solana&apos;s validator</b>: svm internals,
+              alpenglow consensus, kernel-bypass networking, and profiling the
+              hot path against a latency budget.
             </p>
             <p>
               i learn and build in public, write technical deep-dives, and make
@@ -292,7 +297,38 @@ export default function AboutPage() {
 
       <div className="section-head">
         <span className="title-row">
-          <span className="num">[ 02 ]</span> <span>PREVIOUSLY</span>
+          <span className="num">[ 02 ]</span> <span>CURRENTLY</span>
+        </span>
+        <span className="count">CONTRACT · REMOTE</span>
+      </div>
+
+      <div className="term-block">
+        <ul
+          className="prose"
+          style={{ margin: 0, paddingLeft: 24, fontSize: 18 }}
+        >
+          <li>
+            <b>
+              ai engineer @{" "}
+              <a
+                href="https://leveor.xyz/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                leveor
+              </a>
+            </b>{" "}
+            (contract) - production ai agent on a <b>langgraph</b> stack. agent
+            routing, prompt engineering, cosmos db
+            backend work, and the llm evals that prove a change works before it
+            ships.
+          </li>
+        </ul>
+      </div>
+
+      <div className="section-head">
+        <span className="title-row">
+          <span className="num">[ 03 ]</span> <span>PREVIOUSLY</span>
         </span>
         <span className="count">DEVREL + EDUCATION</span>
       </div>
@@ -374,7 +410,7 @@ export default function AboutPage() {
 
       <div className="section-head">
         <span className="title-row">
-          <span className="num">[ 03 ]</span>{" "}
+          <span className="num">[ 04 ]</span>{" "}
           <span>PUBLICATIONS ELSEWHERE</span>
         </span>
       </div>
@@ -415,7 +451,7 @@ export default function AboutPage() {
 
       <div className="section-head">
         <span className="title-row">
-          <span className="num">[ 04 ]</span> <span>HACKATHONS · 2022</span>
+          <span className="num">[ 05 ]</span> <span>HACKATHONS · 2022</span>
         </span>
         <span className="count">×2 BOUNTY WINS</span>
       </div>
@@ -456,7 +492,7 @@ export default function AboutPage() {
 
       <div className="section-head">
         <span className="title-row">
-          <span className="num">[ 05 ]</span> <span>REACH ME</span>
+          <span className="num">[ 06 ]</span> <span>REACH ME</span>
         </span>
         <span className="count">FASTEST: BE SPECIFIC IN ¶1</span>
       </div>
