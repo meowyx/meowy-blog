@@ -22,6 +22,13 @@ const PROJECTS: {
   wide?: boolean;
 }[] = [
   {
+    title:
+      "micro-svm-rollup - minimal rollup that runs txs off-chain through the svm, settling batched state on mainnet",
+    tag: "[ RUST · RATATUI · SOLANA-SVM · AGAVE ]",
+    href: "https://github.com/meowyx/micro-svm-rollup",
+    wide: true,
+  },
+  {
     title: "constellation-encoder - reed-solomon erasure encoder at 4x redundancy",
     tag: "[ RUST · REED-SOLOMON · ERASURE CODING · SOLANA ]",
     href: "https://github.com/meowyx/constellation-encoder",
