@@ -7,7 +7,7 @@ import { getPublicationCount } from "@/lib/publications";
 export const metadata: Metadata = {
   title: "about",
   description:
-    "Sushmita R (meowy) - full-stack engineer. I build full-stack apps, dev tooling, and on-chain backends.",
+    "Sushmita R (meowy) - full-stack engineer. I build full-stack apps, dev tooling and on-chain backends.",
 };
 
 const ASCII_FACE = " /\\_/\\\n( o.O )\n  >v<";
@@ -210,7 +210,7 @@ export default function AboutPage() {
           <p className="lede">
             <span className="prompt">&gt;</span> full-stack engineer,{" "}
             <b>5+ years</b> shipping software. i build full-stack apps, dev
-            tooling, and on-chain systems down to the validator.
+            tooling and on-chain systems down to the validator.
           </p>
         </div>
       </div>
@@ -245,16 +245,16 @@ export default function AboutPage() {
             <p>
               right now i&apos;m an <b>ai engineer</b> building a production
               agent on a <b>python + langgraph</b> stack. most of my day is
-              agent routing, prompt engineering, and the llm evals that prove a
+              agent routing, prompt engineering and the llm evals that prove a
               change actually works before it ships.
             </p>
             <p>
               and i&apos;m deep in <b>solana&apos;s validator</b>: svm internals,
-              alpenglow consensus, kernel-bypass networking, and profiling the
+              alpenglow consensus, kernel-bypass networking and profiling the
               hot path against a latency budget.
             </p>
             <p>
-              i learn and build in public, write technical deep-dives, and make
+              i learn and build in public, write technical deep-dives and make
               video to match. i love teaching what i build. most of my work the
               last 5+ years has been developer relations and developer
               education.
@@ -327,7 +327,7 @@ export default function AboutPage() {
             </b>{" "}
             (contract) - production ai agent on a <b>python + langgraph</b>{" "}
             stack. agent routing, prompt engineering, cosmos db
-            backend work, and the llm evals that prove a change works before it
+            backend work and the llm evals that prove a change works before it
             ships.
           </li>
           <li>
@@ -342,7 +342,7 @@ export default function AboutPage() {
               </a>
             </b>{" "}
             (part-time) - guide cohort members through complex topics, curate
-            the learning resources, and give hands-on debugging support.
+            the learning resources and give hands-on debugging support.
           </li>
         </ul>
       </div>
@@ -370,8 +370,8 @@ export default function AboutPage() {
                 consensys
               </a>
             </b>{" "}
-            - production dapps, templates, and cli tools, plus technical
-            deep-dives for metamask, infura, and linea.
+            - production dapps, templates and cli tools, plus technical
+            deep-dives for metamask, infura and linea.
           </li>
           <li>
             <b>
@@ -444,7 +444,7 @@ export default function AboutPage() {
         <ul>
           <li>
             <b>metamask</b> dev blog - tutorials on the sdk, gas api, viem vs
-            ethers, hardhat vs foundry, and stablecoins on linea.{" "}
+            ethers, hardhat vs foundry and stablecoins on linea.{" "}
             <a
               href="https://metamask.io/news/developers"
               target="_blank"
@@ -455,7 +455,7 @@ export default function AboutPage() {
           </li>
           <li>
             <b>linea</b> on mirror.xyz - deep-dives on the prover, ai agents on
-            linea, ERC20 walkthroughs, and a workshop series.{" "}
+            linea, ERC20 walkthroughs and a workshop series.{" "}
             <a
               href="https://linea.mirror.xyz"
               target="_blank"
