@@ -306,7 +306,7 @@ export default function AboutPage() {
         <span className="title-row">
           <span className="num">[ 02 ]</span> <span>CURRENTLY</span>
         </span>
-        <span className="count">CONTRACT · REMOTE</span>
+        <span className="count">CONTRACT + TEACHING</span>
       </div>
 
       <div className="term-block">
@@ -329,6 +329,20 @@ export default function AboutPage() {
             routing, prompt engineering, cosmos db
             backend work, and the llm evals that prove a change works before it
             ships.
+          </li>
+          <li>
+            <b>
+              instructor @{" "}
+              <a
+                href="https://turbin3.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                turbin3
+              </a>
+            </b>{" "}
+            (part-time) - guide cohort members through complex topics, curate
+            the learning resources, and give hands-on debugging support.
           </li>
         </ul>
       </div>
