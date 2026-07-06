@@ -244,9 +244,9 @@ export default function AboutPage() {
             </p>
             <p>
               right now i&apos;m an <b>ai engineer</b> building a production
-              agent on a <b>langgraph</b> stack. most of my day is agent
-              routing, prompt engineering, and the llm evals that prove a change
-              actually works before it ships.
+              agent on a <b>python + langgraph</b> stack. most of my day is
+              agent routing, prompt engineering, and the llm evals that prove a
+              change actually works before it ships.
             </p>
             <p>
               and i&apos;m deep in <b>solana&apos;s validator</b>: svm internals,
@@ -325,8 +325,8 @@ export default function AboutPage() {
                 leveor
               </a>
             </b>{" "}
-            (contract) - production ai agent on a <b>langgraph</b> stack. agent
-            routing, prompt engineering, cosmos db
+            (contract) - production ai agent on a <b>python + langgraph</b>{" "}
+            stack. agent routing, prompt engineering, cosmos db
             backend work, and the llm evals that prove a change works before it
             ships.
           </li>
