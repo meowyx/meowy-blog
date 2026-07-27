@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 const pad2 = (n: number) => String(n).padStart(2, "0")
 const pad3 = (n: number) => String(n).padStart(3, "0")
 
-const SPOTIFY_PLAYLIST = "1bhdpU1YWPRVhcCWSfYJw6"
+const SPOTIFY_PLAYLIST = "2jZ739rktO1NnYMEcFUA0T"
 
 // What I've been on lately. Currently watching nothing, no game in progress.
 // Add shows / books / albums here as they come.
