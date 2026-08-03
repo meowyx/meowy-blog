@@ -239,19 +239,25 @@ export default function AboutPage() {
           <h3>BIO</h3>
           <article className="prose" style={{ maxWidth: "none" }}>
             <p>
-              frontend in <b>next.js</b> with typescript. backends depend on the
-              job: <b>rust</b>, <b>go</b>, or <b>python</b>.
-            </p>
-            <p>
               right now i&apos;m an <b>ai engineer</b> building a production
               agent on a <b>python + langgraph</b> stack. most of my day is
               agent routing, prompt engineering and the llm evals that prove a
               change actually works before it ships.
             </p>
             <p>
-              and i&apos;m deep in <b>solana&apos;s validator</b>: svm internals,
-              alpenglow consensus, kernel-bypass networking and profiling the
-              hot path against a latency budget.
+              frontend in <b>next.js</b> with typescript. backends depend on
+              the job: <b>rust</b>, <b>go</b> or <b>python</b>.
+            </p>
+            <p>
+              these days i&apos;m mostly going deep into <b>databases</b> down
+              to the storage engine, <b>distributed systems</b>,{" "}
+              <b>performance engineering</b> and <b>benchmarking</b>, with{" "}
+              <b>kubernetes</b> as the delivery layer.
+            </p>
+            <p>
+              i&apos;ve also spent serious time inside{" "}
+              <b>solana&apos;s validator</b>: svm internals, consensus, the
+              networking hot path.
             </p>
             <p>
               i learn and build in public, write technical deep-dives and make
@@ -267,13 +273,14 @@ export default function AboutPage() {
             className="prose"
             style={{ margin: 0, paddingLeft: 24, fontSize: 18 }}
           >
+            <li>ai agents &amp; agentic development</li>
+            <li>distributed systems &amp; observability</li>
+            <li>databases &amp; storage engines</li>
+            <li>performance engineering &amp; benchmarking</li>
+            <li>kubernetes</li>
             <li>full-stack apps</li>
             <li>dev tooling</li>
-            <li>distributed systems &amp; observability</li>
-            <li>apis &amp; databases</li>
-            <li>ai agents &amp; agentic development</li>
             <li>solana protocol &amp; validator internals</li>
-            <li>low-latency systems &amp; kernel bypass</li>
           </ul>
         </div>
       </div>
