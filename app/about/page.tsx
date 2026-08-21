@@ -210,7 +210,7 @@ export default function AboutPage() {
           <p className="lede">
             <span className="prompt">&gt;</span> full-stack engineer,{" "}
             <b>5+ years</b> shipping software. i build full-stack apps, dev
-            tooling and on-chain systems down to the validator.
+            tooling and on-chain systems.
           </p>
         </div>
       </div>
@@ -255,11 +255,6 @@ export default function AboutPage() {
               <b>kubernetes</b> as the delivery layer.
             </p>
             <p>
-              i&apos;ve also spent serious time inside{" "}
-              <b>solana&apos;s validator</b>: svm internals, consensus, the
-              networking hot path.
-            </p>
-            <p>
               i learn and build in public, write technical deep-dives and make
               video to match. i love teaching what i build. most of my work the
               last 5+ years has been developer relations and developer
@@ -280,7 +275,6 @@ export default function AboutPage() {
             <li>kubernetes</li>
             <li>full-stack apps</li>
             <li>dev tooling</li>
-            <li>solana protocol &amp; validator internals</li>
           </ul>
         </div>
       </div>
